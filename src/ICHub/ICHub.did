@@ -14,6 +14,7 @@ type CanisterConfig = record {
 type UserConfigDisplay = record {
   user : principal;
   ui_config : blob;
+  calls_limit: nat16;
   canister_configs : vec CanisterConfig;
   canister_calls : vec CanisterCall;
 };
@@ -24,5 +25,5 @@ service ICHub : {
   cache_canister_config : (vec CanisterConfig) -> ();
   cache_canister_calls : (vec CanisterCall) -> ();
   get_user_config : () -> (UserConfigDisplay) query;
-  get_canister_calls(Option<Principal>, Option<String>, Option<u16>) -> (vec CanisterCall) query;
+  get_canister_calls: (opt principal, opt text, opt nat16 ) -> (vec CanisterCall) query;
 }
