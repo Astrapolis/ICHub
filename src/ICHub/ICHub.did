@@ -19,9 +19,10 @@ type UserConfigDisplay = record {
 };
 
 service ICHub : {
-  init : (blob, vec CanisterConfig) -> ();
-  cache_user_config : (blob) -> ();
+  user_init : (blob, vec CanisterConfig) -> ();
+  cache_ui_config : (blob) -> ();
   cache_canister_config : (vec CanisterConfig) -> ();
   cache_canister_calls : (vec CanisterCall) -> ();
   get_user_config : () -> (UserConfigDisplay) query;
+  get_canister_calls(Option<Principal>, Option<String>, Option<u16>) -> (vec CanisterCall) query;
 }
