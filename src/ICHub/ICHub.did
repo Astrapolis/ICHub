@@ -1,3 +1,10 @@
+type CanisterMeta = record {
+    moudule_hash : blob;
+    controller: principal;
+    time_updated: nat64;
+    did_file: text;
+};
+
 type CanisterCall = record {
   canister_id : principal;
   function_name : text;
@@ -7,9 +14,12 @@ type CanisterCall = record {
 
 type CanisterConfig = record {
   canister_id : principal;
+  time_updated: nat64;
   is_active : bool;
-  config : blob;
-};
+  is_local: bool;
+  is_public: bool;
+  config: blob;
+  meta_data: vec CanisterMeta };
 
 type UserConfigDisplay = record {
   user : principal;
@@ -26,4 +36,6 @@ service ICHub : {
   cache_canister_calls : (vec CanisterCall) -> ();
   get_user_config : () -> (UserConfigDisplay) query;
   get_canister_calls: (opt principal, opt text, opt nat16 ) -> (vec CanisterCall) query;
+  get_public_configs: () -> (vec CanisterConfig) query;
+  did_to_js: (text) -> (opt text) query;
 }
