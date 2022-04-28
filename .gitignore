@@ -9,6 +9,7 @@
 
 # dfx temporary files
 .dfx/
+src/declarations/
 
 # rust
 target/
@@ -16,3 +17,6 @@ target/
 # frontend code
 node_modules/
 dist/
+
+#rust
+Cargo.lock

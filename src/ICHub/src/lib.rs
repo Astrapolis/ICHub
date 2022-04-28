@@ -16,7 +16,7 @@ pub struct CanisterCall {
     canister_id: Principal,
     function_name: String,
     time_at: u64,
-    params: Vec<u8>,
+    params: String,
     result: Vec<u8>,
 }
 
@@ -35,7 +35,7 @@ pub struct CanisterConfig {
     is_active: bool,
     is_local: bool,
     is_public: bool,
-    config: Vec<u8>,
+    config: String,
     meta_data: Vec<CanisterMeta>
 }
 
@@ -43,7 +43,7 @@ pub struct CanisterConfig {
 pub struct UserConfig {
     user: Principal,
     calls_limit: u32,
-    ui_config: Vec<u8>,
+    ui_config: String,
     canister_configs: Vec<CanisterConfig>,
     canister_calls: VecDeque<CanisterCall>,
 }
@@ -51,7 +51,7 @@ pub struct UserConfig {
 #[derive(CandidType)]
 pub struct UserConfigView {
     user:  Principal,
-    ui_config: Vec<u8>,
+    ui_config: String,
     canister_configs: Vec<CanisterConfig>,
     canister_calls: Vec<CanisterCall>
 }
@@ -60,21 +60,21 @@ impl UserConfig {
     fn new() -> Self{
         UserConfig {
             user : Principal::anonymous(),
-            ui_config : Vec::new(),
+            ui_config : String::new(),
             calls_limit: u32::MAX,
             canister_configs: Vec::new(),
             canister_calls: VecDeque::new()
         }
     }
 
-    fn init(&mut self, user: Principal, calls_limit: u32, ui_config : &Vec<u8>,  canister_configs : &Vec<CanisterConfig>) {
+    fn init(&mut self, user: Principal, calls_limit: u32, ui_config : &String,  canister_configs : &Vec<CanisterConfig>) {
         self.user = user;
         self.calls_limit = calls_limit;
         self.ui_config = ui_config.clone();
         self.canister_configs = canister_configs.clone();
     }
 
-    fn update_ui_config(&mut self, ui_config : &Vec<u8>) {
+    fn update_ui_config(&mut self, ui_config : &String) {
         self.ui_config = ui_config.clone();
     }
 
@@ -140,7 +140,7 @@ impl UserConfig {
 
 #[ic_cdk_macros::update(name = "user_init")]
 #[candid_method(update, rename = "user_init")]
-async fn user_init(calls_limit: u32, ui_config : Vec<u8>, canister_configs : Vec<CanisterConfig>){
+async fn user_init(calls_limit: u32, ui_config : String, canister_configs : Vec<CanisterConfig>){
     USER_CONFIGS.with(|config| {
         let mut config = config.borrow_mut();
         let caller = api::caller();
@@ -151,7 +151,7 @@ async fn user_init(calls_limit: u32, ui_config : Vec<u8>, canister_configs : Vec
 
 #[ic_cdk_macros::update(name = "cache_ui_config")]
 #[candid_method(update, rename = "cache_ui_config")]
-async fn cache_ui_config(ui_config : Vec<u8>){
+async fn cache_ui_config(ui_config : String){
     USER_CONFIGS.with(|config| {
         let mut config = config.borrow_mut();
         config.update_ui_config(&ui_config);
