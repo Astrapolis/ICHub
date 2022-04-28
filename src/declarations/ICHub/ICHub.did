@@ -1,0 +1,29 @@
+type CanisterCall = record {
+  canister_id : principal;
+  function_name : text;
+  params : blob;
+  result : blob;
+};
+
+type CanisterConfig = record {
+  canister_id : principal;
+  is_active : bool;
+  config : blob;
+};
+
+type UserConfigDisplay = record {
+  user : principal;
+  ui_config : blob;
+  calls_limit: nat16;
+  canister_configs : vec CanisterConfig;
+  canister_calls : vec CanisterCall;
+};
+
+service ICHub : {
+  user_init : (blob, vec CanisterConfig) -> ();
+  cache_ui_config : (blob) -> ();
+  cache_canister_config : (vec CanisterConfig) -> ();
+  cache_canister_calls : (vec CanisterCall) -> ();
+  get_user_config : () -> (UserConfigDisplay) query;
+  get_canister_calls: (opt principal, opt text, opt nat16 ) -> (vec CanisterCall) query;
+}
