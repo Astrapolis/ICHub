@@ -1,29 +1,60 @@
+type CanisterMeta = record {
+    moudule_hash : blob;
+    controller: principal;
+    time_updated: nat64;
+    did_file: text;
+};
+
 type CanisterCall = record {
   canister_id : principal;
   function_name : text;
-  params : blob;
+  params : text;
   result : blob;
 };
 
 type CanisterConfig = record {
   canister_id : principal;
+  time_updated: nat64;
   is_active : bool;
-  config : blob;
-};
+  is_public: bool;
+  config: text;
+  meta_data: vec CanisterMeta };
 
-type UserConfigDisplay = record {
+type UserConfigViewPrivate = record {
   user : principal;
-  ui_config : blob;
-  calls_limit: nat16;
+  ui_config : text;
+  calls_limit: nat32;
   canister_configs : vec CanisterConfig;
   canister_calls : vec CanisterCall;
 };
 
+type UserConfigViewPublic = record {
+  user : principal;
+  ui_config : text;
+  canister_configs : vec CanisterConfig;
+};
+
+type CacheResult = variant {
+  Authenticated : text;
+  UnAuthenticated: text;
+};
+
+type GetConfigResult = variant {
+  Authenticated : UserConfigViewPrivate;
+  UnAuthenticated: UserConfigViewPublic;
+};
+
+type GetCallResult = variant {
+  Authenticated : vec CanisterCall;
+  UnAuthenticated: text;
+};
+
 service ICHub : {
-  user_init : (blob, vec CanisterConfig) -> ();
-  cache_ui_config : (blob) -> ();
-  cache_canister_config : (vec CanisterConfig) -> ();
-  cache_canister_calls : (vec CanisterCall) -> ();
-  get_user_config : () -> (UserConfigDisplay) query;
-  get_canister_calls: (opt principal, opt text, opt nat16 ) -> (vec CanisterCall) query;
+  user_init : (nat32, text, vec CanisterConfig) -> ();
+  cache_ui_config : (text) -> (CacheResult);
+  cache_canister_config : (vec CanisterConfig) -> (CacheResult);
+  cache_canister_calls : (vec CanisterCall) -> (CacheResult);
+  get_user_config : () -> (GetConfigResult) query;
+  get_canister_calls: (opt principal, opt text, opt nat16 ) -> (GetCallResult) query;
+  did_to_js: (text) -> (opt text) query;
 }
