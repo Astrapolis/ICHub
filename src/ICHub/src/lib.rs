@@ -136,6 +136,19 @@ impl UserConfig {
     }        
 }
 
+
+fn auth(canister_user : Principal) -> Result<(), String> {
+    // The anonymous principal is not allowed to interact with canister.
+    if api::caller() != canister_user {
+        Err(String::from(
+            "Anonymous principal not allowed to make calls.",
+        ))
+    } else {
+        Ok(())
+    }
+}
+
+
 #[ic_cdk_macros::update(name = "user_init")]
 #[candid_method(update, rename = "user_init")]
 async fn user_init(calls_limit: u32, ui_config : String, canister_configs : Vec<CanisterConfig>){
@@ -185,12 +198,6 @@ fn get_user_config() -> UserConfigView{
         config.get_user_config()
     }        
     )
-}
-
-#[ic_cdk_macros::query(name = "get_candid_principal")]
-#[candid_method(query, rename = "get_candid_principal")]
-fn get_candid_principal() -> Principal{
-    api::caller()     
 }
 
 #[ic_cdk_macros::query(name = "get_canister_calls")]
