@@ -16,7 +16,6 @@ target/
 
 # frontend code
 node_modules/
-dist/
-
+src/ICHub_assets/public/build
 #rust
 Cargo.lock
