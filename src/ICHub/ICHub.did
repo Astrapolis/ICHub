@@ -16,7 +16,6 @@ type CanisterConfig = record {
   canister_id : principal;
   time_updated: nat64;
   is_active : bool;
-  is_local: bool;
   is_public: bool;
   config: text;
   meta_data: vec CanisterMeta };
@@ -36,6 +35,6 @@ service ICHub : {
   cache_canister_calls : (vec CanisterCall) -> ();
   get_user_config : () -> (UserConfigDisplay) query;
   get_canister_calls: (opt principal, opt text, opt nat16 ) -> (vec CanisterCall) query;
-  get_public_configs: () -> (vec CanisterConfig) query;
+  get_public_configs: () -> (CanisterConfig) query;
   did_to_js: (text) -> (opt text) query;
 }

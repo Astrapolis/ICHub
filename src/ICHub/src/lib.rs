@@ -1,4 +1,4 @@
-use candid::{Deserialize, Principal, CandidType, candid_method, IDLProg, TypeEnv, check_prog, idl_hash};
+use candid::{Deserialize, Principal, CandidType, candid_method, IDLProg, TypeEnv, check_prog};
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::{VecDeque};
@@ -33,7 +33,6 @@ pub struct CanisterConfig {
     canister_id: Principal,
     time_updated: u64,
     is_active: bool,
-    is_local: bool,
     is_public: bool,
     config: String,
     meta_data: Vec<CanisterMeta>
@@ -80,8 +79,7 @@ impl UserConfig {
 
     fn update_canister_config(&mut self, canister_config : &CanisterConfig){
         for  config in &mut self.canister_configs {
-            if config.canister_id == canister_config.canister_id 
-                && config.is_local == canister_config.is_local{
+            if config.canister_id == canister_config.canister_id {
                 *config = canister_config.clone();
                 return ;
             }
