@@ -5,16 +5,12 @@
       "package": "ICHub",
       "type": "rust"
     },
-    "ICHub_assets": {
-      "dependencies": [
-        "ICHub"
-      ],
+    "ICHub_fe": {
       "frontend": {
-        "entrypoint": "src/ICHub_assets/src/index.html"
+        "entrypoint": "src/ICHub_fe/public/index.html"
       },
       "source": [
-        "src/ICHub_assets/assets",
-        "dist/ICHub_assets/"
+        "src/ICHub_fe/public"
       ],
       "type": "assets"
     }
