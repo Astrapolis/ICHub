@@ -2,7 +2,10 @@
   import TopAppBar, { Row, Section, Title } from "@smui/top-app-bar";
   import NewFollowCard from "./components/NewFollowCard.svelte";
   import IconButton from "@smui/icon-button";
+  import Paper, { Title as PTitle, Content } from "@smui/paper";
+  import Button, { Label } from "@smui/button";
   import { Principal } from "@dfinity/principal";
+  import { AuthClient } from "@dfinity/auth-client";
   import { onMount } from "svelte";
 
   let login = true;
@@ -17,7 +20,7 @@
       <Row>
         <Section align="start">
           <IconButton class="material-icons">menu</IconButton>
-          <Title>ICHub</Title>
+          <Title>ICHub, the entrance of IC</Title>
         </Section>
       </Row>
     </TopAppBar>

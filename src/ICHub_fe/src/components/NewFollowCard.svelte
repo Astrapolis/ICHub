@@ -7,21 +7,33 @@
     getActorFromCanisterId,
   } from "../utils/actorUtils";
   import Paper, { Title, Content } from "@smui/paper";
+  import Card, {
+    Content as CContent,
+    PrimaryAction,
+    Actions,
+    ActionButtons,
+    ActionIcons,
+  } from "@smui/card";
   import Textfield from "@smui/textfield";
   import Button, { Label } from "@smui/button";
+  import IconButton from "@smui/icon-button";
   import CircularProgress from "@smui/circular-progress";
-  import Snackbar, { Actions, Label as SLabel } from "@smui/snackbar";
+  import Snackbar, { Label as SLabel } from "@smui/snackbar";
 
   const dispatch = createEventDispatcher();
   let newCanisterId = null;
   let formRef = null;
   let following = false;
+  let searching = false;
   let snackContent = "";
   let snackbarRef = null;
+  let newCanisterFound = false;
+  let newCanisterActor = null;
+  let paperTitle = "follow new canister";
   async function handleSubmitNewCanister(event) {
     event.preventDefault();
     console.log("submit with new canister id", newCanisterId);
-    following = true;
+    searching = true;
     snackContent = "";
     try {
       const actor = await getActorFromCanisterId(
@@ -29,55 +41,86 @@
       );
 
       if (!!actor) {
-        dispatch("newCanisterFollowed", { actor, canisterId: newCanisterId });
-        formRef.reset();
-        snackContent = "新canister已成功加入观察列表。";
+        newCanisterActor = actor;
+        // formRef.reset();
+        // snackContent = "新canister已成功加入观察列表。";
+        newCanisterFound = true;
       } else {
-        snackContent = "无法找到指定的canister。";
+        snackContent = "Canister Not Found";
       }
-      //   const sortedMethods = Actor.interfaceOf(actor)._fields.sort(([a], [b]) =>
-      //     a > b ? 1 : -1
-      //   );
-      //   for (const [name, func] of sortedMethods) {
-      //     // renderMethod(canister, name, func, profiler);
-      //     console.log("sortedMethods ===>", name, func);
-      //   }
     } catch (err) {
       console.log("get canister profile error", err);
-      snackContent = "出错啦，无法观察指定的canister。" + err;
+      snackContent = "error occur during searching," + err;
     }
-    following = false;
+    searching = false;
     snackbarRef.open();
+  }
+
+  async function doFollowNewCanister(canisterId) {
+    console.log("ready to follow new canister ", canisterId);
+    dispatch("newCanisterFollowed", {
+      actor: newCanisterActor,
+      canisterId: newCanisterId,
+    });
   }
 </script>
 
 <div>
   <Paper>
-    <Title>观察新的canister</Title>
+    <Title>{paperTitle}</Title>
     <Content>
       <Snackbar bind:this={snackbarRef}>
         <SLabel>{snackContent}</SLabel>
       </Snackbar>
-      <form on:submit={handleSubmitNewCanister} bind:this={formRef}>
-        <div>
-          <Textfield
-            variant="outlined"
-            bind:value={newCanisterId}
-            label="请输入新的canister id"
-            required
-          />
-          {#if following}
-            <CircularProgress
-              style="height: 32px; width: 32px;"
-              indeterminate
+      {#if !newCanisterFound}
+        <form on:submit={handleSubmitNewCanister} bind:this={formRef}>
+          <div>
+            <Textfield
+              variant="outlined"
+              bind:value={newCanisterId}
+              label="请输入新的canister id"
+              required
             />
-          {:else}
-            <Button variant="raised" type="submit">
+            {#if searching}
+              <CircularProgress
+                style="height: 32px; width: 32px;"
+                indeterminate
+              />
+            {:else}
+              <IconButton class="material-icons" type="submit"
+                >search</IconButton
+              >
+              <!-- <Button variant="raised" type="submit">
               <Label>添加到观察列表</Label>
+            </Button> -->
+            {/if}
+          </div>
+        </form>
+      {:else}
+        <Card>
+          <Content
+            >The canister({newCanisterId}) is found. Would you like to follow it
+            now?</Content
+          >
+          <Actions>
+            <Button
+              on:click={() => {
+                doFollowNewCanister(newCanisterId);
+              }}
+            >
+              <Label>Yes</Label>
             </Button>
-          {/if}
-        </div>
-      </form>
+            <Button
+              on:click={() => {
+                newCanisterFound = false;
+                newCanisterId = null;
+              }}
+            >
+              <Label>No</Label>
+            </Button>
+          </Actions>
+        </Card>
+      {/if}
     </Content>
   </Paper>
 </div>
