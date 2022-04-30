@@ -14,8 +14,6 @@ To learn more before you start working with ICHub, see the following documentati
 - [Candid Introduction](https://smartcontracts.org/docs/candid-guide/candid-intro.html)
 - [JavaScript API Reference](https://erxue-5aaaa-aaaab-qaagq-cai.raw.ic0.app)
 
-If you want to start working on your project right away, you might want to try the following commands:
-
 ```bash
 cd ICHub/
 dfx help
@@ -31,7 +29,7 @@ If you want to test your project locally, you can use the following commands:
 dfx start --background
 
 # Deploys your canisters to the replica and generates your candid interface
-dfx deploy
+dfx deploy --no-wallet --argument '(null)'
 ```
 
 Once the job completes, your application will be available at `http://localhost:8000?canisterId={asset_canister_id}`.
