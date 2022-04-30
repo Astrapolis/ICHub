@@ -20,12 +20,15 @@
       "candid": "src/internet_identity/internet_identity.did",
       "wasm": "src/internet_identity/internet_identity_dummy.wasm"
     },        
-    "ICHub_fe": {
+    "ICHub_assets": {
+      "dependencies": [
+        "ICHub"
+      ],
       "frontend": {
-        "entrypoint": "src/ICHub_fe/public/index.html"
+        "entrypoint": "src/ICHub_assets/public/index.html"
       },
       "source": [
-        "src/ICHub_fe/public"
+        "src/ICHub_assets/public"
       ],
       "type": "assets"
     }

@@ -3,7 +3,6 @@
   import { Actor } from "@dfinity/agent";
   import { Principal } from "@dfinity/principal";
   import {
-    getProfilerActor,
     getActorFromCanisterId,
   } from "../utils/actorUtils";
   import Paper, { Title, Content } from "@smui/paper";

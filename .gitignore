@@ -17,3 +17,4 @@ Cargo.lock
 # frontend code
 node_modules/
 dist/
+src/ICHub_assets/public/build

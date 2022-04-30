@@ -16,8 +16,6 @@ function initCanisterIds() {
   let localCanisters, localIiCanister, prodCanisters, canisters;
   try {
     localCanisters = require(path.resolve(
-      "..",
-      "..",
       ".dfx",
       "local",
       "canister_ids.json"
@@ -27,8 +25,6 @@ function initCanisterIds() {
   }
   try {
     localIiCanister = require(path.resolve(
-      "..",
-      "..",
       "internet-identity",
       ".dfx",
       "local",
@@ -40,7 +36,7 @@ function initCanisterIds() {
     );
   }
   try {
-    prodCanisters = require(path.resolve("..", "..", "canister_ids.json"));
+    prodCanisters = require(path.resolve("canister_ids.json"));
   } catch (error) {
     console.log("No production canister_ids.json found. Continuing with local");
   }
@@ -86,12 +82,12 @@ function serve() {
 }
 
 export default {
-  input: "src/main.js",
+  input: "src/ICHub_assets/src/main.js",
   output: {
     sourcemap: true,
     format: "iife",
     name: "app",
-    file: "public/build/bundle.js",
+    file: "src/ICHub_assets/public/build/bundle.js",
   },
   plugins: [
     svelte({
@@ -134,7 +130,7 @@ export default {
     commonjs(),
     inject({
       Buffer: ["buffer", "Buffer"],
-      process: "process/browser",
+      // process: "process/browser",
     }),
     json(),
 
