@@ -1,4 +1,9 @@
 [workspace]
 members = [
-    "src/ICHub",
+    "src/hub",
+    "src/ICHub"
 ]
+
+[profile.release]
+lto = true
+opt-level = "z"
