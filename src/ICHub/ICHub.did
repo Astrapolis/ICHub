@@ -56,5 +56,6 @@ service ICHub : {
   cache_canister_calls : (vec CanisterCall) -> (CacheResult);
   get_user_config : () -> (GetConfigResult) query;
   get_canister_calls: (opt principal, opt text, opt nat16 ) -> (GetCallResult) query;
+  get_principal: () -> (principal) query;
   did_to_js: (text) -> (opt text) query;
 }

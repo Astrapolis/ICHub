@@ -268,6 +268,13 @@ fn get_canister_calls(canister_id: Option<Principal>, function_name: Option<Stri
     })   
 }
 
+#[ic_cdk_macros::query(name = "get_principal")]
+#[candid_method(query, rename = "get_principal")]
+fn get_principal() -> Principal
+{
+    api::caller()
+}
+
 #[ic_cdk_macros::query(name = "did_to_js")]
 #[candid_method(query, rename = "did_to_js")]
 fn did_to_js(prog: String) -> Option<String> {
