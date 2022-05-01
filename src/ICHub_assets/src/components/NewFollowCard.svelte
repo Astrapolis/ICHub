@@ -97,9 +97,9 @@
         </form>
       {:else}
         <Card>
-          <Content
+          <CContent
             >The canister({newCanisterId}) is found. Would you like to follow it
-            now?</Content
+            now?</CContent
           >
           <Actions>
             <Button

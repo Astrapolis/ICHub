@@ -3,8 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "rollup -c",
-    "dev": "rollup -c -w",
+    "build": "npm install; rollup -c",
+    "dev": "npm install; rollup -c -w",
     "start": "sirv src/ICHub_assets/public --no-clear"
   },
   "devDependencies": {
@@ -25,6 +25,7 @@
     "@dfinity/agent": "^0.11.1",
     "@dfinity/auth-client": "^0.11.1",
     "@dfinity/candid": "^0.11.1",
+    "@dfinity/identity": "^0.11.1",
     "@dfinity/principal": "^0.11.1",
     "@smui/button": "^6.0.0-beta.16",
     "@smui/card": "^6.0.0-beta.16",

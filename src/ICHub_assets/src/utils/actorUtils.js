@@ -2,7 +2,7 @@ import { IDL } from "@dfinity/candid";
 import { Actor, HttpAgent } from '@dfinity/agent';
 import {Principal} from '@dfinity/principal';
 
-function is_local(agent) {
+export function is_local(agent) {
     // @ts-ignore
     const hostname = agent._host.hostname;
     return hostname === '127.0.0.1' || hostname.endsWith('localhost');
