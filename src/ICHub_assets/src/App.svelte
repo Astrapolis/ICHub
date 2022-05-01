@@ -4,14 +4,72 @@
   import IconButton from "@smui/icon-button";
   import Paper, { Title as PTitle, Content } from "@smui/paper";
   import Button, { Label } from "@smui/button";
+  import CircularProgress from "@smui/circular-progress";
+  import Card, {
+    Content as CContent,
+    PrimaryAction,
+    Actions,
+    ActionButtons,
+    ActionIcons,
+  } from "@smui/card";
   import { Principal } from "@dfinity/principal";
   import { AuthClient } from "@dfinity/auth-client";
-  import { onMount } from "svelte";
+  import localCanisterJson from "../../../.dfx/local/canister_ids.json";
 
-  let login = true;
+  import { onMount } from "svelte";
+  import { is_local } from "./utils/actorUtils";
+  import { HttpAgent } from "@dfinity/agent";
+
+  let login = false;
+  let authClient = null;
+  let identity = null;
+  let loginStatus = "checking"; // "checking", "done"
+  let logining = false;
+
   function onNewCanisterFollowed(event) {
     console.log("onNewCanisterFollowed =>", event.detail);
   }
+
+  function setLoginStatus() {
+    identity = authClient.getIdentity();
+    login = true;
+  }
+
+  async function handleIILogin() {
+    logining = true;
+    if (!!authClient) {
+      const agent = new HttpAgent();
+      let loginOpt = {
+        // 7 days in nanoseconds
+        maxTimeToLive: BigInt(7 * 24 * 60 * 60 * 1000 * 1000 * 1000),
+        onSuccess: () => {
+          setLoginStatus();
+          logining = false;
+        },
+        onError: (errMsg) => {
+          console.log("login failed", errMsg);
+          logining = false;
+        },
+      };
+      if (is_local(agent)) {
+        let idCanisterId = localCanisterJson.internet_identity.local;
+        loginOpt.identityProvider = `http://${idCanisterId}.localhost:8000/`;
+      }
+      authClient.login(loginOpt);
+    }
+  }
+
+  onMount(async () => {
+    loginStatus = "checking";
+
+    authClient = await AuthClient.create({
+      idleOptions: {
+        idleTimeout: 1000 * 60 * 30, // set to 30 minutes
+      },
+    });
+
+    loginStatus = "done";
+  });
 </script>
 
 <main>
@@ -27,6 +85,39 @@
   </div>
   {#if login}
     <NewFollowCard on:newCanisterFollowed={onNewCanisterFollowed} />
+  {:else}
+    <div>
+      <!-- {#if loginStatus === "checking"}
+        <Card>
+          <CContent>
+            <CircularProgress
+              style="height: 32px; width: 32px;"
+              indeterminate
+            />
+          </CContent>
+        </Card>
+      {:else} -->
+        <Paper>
+          <Content>
+            {#if logining}
+              <CircularProgress
+                style="height: 32px; width: 32px;"
+                indeterminate
+              />
+            {:else}
+              <Button
+                variant="raised"
+                on:click={() => {
+                  handleIILogin();
+                }}
+              >
+                <Label>II Login</Label>
+              </Button>
+            {/if}
+          </Content>
+        </Paper>
+      <!-- {/if} -->
+    </div>
   {/if}
 </main>
 
