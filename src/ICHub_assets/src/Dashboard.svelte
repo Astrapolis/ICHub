@@ -83,7 +83,7 @@
                         .canister_configs.length}
                 </p>
                 <p>
-                    principal: {Principal.fromUint8Array(
+                    principal: {Principal.from(
                         userConfig.UnAuthenticated.user
                     )}
                 </p>
