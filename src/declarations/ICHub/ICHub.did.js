@@ -61,6 +61,7 @@ export const idlFactory = ({ IDL }) => {
         [GetCallResult],
         ['query'],
       ),
+    'get_principal': IDL.Func([], [IDL.Principal], ['query']),  
     'get_user_config' : IDL.Func([], [GetConfigResult], ['query']),
     'user_init' : IDL.Func(
         [IDL.Nat32, IDL.Text, IDL.Vec(CanisterConfig)],

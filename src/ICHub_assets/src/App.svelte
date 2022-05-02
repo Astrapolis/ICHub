@@ -1,6 +1,6 @@
 <script>
+  import { ICHub, createActor } from "../../declarations/ICHub";
   import TopAppBar, { Row, Section, Title } from "@smui/top-app-bar";
-  import NewFollowCard from "./components/NewFollowCard.svelte";
   import IconButton from "@smui/icon-button";
   import Paper, { Title as PTitle, Content } from "@smui/paper";
   import Button, { Label } from "@smui/button";
@@ -19,16 +19,13 @@
   import { onMount } from "svelte";
   import { is_local } from "./utils/actorUtils";
   import { HttpAgent } from "@dfinity/agent";
+  import Dashboard from "./Dashboard.svelte";
 
   let login = false;
   let authClient = null;
   let identity = null;
   let loginStatus = "checking"; // "checking", "done"
   let logining = false;
-
-  function onNewCanisterFollowed(event) {
-    console.log("onNewCanisterFollowed =>", event.detail);
-  }
 
   function setLoginStatus() {
     identity = authClient.getIdentity();
@@ -84,39 +81,28 @@
     </TopAppBar>
   </div>
   {#if login}
-    <NewFollowCard on:newCanisterFollowed={onNewCanisterFollowed} />
+    <Dashboard identity={identity} />
   {:else}
     <div>
-      <!-- {#if loginStatus === "checking"}
-        <Card>
-          <CContent>
+      <Paper>
+        <Content>
+          {#if logining}
             <CircularProgress
               style="height: 32px; width: 32px;"
               indeterminate
             />
-          </CContent>
-        </Card>
-      {:else} -->
-        <Paper>
-          <Content>
-            {#if logining}
-              <CircularProgress
-                style="height: 32px; width: 32px;"
-                indeterminate
-              />
-            {:else}
-              <Button
-                variant="raised"
-                on:click={() => {
-                  handleIILogin();
-                }}
-              >
-                <Label>II Login</Label>
-              </Button>
-            {/if}
-          </Content>
-        </Paper>
-      <!-- {/if} -->
+          {:else}
+            <Button
+              variant="raised"
+              on:click={() => {
+                handleIILogin();
+              }}
+            >
+              <Label>II Login</Label>
+            </Button>
+          {/if}
+        </Content>
+      </Paper>
     </div>
   {/if}
 </main>

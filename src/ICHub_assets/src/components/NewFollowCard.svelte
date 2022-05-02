@@ -19,6 +19,7 @@
   import CircularProgress from "@smui/circular-progress";
   import Snackbar, { Label as SLabel } from "@smui/snackbar";
 
+  export let followList = []; // []
   const dispatch = createEventDispatcher();
   let newCanisterId = null;
   let formRef = null;
