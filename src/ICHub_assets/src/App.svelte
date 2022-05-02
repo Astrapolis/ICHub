@@ -64,6 +64,10 @@
         idleTimeout: 1000 * 60 * 30, // set to 30 minutes
       },
     });
+    let authenticated = await authClient.isAuthenticated();
+    if (authenticated) {
+      setLoginStatus();
+    }
 
     loginStatus = "done";
   });

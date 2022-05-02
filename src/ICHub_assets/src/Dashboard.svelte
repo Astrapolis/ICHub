@@ -1,14 +1,18 @@
 <script>
-    import { ICHub, createActor } from "../../declarations/ICHub";
+    import { ICHub, createActor, canisterId } from "../../declarations/ICHub";
     import { onMount } from "svelte";
     import { Principal } from "@dfinity/principal";
     import CircularProgress from "@smui/circular-progress";
     import NewFollowCard from "./components/NewFollowCard.svelte";
-
+    // import { HttpAgent, Actor } from "@dfinity/agent";
+    import Button, { Label } from "@smui/button";
     export let identity;
 
+    let agent = null;
+    let ichubActor = null;
     let userConfig = null;
-    let configLoading = true;
+    let configLoaded = false;
+    let configLoading = false;
     let defaultCanisterCfg = {
         version: 1,
     };
@@ -17,22 +21,27 @@
         configLoading = true;
         try {
             console.log("invoke get_user_config");
-            let principal = await ICHub.get_principal();
-            console.log('principal ===> ', Principal.fromUint8Array(principal).toText());
-            let result = await ICHub.get_user_config();
+            let principal = await ichubActor.get_principal();
+            console.log(
+                "principal ===> ",
+                Principal.fromUint8Array(principal).toText()
+            );
+            let result = await ichubActor.get_user_config();
             console.log("get_user_config", result);
             userConfig = result;
             console.log("get userConfig", userConfig);
+            configLoaded = true;
         } catch (err) {
             console.log("error occured when get user config", err);
         }
         configLoading = false;
-        return;
     }
 
     onMount(async () => {
         console.log("onMount ready to load user config");
-        await getUserConfig();
+        // agent = new HttpAgent({ identity });
+        ichubActor = createActor(canisterId, { agentOptions: { identity } });
+        // await getUserConfig();
     });
 
     function onNewCanisterFollowed(event) {
@@ -41,33 +50,61 @@
 </script>
 
 <div>
-    {#if configLoading}
-        <div>
-            <span>loading configuration ...</span>
-            <CircularProgress
-                style="height: 32px; width: 32px;"
-                indeterminate
-            />
-        </div>
-    {:else if !!userConfig}
-        <div>
-            <NewFollowCard on:newCanisterFollowed={onNewCanisterFollowed} />
+    <div>
+        <NewFollowCard on:newCanisterFollowed={onNewCanisterFollowed} />
+        {#if configLoaded}
             <p>config loaded:</p>
-            <p>Authenticated:</p>
+            {#if !!userConfig.Authenticated}
+                <p>Authenticated:</p>
 
-            <p>callLimits:{userConfig.Authenticated.calls_limit}</p>
-            <p>
-                canister_calls:{userConfig.Authenticated.canister_calls.length}
-            </p>
-            <p>
-                canister_configs:{userConfig.Authenticated.canister_configs
-                    .length}
-            </p>
-            <p>
-                principal: {Principal.fromUint8Array(
-                    userConfig.Authenticated.user
-                )}
-            </p>
-        </div>
-    {/if}
+                <p>callLimits:{userConfig.Authenticated.calls_limit}</p>
+                <p>
+                    canister_calls:{userConfig.Authenticated.canister_calls
+                        .length}
+                </p>
+                <p>
+                    canister_configs:{userConfig.Authenticated.canister_configs
+                        .length}
+                </p>
+                <p>
+                    principal: {Principal.fromUint8Array(
+                        userConfig.Authenticated.user
+                    )}
+                </p>
+            {/if}
+            {#if !!userConfig.UnAuthenticated}
+                <p>UnAuthenticated:</p>
+
+                <p>
+                    ui_config:{userConfig.UnAuthenticated.ui_config}
+                </p>
+                <p>
+                    canister_configs:{userConfig.UnAuthenticated
+                        .canister_configs.length}
+                </p>
+                <p>
+                    principal: {Principal.fromUint8Array(
+                        userConfig.UnAuthenticated.user
+                    )}
+                </p>
+            {/if}
+        {:else if configLoading}
+            <div>
+                <span>loading configuration ...</span>
+                <CircularProgress
+                    style="height: 32px; width: 32px;"
+                    indeterminate
+                />
+            </div>
+        {:else}
+            <Button
+                variant="raised"
+                on:click={async () => {
+                    await getUserConfig();
+                }}
+            >
+                <Label>load config</Label>
+            </Button>
+        {/if}
+    </div>
 </div>
