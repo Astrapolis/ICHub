@@ -24,7 +24,7 @@
             let principal = await ichubActor.get_principal();
             console.log(
                 "principal ===> ",
-                Principal.fromUint8Array(principal).toText()
+                Principal.from(principal).toText()
             );
             let result = await ichubActor.get_user_config();
             console.log("get_user_config", result);
@@ -67,7 +67,7 @@
                         .length}
                 </p>
                 <p>
-                    principal: {Principal.fromUint8Array(
+                    principal: {Principal.from(
                         userConfig.Authenticated.user
                     )}
                 </p>
