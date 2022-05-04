@@ -19,7 +19,8 @@
   import CircularProgress from "@smui/circular-progress";
   import Snackbar, { Label as SLabel } from "@smui/snackbar";
 
-  export let followList = []; // []
+  export let agent = null;
+  
   const dispatch = createEventDispatcher();
   let newCanisterId = null;
   let formRef = null;
@@ -37,7 +38,7 @@
     snackContent = "";
     try {
       const actor = await getActorFromCanisterId(
-        Principal.fromText(newCanisterId)
+        Principal.fromText(newCanisterId),agent
       );
 
       if (!!actor) {

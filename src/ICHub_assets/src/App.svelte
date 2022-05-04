@@ -2,9 +2,12 @@
   import { ICHub, createActor } from "../../declarations/ICHub";
   import TopAppBar, { Row, Section, Title } from "@smui/top-app-bar";
   import IconButton from "@smui/icon-button";
+  import Menu from "@smui/menu";
+  import List, { Item, Separator, Text } from "@smui/list";
   import Paper, { Title as PTitle, Content } from "@smui/paper";
   import Button, { Label } from "@smui/button";
   import CircularProgress from "@smui/circular-progress";
+  import MenuSurface, { Anchor } from "@smui/menu-surface";
   import Card, {
     Content as CContent,
     PrimaryAction,
@@ -26,6 +29,10 @@
   let identity = null;
   let loginStatus = "checking"; // "checking", "done"
   let logining = false;
+  let logoutMenu = null;
+  let anchorClasses = {};
+  let anchor = null;
+  let surface = null;
 
   function setLoginStatus() {
     identity = authClient.getIdentity();
@@ -75,17 +82,61 @@
 
 <main>
   <div class="top-app-bar-container flexor">
-    <TopAppBar variant="static" color="primary">
-      <Row>
-        <Section align="start">
-          <IconButton class="material-icons">menu</IconButton>
-          <Title>ICHub, the entrance of IC</Title>
-        </Section>
-      </Row>
-    </TopAppBar>
+    <div>
+      <IconButton class="material-icons">menu</IconButton>
+    </div>
+    {#if login}
+      <div>
+        <div class="top-profile-container">
+          <span>{identity.getPrincipal()}</span>
+          <div
+            class={Object.keys(anchorClasses).join(" ")}
+            use:Anchor={{
+              addClass: (className) => {
+                if (!anchorClasses[className]) {
+                  anchorClasses[className] = true;
+                }
+              },
+              removeClass: (className) => {
+                if (anchorClasses[className]) {
+                  delete anchorClasses[className];
+                  anchorClasses = anchorClasses;
+                }
+              },
+            }}
+            bind:this={anchor}
+          >
+            <IconButton
+              class="material-icons"
+              on:click={() => {
+                console.log("open surceface");
+                logoutMenu.setOpen(true);
+              }}>person</IconButton
+            >
+            <Menu
+              bind:this={logoutMenu}
+              anchor={false}
+              bind:anchorElement={anchor}
+              anchorCorner="BOTTOM_LEFT"
+            >
+              <List>
+                <Item
+                  on:SMUI:action={async () => {
+                    await authClient.logout();
+                    login = false;
+                  }}
+                >
+                  <Text>Logout</Text>
+                </Item>
+              </List>
+            </Menu>
+          </div>
+        </div>
+      </div>
+    {/if}
   </div>
   {#if login}
-    <Dashboard identity={identity} />
+    <Dashboard {identity} />
   {:else}
     <div>
       <Paper>
@@ -114,17 +165,25 @@
 <style>
   .top-app-bar-container {
     width: 100%;
+    height: 48px;
     border: 1px solid
       var(--mdc-theme-text-hint-on-background, rgba(0, 0, 0, 0.1));
     margin: 0 18px 18px 0;
-    background-color: var(--mdc-theme-background, #fff);
+    background-color: var(--mdc-theme-background, #000);
 
-    overflow: auto;
-    display: inline-block;
+    overflow: visible;
   }
 
   .flexor {
-    display: inline-flex;
-    flex-direction: column;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .top-profile-container {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
   }
 </style>

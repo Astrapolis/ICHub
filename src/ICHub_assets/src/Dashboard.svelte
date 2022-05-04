@@ -4,7 +4,7 @@
     import { Principal } from "@dfinity/principal";
     import CircularProgress from "@smui/circular-progress";
     import NewFollowCard from "./components/NewFollowCard.svelte";
-    // import { HttpAgent, Actor } from "@dfinity/agent";
+    import { HttpAgent, Actor } from "@dfinity/agent";
     import Button, { Label } from "@smui/button";
     export let identity;
 
@@ -20,15 +20,7 @@
     async function getUserConfig() {
         configLoading = true;
         try {
-            console.log("invoke get_user_config");
-            let principal = await ichubActor.get_principal();
-            console.log(
-                "principal ===> ",
-                Principal.from(principal).toText()
-            );
-            let result = await ichubActor.get_user_config();
-            console.log("get_user_config", result);
-            userConfig = result;
+            let userConfig = await ichubActor.get_user_config();
             console.log("get userConfig", userConfig);
             configLoaded = true;
         } catch (err) {
@@ -39,7 +31,7 @@
 
     onMount(async () => {
         console.log("onMount ready to load user config");
-        // agent = new HttpAgent({ identity });
+        agent = new HttpAgent({ identity });
         ichubActor = createActor(canisterId, { agentOptions: { identity } });
         // await getUserConfig();
     });
@@ -51,7 +43,8 @@
 
 <div>
     <div>
-        <NewFollowCard on:newCanisterFollowed={onNewCanisterFollowed} />
+        <NewFollowCard agent={agent}
+        on:newCanisterFollowed={onNewCanisterFollowed} />
         {#if configLoaded}
             <p>config loaded:</p>
             {#if !!userConfig.Authenticated}
