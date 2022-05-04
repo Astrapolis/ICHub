@@ -1,5 +1,5 @@
 <script>
-  import { ICHub, createActor } from "../../declarations/ICHub";
+  import { ICHub, createActor, canisterId } from "../../declarations/ICHub";
   import TopAppBar, { Row, Section, Title } from "@smui/top-app-bar";
   import IconButton from "@smui/icon-button";
   import Menu from "@smui/menu";
@@ -8,43 +8,53 @@
   import TabBar from "@smui/tab-bar";
   import Paper, { Title as PTitle, Content } from "@smui/paper";
   import Button, { Label } from "@smui/button";
-  import CircularProgress from "@smui/circular-progress";
-  import MenuSurface, { Anchor } from "@smui/menu-surface";
-  import Card, {
-    Content as CContent,
-    PrimaryAction,
-    Actions,
-    ActionButtons,
-    ActionIcons,
-  } from "@smui/card";
+
+  import { Anchor } from "@smui/menu-surface";
+
   import { Principal } from "@dfinity/principal";
   import { AuthClient } from "@dfinity/auth-client";
   import localCanisterJson from "../../../.dfx/local/canister_ids.json";
 
   import { onMount } from "svelte";
   import { is_local } from "./utils/actorUtils";
-  import { HttpAgent } from "@dfinity/agent";
+  import { HttpAgent, Actor } from "@dfinity/agent";
   import Dashboard from "./Dashboard.svelte";
   import HubPanel from "./HubPanel.svelte";
+  import LoadingPanel from "./components/LoadingPanel.svelte";
 
   const TAB_HUB = "Hub";
   const TAB_CANISTER = "My Canisters";
+  const HUB_OFFICIAL_CONFIG = {
+    canister_id: "abc", // Principal.fromText(localCanisterJson.hub.local),
+    time_updated: 1000,
+    is_active: true,
+    is_public: true,
+    config: "",
+    meta_data: [{
+      moudule_hash: [96, 123, 77, 56],
+      controller: "abc",
+      time_updated: 12345,
+      did_file: "abc",
+    }],
+  };
+  const DEFAULT_CALL_LIMITS = 100;
+  const DEFAULT_UI_CONFIG = "";
+  const USER_TYPE_NEW = "new";
+  const USER_TYPE_REGISTERED = "registered";
+  // const DEFAULT_CANISTER = JSON.stringify(HUB_OFFICIAL_CONFIG);
   let login = false;
   let authClient = null;
   let identity = null;
-  let loginStatus = "checking"; // "checking", "done"
   let logining = false;
   let logoutMenu = null;
   let anchorClasses = {};
   let anchor = null;
-  let surface = null;
   let tabs = [TAB_HUB, TAB_CANISTER];
   let active = TAB_HUB; // tabs必须用active这个名字来绑定，用其它的名字无法正常工作，好坑啊，费我半天！
-
-  $: {
-    console.log(`render with activeTab: ${active}`);
-    console.log(`render with login ${login}`);
-  }
+  let userType = USER_TYPE_NEW;
+  let userLoaded = false;
+  let userTypeLoading = false;
+  let registering = false;
 
   function setLoginStatus() {
     identity = authClient.getIdentity();
@@ -75,9 +85,36 @@
     }
   }
 
-  onMount(async () => {
-    loginStatus = "checking";
+  async function loadUserConfig() {
+    // TODO: wait for the registery implementation
+    return null;
+  }
 
+  async function registerNewUser() {
+    registering = true;
+    // let agent = new HttpAgent({ identity });
+    let ichubActor = createActor(canisterId, { agentOptions: { identity } });
+    try {
+      await ichubActor.user_init(DEFAULT_CALL_LIMITS, DEFAULT_UI_CONFIG, [
+        HUB_OFFICIAL_CONFIG,
+      ]);
+      userType = "registered";
+    } catch (err) {
+      console.log("register error", err);
+    }
+    registering = false;
+  }
+
+  onMount(async () => {
+    const agent = new HttpAgent();
+    if (is_local(agent)) {
+      HUB_OFFICIAL_CONFIG.canister_id = Principal.fromText(
+        localCanisterJson.hub.local
+      );
+      HUB_OFFICIAL_CONFIG.meta_data[0].controller = Principal.fromText(
+        localCanisterJson.hub.local
+      );
+    }
     authClient = await AuthClient.create({
       idleOptions: {
         idleTimeout: 1000 * 60 * 30, // set to 30 minutes
@@ -87,26 +124,26 @@
     if (authenticated) {
       setLoginStatus();
     }
-
-    loginStatus = "done";
   });
 </script>
 
-<main>
+<main class="site-layout-container">
   <div class="top-app-bar-container flexor">
     <div>
       <IconButton class="material-icons">menu</IconButton>
     </div>
     {#if login}
-      <div class="top-tab-container">
-        <!-- Note: bind:active must be kept as it is, you can't use it like bind:activeTab.-->
-        <TabBar {tabs} let:tab bind:active>
-          <!-- Note: the `tab` property is required! -->
-          <Tab {tab}>
-            <TabLabel>{tab}</TabLabel>
-          </Tab>
-        </TabBar>
-      </div>
+      {#if userType === USER_TYPE_REGISTERED}
+        <div class="top-tab-container">
+          <!-- Note: bind:active must be kept as it is, you can't use it like bind:activeTab.-->
+          <TabBar {tabs} let:tab bind:active>
+            <!-- Note: the `tab` property is required! -->
+            <Tab {tab}>
+              <TabLabel>{tab}</TabLabel>
+            </Tab>
+          </TabBar>
+        </div>
+      {/if}
       <div>
         <div class="top-profile-container">
           <span>{identity.getPrincipal()}</span>
@@ -145,6 +182,10 @@
                   on:SMUI:action={async () => {
                     await authClient.logout();
                     login = false;
+                    userLoaded = false;
+                    userType = USER_TYPE_NEW;
+                    userTypeLoading = false;
+                    registering = false;
                   }}
                 >
                   <Text>Logout</Text>
@@ -156,38 +197,67 @@
       </div>
     {/if}
   </div>
-  {#if login}
-    {#if active === TAB_HUB}
-      <HubPanel />
+  <div class="main-content-container">
+    {#if userLoaded}
+      {#if active === TAB_HUB}
+        <HubPanel />
+      {:else}
+        <Dashboard {identity} />
+      {/if}
     {:else}
-      <Dashboard {identity} />
+      <div>
+        {#if !login}
+          <Paper>
+            <Content>
+              {#if logining}
+                <LoadingPanel description="logining ..." />
+              {:else}
+                <Button
+                  variant="raised"
+                  on:click={() => {
+                    handleIILogin();
+                  }}
+                >
+                  <Label>II Login</Label>
+                </Button>
+              {/if}
+            </Content>
+          </Paper>
+        {:else}
+          <Paper>
+            <Content>
+              {#if userTypeLoading}
+                <LoadingPanel description="checking user profile ..." />
+              {:else if userType === USER_TYPE_NEW}
+                {#if registering}
+                  <LoadingPanel description="registering ..." />
+                {:else}
+                  <Button
+                    variant="raised"
+                    on:click={async () => {
+                      await registerNewUser();
+                    }}
+                  >
+                    <Label>Register</Label>
+                  </Button>
+                {/if}
+              {/if}
+            </Content>
+          </Paper>
+        {/if}
+      </div>
     {/if}
-  {:else}
-    <div>
-      <Paper>
-        <Content>
-          {#if logining}
-            <CircularProgress
-              style="height: 32px; width: 32px;"
-              indeterminate
-            />
-          {:else}
-            <Button
-              variant="raised"
-              on:click={() => {
-                handleIILogin();
-              }}
-            >
-              <Label>II Login</Label>
-            </Button>
-          {/if}
-        </Content>
-      </Paper>
-    </div>
-  {/if}
+  </div>
 </main>
 
 <style>
+  .site-layout-container {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+  }
   .top-app-bar-container {
     width: 100%;
     height: 48px;
@@ -207,12 +277,19 @@
   }
 
   .top-tab-container {
-    flex:1;
+    flex: 1;
   }
 
   .top-profile-container {
     display: flex;
     align-items: center;
     justify-content: flex-end;
+  }
+
+  .main-content-container {
+    flex: 1;
+    overflow-y: scroll;
+    overflow-x: hidden;
+    background-color: white;
   }
 </style>
