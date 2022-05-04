@@ -4,6 +4,8 @@
   import IconButton from "@smui/icon-button";
   import Menu from "@smui/menu";
   import List, { Item, Separator, Text } from "@smui/list";
+  import Tab, { Label as TabLabel } from "@smui/tab";
+  import TabBar from "@smui/tab-bar";
   import Paper, { Title as PTitle, Content } from "@smui/paper";
   import Button, { Label } from "@smui/button";
   import CircularProgress from "@smui/circular-progress";
@@ -23,7 +25,10 @@
   import { is_local } from "./utils/actorUtils";
   import { HttpAgent } from "@dfinity/agent";
   import Dashboard from "./Dashboard.svelte";
+  import HubPanel from "./HubPanel.svelte";
 
+  const TAB_HUB = "Hub";
+  const TAB_CANISTER = "My Canisters";
   let login = false;
   let authClient = null;
   let identity = null;
@@ -33,6 +38,13 @@
   let anchorClasses = {};
   let anchor = null;
   let surface = null;
+  let tabs = [TAB_HUB, TAB_CANISTER];
+  let active = TAB_HUB; // tabs必须用active这个名字来绑定，用其它的名字无法正常工作，好坑啊，费我半天！
+
+  $: {
+    console.log(`render with activeTab: ${active}`);
+    console.log(`render with login ${login}`);
+  }
 
   function setLoginStatus() {
     identity = authClient.getIdentity();
@@ -86,6 +98,15 @@
       <IconButton class="material-icons">menu</IconButton>
     </div>
     {#if login}
+      <div class="top-tab-container">
+        <!-- Note: bind:active must be kept as it is, you can't use it like bind:activeTab.-->
+        <TabBar {tabs} let:tab bind:active>
+          <!-- Note: the `tab` property is required! -->
+          <Tab {tab}>
+            <TabLabel>{tab}</TabLabel>
+          </Tab>
+        </TabBar>
+      </div>
       <div>
         <div class="top-profile-container">
           <span>{identity.getPrincipal()}</span>
@@ -136,7 +157,11 @@
     {/if}
   </div>
   {#if login}
-    <Dashboard {identity} />
+    {#if active === TAB_HUB}
+      <HubPanel />
+    {:else}
+      <Dashboard {identity} />
+    {/if}
   {:else}
     <div>
       <Paper>
@@ -179,6 +204,10 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+  }
+
+  .top-tab-container {
+    flex:1;
   }
 
   .top-profile-container {

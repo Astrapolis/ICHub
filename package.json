@@ -25,6 +25,8 @@
     "@smui/menu-surface": "^6.0.0-beta.16",
     "@smui/paper": "^6.0.0-beta.16",
     "@smui/snackbar": "^6.0.0-beta.16",
+    "@smui/tab": "^6.0.0-beta.16",
+    "@smui/tab-bar": "^6.0.0-beta.16",
     "@smui/textfield": "^6.0.0-beta.16",
     "@smui/top-app-bar": "^6.0.0-beta.16",
     "@sveltejs/kit": "^1.0.0-next.324",
