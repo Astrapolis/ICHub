@@ -49,6 +49,7 @@ export interface _SERVICE {
       arg_1: [] | [string],
       arg_2: [] | [number],
     ) => Promise<GetCallResult>,
+  'get_principal' : () => Promise<Principal>,
   'get_user_config' : () => Promise<GetConfigResult>,
   'user_init' : (
       arg_0: number,

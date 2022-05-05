@@ -1,5 +1,7 @@
 <script>
   import { ICHub, createActor, canisterId } from "../../declarations/ICHub";
+  import {hub, createActor as hubCreateActor, canisterId as hubCanisterId} from "../../declarations/hub";
+  import {internet_identity, createActor as iiCreateActor, canisterId as iiCanisterId} from "../../declarations/hub";
   import TopAppBar, { Row, Section, Title } from "@smui/top-app-bar";
   import IconButton from "@smui/icon-button";
   import Menu from "@smui/menu";
@@ -31,10 +33,10 @@
     is_public: true,
     config: "",
     meta_data: [{
-      moudule_hash: [96, 123, 77, 56],
-      controller: "abc",
+      moudule_hash: [],
+      controller: "2al2t-2jbuy-tn5re-ay3mw-aimky-hqdgv-3rjgx-eepq2-yjkeb-bvxrl-hae",
       time_updated: 12345,
-      did_file: "abc",
+      did_file: "",
     }],
   };
   const DEFAULT_CALL_LIMITS = 100;
@@ -42,6 +44,7 @@
   const USER_TYPE_NEW = "new";
   const USER_TYPE_REGISTERED = "registered";
   // const DEFAULT_CANISTER = JSON.stringify(HUB_OFFICIAL_CONFIG);
+  let officalHubCanisterId = "abc"; 
   let login = false;
   let authClient = null;
   let identity = null;
@@ -79,6 +82,8 @@
       };
       if (is_local(agent)) {
         let idCanisterId = localCanisterJson.internet_identity.local;
+        officalHubCanisterId = localCanisterJson.hub.local;
+        console.log('ii canister id', iiCanisterId);
         loginOpt.identityProvider = `http://${idCanisterId}.localhost:8000/`;
       }
       authClient.login(loginOpt);
@@ -93,6 +98,7 @@
   async function registerNewUser() {
     registering = true;
     // let agent = new HttpAgent({ identity });
+    let hubActor = hubCreateActor(officalHubCanisterId, {agentOptions: { identity}});
     let ichubActor = createActor(canisterId, { agentOptions: { identity } });
     try {
       await ichubActor.user_init(DEFAULT_CALL_LIMITS, DEFAULT_UI_CONFIG, [
@@ -108,11 +114,12 @@
   onMount(async () => {
     const agent = new HttpAgent();
     if (is_local(agent)) {
+      
       HUB_OFFICIAL_CONFIG.canister_id = Principal.fromText(
         localCanisterJson.hub.local
       );
       HUB_OFFICIAL_CONFIG.meta_data[0].controller = Principal.fromText(
-        localCanisterJson.hub.local
+        "2al2t-2jbuy-tn5re-ay3mw-aimky-hqdgv-3rjgx-eepq2-yjkeb-bvxrl-hae"
       );
     }
     authClient = await AuthClient.create({

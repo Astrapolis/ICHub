@@ -3,12 +3,13 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "prepare": "svelte-kit sync && npm run smui-theme-light && npm run smui-theme-dark",
+    "prepare": "npm run copy:types; svelte-kit sync && npm run smui-theme-light && npm run smui-theme-dark",
     "smui-theme-light": "smui-theme compile src/ICHub_assets/public/smui.css -i src/ICHub_assets/src/theme",
     "smui-theme-dark": "smui-theme compile src/ICHub_assets/public/smui-dark.css -i src/ICHub_assets/src/theme/dark",
     "build": "npm install; npm run prepare; rollup -c",
     "dev": "npm install; npm run prepare; rollup -c -w",
-    "start": "sirv src/ICHub_assets/public --no-clear"
+    "start": "sirv src/ICHub_assets/public --no-clear",
+    "copy:types": "rsync -avr .dfx/$(echo ${DFX_NETWORK:-'**'})/canisters/** --exclude='assets/' --exclude='idl/' --exclude='*.wasm' --delete src/declarations"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "^17.0.0",

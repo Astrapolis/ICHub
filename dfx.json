@@ -17,7 +17,9 @@
     },        
     "ICHub_assets": {
       "dependencies": [
-        "ICHub"
+        "ICHub",
+        "hub",
+        "internet_identity"
       ],
       "frontend": {
         "entrypoint": "src/ICHub_assets/public/index.html"
