@@ -6,7 +6,7 @@
     "prepare": "npm run copy:types; svelte-kit sync && npm run smui-theme-light && npm run smui-theme-dark",
     "smui-theme-light": "smui-theme compile src/ICHub_assets/public/smui.css -i src/ICHub_assets/src/theme",
     "smui-theme-dark": "smui-theme compile src/ICHub_assets/public/smui-dark.css -i src/ICHub_assets/src/theme/dark",
-    "build": "npm install; npm run prepare; rollup -c",
+    "build": "npm install; npm run prepare; DFX_ENV=local rollup -c",
     "dev": "npm install; npm run prepare; rollup -c -w",
     "start": "sirv src/ICHub_assets/public --no-clear",
     "copy:types": "rsync -avr .dfx/$(echo ${DFX_NETWORK:-'**'})/canisters/** --exclude='assets/' --exclude='idl/' --exclude='*.wasm' --delete src/declarations"

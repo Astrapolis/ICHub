@@ -1,7 +1,7 @@
 <script>
   import { ICHub, createActor, canisterId } from "../../declarations/ICHub";
   import {hub, createActor as hubCreateActor, canisterId as hubCanisterId} from "../../declarations/hub";
-  import {internet_identity, createActor as iiCreateActor, canisterId as iiCanisterId} from "../../declarations/hub";
+  import {internet_identity, createActor as iiCreateActor, canisterId as iiCanisterId} from "../../declarations/internet_identity";
   import TopAppBar, { Row, Section, Title } from "@smui/top-app-bar";
   import IconButton from "@smui/icon-button";
   import Menu from "@smui/menu";
@@ -112,6 +112,7 @@
   }
 
   onMount(async () => {
+    console.log('NODE_ENV ===>', process.env.NODE_ENV);
     const agent = new HttpAgent();
     if (is_local(agent)) {
       
