@@ -8,8 +8,10 @@ import replace from "@rollup/plugin-replace";
 import inject from "rollup-plugin-inject";
 import json from "@rollup/plugin-json";
 
-const production = !process.env.ROLLUP_WATCH;
-
+console.log('process.env.DFX_ENV ===>', process.env.DFX_ENV);
+const production = process.env.DFX_ENV !== 'local';
+// const production = process.env.DFX_NETWORK !== 'local';
+// throw "production:" + production;
 const path = require("path");
 
 function initCanisterIds() {
@@ -136,11 +138,11 @@ export default {
 
     // In dev mode, call `npm run start` once
     // the bundle has been generated
-    !production && serve(),
+    // !production && serve(),
 
     // Watch the `public` directory and refresh the
     // browser on changes when not in production
-    !production && livereload("public"),
+    // !production && livereload("public"),
 
     // If we're building for production (npm run build
     // instead of npm run dev), minify
