@@ -34,7 +34,7 @@ type UserConfigViewPublic = record {
   canister_configs : vec CanisterConfig;
 };
 
-type CacheResult = variant {
+type CallResult = variant {
   Authenticated : text;
   UnAuthenticated: text;
 };
@@ -49,11 +49,12 @@ type GetCallResult = variant {
   UnAuthenticated: text;
 };
 
-service ICHub : {
-  user_init : (nat32, text, vec CanisterConfig) -> ();
-  cache_ui_config : (text) -> (CacheResult);
-  cache_canister_config : (vec CanisterConfig) -> (CacheResult);
-  cache_canister_calls : (vec CanisterCall) -> (CacheResult);
+service devhub : {
+  user_init : (principal, nat32, text, vec CanisterConfig) -> ();
+  add_user: (principal) -> (CallResult);
+  cache_ui_config : (text) -> (CallResult);
+  cache_canister_config : (vec CanisterConfig) -> (CallResult);
+  cache_canister_calls : (vec CanisterCall) -> (CallResult);
   get_user_config : () -> (GetConfigResult) query;
   get_canister_calls: (opt principal, opt text, opt nat16 ) -> (GetCallResult) query;
   get_principal: () -> (principal) query;

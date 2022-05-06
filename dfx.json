@@ -1,8 +1,8 @@
 {
   "canisters": {
-    "ICHub": {
-      "candid": "src/ICHub/ICHub.did",
-      "package": "ICHub",
+    "devhub": {
+      "candid": "src/devhub/devhub.did",
+      "package": "devhub",
       "type": "rust"
     },
     "hub": {
@@ -15,17 +15,17 @@
       "candid": "src/internet_identity/internet_identity.did",
       "wasm": "src/internet_identity/internet_identity_dummy.wasm"
     },        
-    "ICHub_assets": {
+    "hub_assets": {
       "dependencies": [
-        "ICHub",
+        "devhub",
         "hub",
         "internet_identity"
       ],
       "frontend": {
-        "entrypoint": "src/ICHub_assets/public/index.html"
+        "entrypoint": "src/hub_assets/public/index.html"
       },
       "source": [
-        "src/ICHub_assets/public"
+        "src/hub_assets/public"
       ],
       "type": "assets"
     }

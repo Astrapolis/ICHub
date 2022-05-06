@@ -1,7 +1,7 @@
 [workspace]
 members = [
     "src/hub",
-    "src/ICHub"
+    "src/devhub"
 ]
 
 [profile.release]

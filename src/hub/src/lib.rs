@@ -12,7 +12,7 @@ thread_local! {
     RefCell::new(Registry::new());
 }
 
-const STORAGE_WASM: &[u8] =std::include_bytes!("../../../.dfx/local/canisters/ICHub/ICHub.wasm");
+const STORAGE_WASM: &[u8] =std::include_bytes!("../../../target/wasm32-unknown-unknown/release/devhub.wasm");
 
 #[derive(CandidType)]
 pub enum CallResult<T, U> {

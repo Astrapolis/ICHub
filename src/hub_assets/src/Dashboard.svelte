@@ -1,5 +1,5 @@
 <script>
-    import { ICHub, createActor, canisterId } from "../../declarations/ICHub";
+    import { devhub, createActor, canisterId } from "../../declarations/devhub";
     import { onMount } from "svelte";
     import { Principal } from "@dfinity/principal";
     import CircularProgress from "@smui/circular-progress";
@@ -9,7 +9,7 @@
     export let identity;
 
     let agent = null;
-    let ichubActor = null;
+    let devhubActor = null;
     let userConfig = null;
     let configLoaded = false;
     let configLoading = false;
@@ -20,7 +20,7 @@
     async function getUserConfig() {
         configLoading = true;
         try {
-            let userConfig = await ichubActor.get_user_config();
+            let userConfig = await devhubActor.get_user_config();
             console.log("get userConfig", userConfig);
             configLoaded = true;
         } catch (err) {
@@ -32,7 +32,7 @@
     onMount(async () => {
         console.log("onMount ready to load user config");
         agent = new HttpAgent({ identity });
-        ichubActor = createActor(canisterId, { agentOptions: { identity } });
+        devhubActor = createActor(canisterId, { agentOptions: { identity } });
         // await getUserConfig();
     });
 

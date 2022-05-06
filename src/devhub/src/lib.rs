@@ -7,11 +7,11 @@ use ic_cdk_macros;
 use ic_cdk::api;
 
 thread_local! {
-    pub static USER_CONFIGS: std::cell::RefCell<UserConfig>  = 
+    static USER_CONFIGS: std::cell::RefCell<UserConfig>  = 
     RefCell::new(UserConfig::new());
 }
 
-#[derive(CandidType)]
+#[derive(CandidType, Deserialize)]
 pub enum CallResult<T, U> {
     Authenticated(T),
     UnAuthenticated(U)
@@ -189,21 +189,36 @@ async fn user_init(registry_canister_id : Principal, calls_limit: u32, ui_config
 #[ic_cdk_macros::update(name = "add_user")]
 #[candid_method(update, rename = "add_user")]
 async fn add_user(new_user : Principal) -> CallResult<String, String>{
-    USER_CONFIGS.with(|config| {
-        let caller = api::caller();
-        let mut config = config.borrow_mut();
-        match config.is_authenticated(&caller){
-            true => {
-                config.add_user(new_user);
-                CallResult::Authenticated(String::from("new user"))
-            }
-            false => {
-                CallResult::UnAuthenticated(String::from("add_user requires authentication"))
-            }
+    let caller = api::caller();
+    let (is_authenticated, registry_canister_id ) = 
+    USER_CONFIGS.with(|config|{
+        let config = config.borrow();
+        (config.is_authenticated(&caller), config.registry_canister_id)});
+    match is_authenticated {
+        true => {
+            let call_result: Result<(CallResult<String, String>,), _> = api::call::call(registry_canister_id, "add_user_to_existing_canister", (new_user,)).await;        
+            match call_result {
+                Ok(result) => {
+                    match result.0  {
+                        CallResult::Authenticated(msg) =>{
+                            USER_CONFIGS.with(|config| config.borrow_mut().add_user(caller));
+                            CallResult::Authenticated(msg)
+                        }
+                        CallResult::UnAuthenticated(msg) => {
+                            CallResult::UnAuthenticated(msg)
+                        }
+                    }
+                }
+                Err(msg) => {
+                    panic!("{:?}, {}", msg.0, msg.1)
+                }
+            }                
         }
-    }        
-    )
-}
+        false => {
+            CallResult::UnAuthenticated(String::from("add_user requires authentication"))
+        }
+    }
+}        
 
 #[ic_cdk_macros::update(name = "cache_ui_config")]
 #[candid_method(update, rename = "cache_ui_config")]

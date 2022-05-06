@@ -1,5 +1,5 @@
 <script>
-  import { ICHub, createActor, canisterId } from "../../declarations/ICHub";
+  import { devhub, createActor, canisterId } from "../../declarations/devhub";
   import {hub, createActor as hubCreateActor, canisterId as hubCanisterId} from "../../declarations/hub";
   import {internet_identity, createActor as iiCreateActor, canisterId as iiCanisterId} from "../../declarations/internet_identity";
   import TopAppBar, { Row, Section, Title } from "@smui/top-app-bar";
@@ -99,9 +99,9 @@
     registering = true;
     // let agent = new HttpAgent({ identity });
     let hubActor = hubCreateActor(officalHubCanisterId, {agentOptions: { identity}});
-    let ichubActor = createActor(canisterId, { agentOptions: { identity } });
+    let devhubActor = createActor(canisterId, { agentOptions: { identity } });
     try {
-      await ichubActor.user_init(DEFAULT_CALL_LIMITS, DEFAULT_UI_CONFIG, [
+      await devhubActor.user_init(Principal.fromText("ryjl3-tyaaa-aaaaa-aaaba-cai"), DEFAULT_CALL_LIMITS, DEFAULT_UI_CONFIG, [
         HUB_OFFICIAL_CONFIG,
       ]);
       userType = "registered";

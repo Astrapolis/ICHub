@@ -84,12 +84,12 @@ function serve() {
 }
 
 export default {
-  input: "src/ICHub_assets/src/main.js",
+  input: "src/hub_assets/src/main.js",
   output: {
     sourcemap: true,
     format: "iife",
     name: "app",
-    file: "src/ICHub_assets/public/build/bundle.js",
+    file: "src/hub_assets/public/build/bundle.js",
   },
   plugins: [
     svelte({
