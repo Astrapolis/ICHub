@@ -50,7 +50,7 @@ type GetCallResult = variant {
 };
 
 service devhub : {
-  user_init : (principal, nat32, text, vec CanisterConfig) -> ();
+  init : (principal, principal, nat32, text) -> ();
   add_user: (principal) -> (CallResult);
   cache_ui_config : (text) -> (CallResult);
   cache_canister_config : (vec CanisterConfig) -> (CallResult);

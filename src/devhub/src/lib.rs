@@ -180,10 +180,10 @@ impl UserConfig {
 
 #[ic_cdk_macros::init]
 #[candid_method(init)]
-async fn init(registry_canister_id : Principal, users : Principal, calls_limit : u32, ui_config : String){
+async fn init(registry_canister_id : Principal, user : Principal, calls_limit : u32, ui_config : String){
     USER_CONFIGS.with(|config| {
         let mut config = config.borrow_mut();
-        config.init(registry_canister_id, users, calls_limit, ui_config);
+        config.init(registry_canister_id, user, calls_limit, ui_config);
     }        
     );
 }
