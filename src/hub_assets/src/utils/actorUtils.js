@@ -11,6 +11,10 @@ export function is_local(agent) {
 //     agent.fetchRootKey();
 // }
 
+export function isLocalEnv() {
+    return process.env.NODE_ENV !== "production";
+}
+
 async function didToJs(candid_source, canisterId, agent) {
     const didjs_id = canisterId;
     const didjs_interface = ({ IDL }) => IDL.Service({

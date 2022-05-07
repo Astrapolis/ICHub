@@ -1,5 +1,4 @@
 <script>
-  import { devhub, createActor, canisterId } from "../../declarations/devhub";
   import {hub, createActor as hubCreateActor, canisterId as hubCanisterId} from "../../declarations/hub";
   import {internet_identity, createActor as iiCreateActor, canisterId as iiCanisterId} from "../../declarations/internet_identity";
   import TopAppBar, { Row, Section, Title } from "@smui/top-app-bar";
@@ -18,9 +17,9 @@
   import localCanisterJson from "../../../.dfx/local/canister_ids.json";
 
   import { onMount } from "svelte";
-  import { is_local } from "./utils/actorUtils";
+  import { isLocalEnv } from "./utils/actorUtils";
   import { HttpAgent, Actor } from "@dfinity/agent";
-  import Dashboard from "./Dashboard.svelte";
+  import DevHubPanel from "./DevHubPanel.svelte";
   import HubPanel from "./HubPanel.svelte";
   import LoadingPanel from "./components/LoadingPanel.svelte";
 
@@ -43,6 +42,7 @@
   const DEFAULT_UI_CONFIG = "";
   const USER_TYPE_NEW = "new";
   const USER_TYPE_REGISTERED = "registered";
+  const DEFAULT_CYCLE_FOR_NEW_DEVHUB = 1000000;
   // const DEFAULT_CANISTER = JSON.stringify(HUB_OFFICIAL_CONFIG);
   let officalHubCanisterId = "abc"; 
   let login = false;
@@ -58,9 +58,12 @@
   let userLoaded = false;
   let userTypeLoading = false;
   let registering = false;
+  let hubActor = null;
+  let devhubsOfCurrentIdentity = [];
 
   function setLoginStatus() {
     identity = authClient.getIdentity();
+    hubActor = hubCreateActor(Principal.fromText(localCanisterJson.hub.local), {agentOptions: { identity}});
     login = true;
   }
 
@@ -71,40 +74,53 @@
       let loginOpt = {
         // 7 days in nanoseconds
         maxTimeToLive: BigInt(7 * 24 * 60 * 60 * 1000 * 1000 * 1000),
-        onSuccess: () => {
+        onSuccess: async () => {
           setLoginStatus();
           logining = false;
+          await getUserRegisterStatus();
         },
         onError: (errMsg) => {
           console.log("login failed", errMsg);
           logining = false;
         },
       };
-      if (is_local(agent)) {
-        let idCanisterId = localCanisterJson.internet_identity.local;
-        officalHubCanisterId = localCanisterJson.hub.local;
+      if (isLocalEnv()) {
+        let iiCanisterId = localCanisterJson.internet_identity.local;
+       
         console.log('ii canister id', iiCanisterId);
-        loginOpt.identityProvider = `http://${idCanisterId}.localhost:8000/`;
+        loginOpt.identityProvider = `http://${iiCanisterId}.localhost:8000/`;
       }
       authClient.login(loginOpt);
     }
   }
 
-  async function loadUserConfig() {
-    // TODO: wait for the registery implementation
-    return null;
+  async function getUserRegisterStatus() {
+    userTypeLoading = true;
+    try {
+      let result = await hubActor.get_canisters_by_user();
+      if (result.Authenticated && result.Authenticated.length > 0) {
+        userType = USER_TYPE_REGISTERED;
+      }
+    } catch (err) {
+      console.log("check register status error",err);
+    }
+    userTypeLoading = false;
+    
   }
 
   async function registerNewUser() {
     registering = true;
-    // let agent = new HttpAgent({ identity });
-    let hubActor = hubCreateActor(officalHubCanisterId, {agentOptions: { identity}});
-    let devhubActor = createActor(canisterId, { agentOptions: { identity } });
+    
     try {
-      await devhubActor.user_init(Principal.fromText("ryjl3-tyaaa-aaaaa-aaaba-cai"), DEFAULT_CALL_LIMITS, DEFAULT_UI_CONFIG, [
-        HUB_OFFICIAL_CONFIG,
-      ]);
-      userType = "registered";
+      let result = await hubActor.register_new_canister(1000);
+      console.log('register result', result);
+      if (result.Ok) {
+        devhubsOfCurrentIdentity.push(result.Ok);
+        userType = "registered";
+      } else {
+        console.log('register failed', result.Err);
+      } 
+      
     } catch (err) {
       console.log("register error", err);
     }
@@ -112,10 +128,10 @@
   }
 
   onMount(async () => {
-    console.log('NODE_ENV ===>', process.env.NODE_ENV);
-    const agent = new HttpAgent();
-    if (is_local(agent)) {
-      
+    console.log('NODE_ENV isLocal ===> ', isLocalEnv());
+    // const agent = new HttpAgent();
+    if (isLocalEnv()) {
+      officalHubCanisterId = localCanisterJson.hub.local;
       HUB_OFFICIAL_CONFIG.canister_id = Principal.fromText(
         localCanisterJson.hub.local
       );
@@ -131,6 +147,7 @@
     let authenticated = await authClient.isAuthenticated();
     if (authenticated) {
       setLoginStatus();
+      await getUserRegisterStatus();
     }
   });
 </script>
@@ -210,7 +227,7 @@
       {#if active === TAB_HUB}
         <HubPanel />
       {:else}
-        <Dashboard {identity} />
+        <DevHubPanel {identity} />
       {/if}
     {:else}
       <div>
