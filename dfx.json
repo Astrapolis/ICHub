@@ -17,9 +17,7 @@
     },        
     "hub_assets": {
       "dependencies": [
-        "devhub",
-        "hub",
-        "internet_identity"
+        "hub"
       ],
       "frontend": {
         "entrypoint": "src/hub_assets/public/index.html"

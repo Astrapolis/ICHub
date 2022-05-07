@@ -6,9 +6,13 @@ use std::string::String;
 use ic_cdk_macros;
 use ic_cdk::api;
 
+mod export {
+
+}
+
 thread_local! {
     static USER_CONFIGS: std::cell::RefCell<UserConfig>  = 
-    RefCell::new(UserConfig::new());
+    RefCell::new(UserConfig::default());
 }
 
 #[derive(CandidType, Deserialize)]
@@ -44,7 +48,7 @@ pub struct CanisterConfig {
     meta_data: Vec<CanisterMeta>
 }
 
-#[derive(Serialize, Debug)]
+#[derive(Serialize, Debug, Deserialize, CandidType)]
 pub struct UserConfig {
     registry_canister_id: Principal,
     users: Vec<Principal>,
@@ -71,7 +75,7 @@ pub struct UserConfigViewPublic {
 }
 
 impl UserConfig {
-    fn new() -> Self{
+    fn default() -> Self{
         UserConfig {
             registry_canister_id: Principal::anonymous(),
             users : vec![Principal::anonymous()],
@@ -82,12 +86,11 @@ impl UserConfig {
         }
     }
 
-    fn init(&mut self, registry_canister_id: Principal, user: Principal, calls_limit: u32, ui_config : &String,  canister_configs : &Vec<CanisterConfig>) {
+    fn init(&mut self, registry_canister_id : Principal, user : Principal, calls_limit : u32, ui_config : String) {
         self.registry_canister_id = registry_canister_id; 
         self.users = vec![user];
         self.calls_limit = calls_limit;
-        self.ui_config = ui_config.clone();
-        self.canister_configs = canister_configs.clone();
+        self.ui_config = ui_config;
     }
 
     fn add_user(&mut self, user: Principal) {
@@ -175,13 +178,12 @@ impl UserConfig {
     }        
 }
 
-#[ic_cdk_macros::update(name = "user_init")]
-#[candid_method(update, rename = "user_init")]
-async fn user_init(registry_canister_id : Principal, calls_limit: u32, ui_config : String, canister_configs : Vec<CanisterConfig>){
+#[ic_cdk_macros::init]
+#[candid_method(init)]
+async fn init(registry_canister_id : Principal, users : Principal, calls_limit : u32, ui_config : String){
     USER_CONFIGS.with(|config| {
         let mut config = config.borrow_mut();
-        let caller = api::caller();
-        config.init(registry_canister_id, caller, calls_limit, &ui_config, &canister_configs);
+        config.init(registry_canister_id, users, calls_limit, ui_config);
     }        
     );
 }

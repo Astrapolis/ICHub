@@ -1,4 +1,4 @@
-use ic_cdk::export::candid::{Deserialize, Principal, CandidType, candid_method, IDLProg, TypeEnv, check_prog};
+use ic_cdk::export::candid::{Deserialize, Principal, CandidType, candid_method, IDLProg, TypeEnv, check_prog, encode_args};
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -83,7 +83,7 @@ impl Registry{
     }
 }
 
-async fn create_n_install_new_canister(user_id : Principal, cycles: u64) -> Result<Principal, String>{
+async fn create_n_install_new_canister(user_id : Principal, cycles: u64, calls_limit : u32, ui_config : String) -> Result<Principal, String>{
     let create_canister_config = management::CreateCanisterArgs{
         cycles,
         settings: management::CanisterSettings{
@@ -95,12 +95,19 @@ async fn create_n_install_new_canister(user_id : Principal, cycles: u64) -> Resu
     };
     match management::create_canister(create_canister_config).await {
         Ok(canister_id_record) => {
-            match management::install_canister(&canister_id_record.canister_id, STORAGE_WASM.to_vec(), Vec::new()).await {
-                Ok(_) => {
-                    Ok(canister_id_record.canister_id)
+            match encode_args((api::id(), user_id, calls_limit, ui_config)) {
+                Ok(args) => {
+                    match management::install_canister(&canister_id_record.canister_id, STORAGE_WASM.to_vec(), args).await {
+                        Ok(_) => {
+                            Ok(canister_id_record.canister_id)
+                        }
+                        Err(msg) => Err(msg)                    
+                    }                    
                 }
-                Err(msg) => Err(msg)                    
-            }
+                Err(msg) => {
+                    Err(msg.to_string())
+                }
+            } 
         },
         Err(msg) => Err(msg)
     }
@@ -109,10 +116,10 @@ async fn create_n_install_new_canister(user_id : Principal, cycles: u64) -> Resu
 //create and install canister for end user
 #[ic_cdk_macros::update(name = "register_new_canister")]
 #[candid_method(update, rename = "register_new_canister")]
-async fn register_new_canister(cycles: u64)-> Result<Principal, String>{
+async fn register_new_canister(cycles: u64, calls_limit : u32, ui_config : String)-> Result<Principal, String>{
     let controller = api::id();
     let user = api::caller();
-    match create_n_install_new_canister(controller, cycles).await {
+    match create_n_install_new_canister(controller, cycles, calls_limit, ui_config).await {
         Ok(canister_id) => {
             REGISTRY.with(|registry|  {
                 let mut registry = registry.borrow_mut();
