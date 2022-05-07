@@ -87,7 +87,7 @@ async fn create_n_install_new_canister(user_id : Principal, cycles: u64, calls_l
     let create_canister_config = management::CreateCanisterArgs{
         cycles,
         settings: management::CanisterSettings{
-            controllers: Some(vec![user_id]),
+            controllers: Some(vec![api::id()]),
             compute_allocation: None,
             memory_allocation: None,
             freezing_threshold: None
@@ -117,9 +117,8 @@ async fn create_n_install_new_canister(user_id : Principal, cycles: u64, calls_l
 #[ic_cdk_macros::update(name = "register_new_canister")]
 #[candid_method(update, rename = "register_new_canister")]
 async fn register_new_canister(cycles: u64, calls_limit : u32, ui_config : String)-> Result<Principal, String>{
-    let controller = api::id();
     let user = api::caller();
-    match create_n_install_new_canister(controller, cycles, calls_limit, ui_config).await {
+    match create_n_install_new_canister(user, cycles, calls_limit, ui_config).await {
         Ok(canister_id) => {
             REGISTRY.with(|registry|  {
                 let mut registry = registry.borrow_mut();
