@@ -1,5 +1,5 @@
 <script>
-    import { devhub, createActor, canisterId } from "../../declarations/devhub";
+    import { createActor } from "../../declarations/devhub";
     import { onMount } from "svelte";
     import { Principal } from "@dfinity/principal";
     import CircularProgress from "@smui/circular-progress";

@@ -1,6 +1,14 @@
 <script>
-  import {hub, createActor as hubCreateActor, canisterId as hubCanisterId} from "../../declarations/hub";
-  import {internet_identity, createActor as iiCreateActor, canisterId as iiCanisterId} from "../../declarations/internet_identity";
+  import {
+    hub,
+    createActor as hubCreateActor,
+    canisterId as hubCanisterId,
+  } from "../../declarations/hub";
+  import {
+    internet_identity,
+    createActor as iiCreateActor,
+    canisterId as iiCanisterId,
+  } from "../../declarations/internet_identity";
   import TopAppBar, { Row, Section, Title } from "@smui/top-app-bar";
   import IconButton from "@smui/icon-button";
   import Menu from "@smui/menu";
@@ -31,20 +39,25 @@
     is_active: true,
     is_public: true,
     config: "",
-    meta_data: [{
-      moudule_hash: [],
-      controller: "2al2t-2jbuy-tn5re-ay3mw-aimky-hqdgv-3rjgx-eepq2-yjkeb-bvxrl-hae",
-      time_updated: 12345,
-      did_file: "",
-    }],
+    meta_data: [
+      {
+        moudule_hash: [],
+        controller:
+          "2al2t-2jbuy-tn5re-ay3mw-aimky-hqdgv-3rjgx-eepq2-yjkeb-bvxrl-hae",
+        time_updated: 12345,
+        did_file: "",
+      },
+    ],
   };
   const DEFAULT_CALL_LIMITS = 100;
-  const DEFAULT_UI_CONFIG = "";
+  const DEFAULT_UI_CONFIG = {
+    version: 1,
+  };
   const USER_TYPE_NEW = "new";
   const USER_TYPE_REGISTERED = "registered";
   const DEFAULT_CYCLE_FOR_NEW_DEVHUB = 1000000;
   // const DEFAULT_CANISTER = JSON.stringify(HUB_OFFICIAL_CONFIG);
-  let officalHubCanisterId = "abc"; 
+  let officalHubCanisterId = "abc";
   let login = false;
   let authClient = null;
   let identity = null;
@@ -63,7 +76,9 @@
 
   function setLoginStatus() {
     identity = authClient.getIdentity();
-    hubActor = hubCreateActor(Principal.fromText(localCanisterJson.hub.local), {agentOptions: { identity}});
+    hubActor = hubCreateActor(Principal.fromText(localCanisterJson.hub.local), {
+      agentOptions: { identity },
+    });
     login = true;
   }
 
@@ -86,8 +101,8 @@
       };
       if (isLocalEnv()) {
         let iiCanisterId = localCanisterJson.internet_identity.local;
-       
-        console.log('ii canister id', iiCanisterId);
+
+        console.log("ii canister id", iiCanisterId);
         loginOpt.identityProvider = `http://${iiCanisterId}.localhost:8000/`;
       }
       authClient.login(loginOpt);
@@ -98,29 +113,32 @@
     userTypeLoading = true;
     try {
       let result = await hubActor.get_canisters_by_user();
+      console.log('get_canisters_by_user result', result);
       if (result.Authenticated && result.Authenticated.length > 0) {
         userType = USER_TYPE_REGISTERED;
       }
     } catch (err) {
-      console.log("check register status error",err);
+      console.log("check register status error", err);
     }
     userTypeLoading = false;
-    
   }
 
   async function registerNewUser() {
     registering = true;
-    
+
     try {
-      let result = await hubActor.register_new_canister(1000);
-      console.log('register result', result);
+      let result = await hubActor.register_new_canister(
+        BigInt(DEFAULT_CYCLE_FOR_NEW_DEVHUB),
+        DEFAULT_CALL_LIMITS,
+        JSON.stringify(DEFAULT_UI_CONFIG)
+      );
+      console.log("register result", result);
       if (result.Ok) {
         devhubsOfCurrentIdentity.push(result.Ok);
         userType = "registered";
       } else {
-        console.log('register failed', result.Err);
-      } 
-      
+        console.log("register failed", result.Err);
+      }
     } catch (err) {
       console.log("register error", err);
     }
@@ -128,7 +146,7 @@
   }
 
   onMount(async () => {
-    console.log('NODE_ENV isLocal ===> ', isLocalEnv());
+    console.log("NODE_ENV isLocal ===> ", isLocalEnv());
     // const agent = new HttpAgent();
     if (isLocalEnv()) {
       officalHubCanisterId = localCanisterJson.hub.local;
