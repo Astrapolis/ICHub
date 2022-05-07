@@ -94,10 +94,10 @@ async fn create_n_install_new_canister(user_id : Principal, cycles: u64) -> Resu
         }
     };
     match management::create_canister(create_canister_config).await {
-        Ok(canister_id) => {
-            match management::install_canister(&canister_id, STORAGE_WASM.to_vec(), Vec::new()).await {
+        Ok(canister_id_record) => {
+            match management::install_canister(&canister_id_record.canister_id, STORAGE_WASM.to_vec(), Vec::new()).await {
                 Ok(_) => {
-                    Ok(canister_id)
+                    Ok(canister_id_record.canister_id)
                 }
                 Err(msg) => Err(msg)                    
             }
@@ -110,8 +110,9 @@ async fn create_n_install_new_canister(user_id : Principal, cycles: u64) -> Resu
 #[ic_cdk_macros::update(name = "register_new_canister")]
 #[candid_method(update, rename = "register_new_canister")]
 async fn register_new_canister(cycles: u64)-> Result<Principal, String>{
+    let controller = api::id();
     let user = api::caller();
-    match create_n_install_new_canister(user, cycles).await {
+    match create_n_install_new_canister(controller, cycles).await {
         Ok(canister_id) => {
             REGISTRY.with(|registry|  {
                 let mut registry = registry.borrow_mut();

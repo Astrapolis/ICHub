@@ -14,8 +14,8 @@ type GetCanistersQueryResult = variant {
 };
 
 service devhub : {
-  register_new_canister : (nat64) -> (RegisterCallResult);
+  register_new_canister : (nat64) -> (variant {Ok : principal; Err: text;});
   add_user_to_existing_canister : (principal) -> (CallResult);
-  get_canisters_by_user : () -> (GetCanistersQueryResult);
+  get_canisters_by_user : () -> (GetCanistersQueryResult) query;
   did_to_js: (text) -> (opt text) query;
 }

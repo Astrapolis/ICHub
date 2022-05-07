@@ -1,6 +1,11 @@
 use ic_cdk::export::candid::{Deserialize, Principal, CandidType};
 use ic_cdk::api;
 
+#[derive(CandidType, Clone, Deserialize, Debug)]
+pub struct CanisterIdRecord {
+    pub canister_id: Principal,
+}
+
 #[derive(CandidType, Debug, Clone, Deserialize)]
 pub struct CanisterSettings {
     pub controllers: Option<Vec<Principal>>,
@@ -75,11 +80,19 @@ pub async fn get_canister_status(
     }
 }
 
-pub async fn create_canister(args: CreateCanisterArgs) -> Result<Principal, String> {
-    let (create_result,): (Principal,) = match api::call::call_with_payment(
+pub async fn create_canister(args: CreateCanisterArgs) -> Result<CanisterIdRecord, String> {
+    #[derive(CandidType)]
+    struct In {
+        settings: Option<CanisterSettings>,
+    }
+    let in_arg = In {
+        settings: Some(args.settings),
+    };
+
+    let (create_result,): (CanisterIdRecord,) = match api::call::call_with_payment(
         Principal::management_canister(),
         "create_canister",
-        (Some(args.settings),),
+        (in_arg,),
         args.cycles,
     )
     .await
