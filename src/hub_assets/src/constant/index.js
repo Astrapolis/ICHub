@@ -30,7 +30,7 @@ export const DEFAULT_CANISTER_CONFIG = {
     is_public: true,
     config: "",
     meta_data: [
-        {
+        JSON.stringify({
             moudule_hash: [],
             controller:
                 Principal.fromText(
@@ -38,6 +38,6 @@ export const DEFAULT_CANISTER_CONFIG = {
                 ),
             time_updated: 12345,
             did_file: "",
-        },
+        }),
     ],
 }
