@@ -53,7 +53,7 @@ service devhub : {
   init : (principal, principal, nat32, text) -> ();
   add_user: (principal) -> (CallResult);
   cache_ui_config : (text) -> (CallResult);
-  cache_canister_config : (vec CanisterConfig) -> (CallResult);
+  cache_canister_config : (CanisterConfig) -> (CallResult);
   cache_canister_calls : (vec CanisterCall) -> (CallResult);
   get_user_config : () -> (GetConfigResult) query;
   get_canister_calls: (opt principal, opt text, opt nat16 ) -> (GetCallResult) query;

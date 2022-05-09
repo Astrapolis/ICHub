@@ -6,10 +6,6 @@ use std::string::String;
 use ic_cdk_macros;
 use ic_cdk::api;
 
-mod export {
-
-}
-
 thread_local! {
     static USER_CONFIGS: std::cell::RefCell<UserConfig>  = 
     RefCell::new(UserConfig::default());
