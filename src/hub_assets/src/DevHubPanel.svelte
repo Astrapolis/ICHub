@@ -1,27 +1,34 @@
 <script>
-    import { createActor } from "../../declarations/devhub";
     import { onMount } from "svelte";
     import { Principal } from "@dfinity/principal";
     import CircularProgress from "@smui/circular-progress";
     import NewFollowCard from "./components/NewFollowCard.svelte";
+    import CanisterList from "./components/CanisterList.svelte";
     import { HttpAgent, Actor } from "@dfinity/agent";
     import Button, { Label } from "@smui/button";
+    import { getActorFromCanisterId } from "./utils/actorUtils";
+    import { extractCanisterCfgList } from "./utils/devhubUtils";
+    import {
+        DEFAULT_CANISTER_CONFIG,
+        DEFAULT_CALL_LIMITS,
+        DEFAULT_UI_CONFIG,
+    } from "./constant";
     export let identity;
+    export let activeCanisterId; // type of principal not string
 
     let agent = null;
     let devhubActor = null;
     let userConfig = null;
+    let canisterCfgList = [];
     let configLoaded = false;
     let configLoading = false;
-    let defaultCanisterCfg = {
-        version: 1,
-    };
 
     async function getUserConfig() {
         configLoading = true;
         try {
-            let userConfig = await devhubActor.get_user_config();
+            userConfig = await devhubActor.get_user_config();
             console.log("get userConfig", userConfig);
+            canisterCfgList = extractCanisterCfgList(userConfig);
             configLoaded = true;
         } catch (err) {
             console.log("error occured when get user config", err);
@@ -32,72 +39,50 @@
     onMount(async () => {
         console.log("onMount ready to load user config");
         agent = new HttpAgent({ identity });
-        devhubActor = createActor(canisterId, { agentOptions: { identity } });
-        // await getUserConfig();
+        // devhubActor = createActor(activeCanisterId, { agentOptions: { identity } });
+        devhubActor = await getActorFromCanisterId(activeCanisterId, agent);
+        await getUserConfig();
     });
 
-    function onNewCanisterFollowed(event) {
+    async function onNewCanisterFollowed(event) {
         console.log("onNewCanisterFollowed =>", event.detail);
+        let newCfg = Object.assign({}, DEFAULT_CANISTER_CONFIG);
+        newCfg.config = JSON.stringify(DEFAULT_UI_CONFIG);
+        newCfg.canister_id = Principal.fromText(event.detail.canisterId);
+        try {
+            let result = await devhubActor.cache_canister_config([newCfg]);
+            if (result.Authenticated) {
+                await getUserConfig();
+            } else {
+                console.log(
+                    "cache canister config failed",
+                    result.UnAuthenticated
+                );
+            }
+        } catch (err) {
+            console.log("cache canister config error", err);
+        }
     }
 </script>
 
 <div>
     <div>
-        <NewFollowCard agent={agent}
-        on:newCanisterFollowed={onNewCanisterFollowed} />
-        {#if configLoaded}
-            <p>config loaded:</p>
-            {#if !!userConfig.Authenticated}
-                <p>Authenticated:</p>
-
-                <p>callLimits:{userConfig.Authenticated.calls_limit}</p>
-                <p>
-                    canister_calls:{userConfig.Authenticated.canister_calls
-                        .length}
-                </p>
-                <p>
-                    canister_configs:{userConfig.Authenticated.canister_configs
-                        .length}
-                </p>
-                <p>
-                    principal: {Principal.from(
-                        userConfig.Authenticated.user
-                    )}
-                </p>
-            {/if}
-            {#if !!userConfig.UnAuthenticated}
-                <p>UnAuthenticated:</p>
-
-                <p>
-                    ui_config:{userConfig.UnAuthenticated.ui_config}
-                </p>
-                <p>
-                    canister_configs:{userConfig.UnAuthenticated
-                        .canister_configs.length}
-                </p>
-                <p>
-                    principal: {Principal.from(
-                        userConfig.UnAuthenticated.user
-                    )}
-                </p>
-            {/if}
-        {:else if configLoading}
+        {#if configLoading}
             <div>
-                <span>loading configuration ...</span>
                 <CircularProgress
+                    layout="full-screen"
+                    description="loading configuration ..."
                     style="height: 32px; width: 32px;"
                     indeterminate
                 />
             </div>
-        {:else}
-            <Button
-                variant="raised"
-                on:click={async () => {
-                    await getUserConfig();
-                }}
-            >
-                <Label>load config</Label>
-            </Button>
+        {:else if configLoaded}
+            <NewFollowCard
+                {agent}
+                {userConfig}
+                on:newCanisterFollowed={onNewCanisterFollowed}
+            />
+            <CanisterList {canisterCfgList} {devhubActor} />
         {/if}
     </div>
 </div>

@@ -103,8 +103,9 @@ export async function getActorFromCanisterId(canisterId, agent) {
     }
     let js;
     try {
-        js = await getRemoteDidJs(canisterId);
+        js = await getRemoteDidJs(canisterId, agent);
     } catch (err) {
+        console.log('getRemoteDidJs error', err);
         if (/no query method/.test(err)) {
             js = await getLocalDidJs(canisterId);
         } else {

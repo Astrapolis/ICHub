@@ -4,11 +4,7 @@
     createActor as hubCreateActor,
     canisterId as hubCanisterId,
   } from "../../declarations/hub";
-  import {
-    internet_identity,
-    createActor as iiCreateActor,
-    canisterId as iiCanisterId,
-  } from "../../declarations/internet_identity";
+
   import TopAppBar, { Row, Section, Title } from "@smui/top-app-bar";
   import IconButton from "@smui/icon-button";
   import Menu from "@smui/menu";
@@ -30,29 +26,15 @@
   import DevHubPanel from "./DevHubPanel.svelte";
   import HubPanel from "./HubPanel.svelte";
   import LoadingPanel from "./components/LoadingPanel.svelte";
+  import {
+    HUB_OFFICIAL_CONFIG,
+    DEFAULT_UI_CONFIG,
+    DEFAULT_CALL_LIMITS,
+  } from "./constant";
 
   const TAB_HUB = "Hub";
   const TAB_CANISTER = "My Canisters";
-  const HUB_OFFICIAL_CONFIG = {
-    canister_id: "abc", // Principal.fromText(localCanisterJson.hub.local),
-    time_updated: 1000,
-    is_active: true,
-    is_public: true,
-    config: "",
-    meta_data: [
-      {
-        moudule_hash: [],
-        controller:
-          "2al2t-2jbuy-tn5re-ay3mw-aimky-hqdgv-3rjgx-eepq2-yjkeb-bvxrl-hae",
-        time_updated: 12345,
-        did_file: "",
-      },
-    ],
-  };
-  const DEFAULT_CALL_LIMITS = 100;
-  const DEFAULT_UI_CONFIG = {
-    version: 1,
-  };
+
   const USER_TYPE_NEW = "new";
   const USER_TYPE_REGISTERED = "registered";
   const DEFAULT_CYCLE_FOR_NEW_DEVHUB = 1000000;
@@ -113,9 +95,11 @@
     userTypeLoading = true;
     try {
       let result = await hubActor.get_canisters_by_user();
-      console.log('get_canisters_by_user result', result);
+      console.log("get_canisters_by_user result", result);
       if (result.Authenticated && result.Authenticated.length > 0) {
         userType = USER_TYPE_REGISTERED;
+        devhubsOfCurrentIdentity = [...result.Authenticated];
+        userLoaded = true;
       }
     } catch (err) {
       console.log("check register status error", err);
@@ -136,6 +120,7 @@
       if (result.Ok) {
         devhubsOfCurrentIdentity.push(result.Ok);
         userType = "registered";
+        userLoaded = true;
       } else {
         console.log("register failed", result.Err);
       }
@@ -245,7 +230,10 @@
       {#if active === TAB_HUB}
         <HubPanel />
       {:else}
-        <DevHubPanel {identity} />
+        <DevHubPanel
+          {identity}
+          activeCanisterId={devhubsOfCurrentIdentity[0]}
+        />
       {/if}
     {:else}
       <div>

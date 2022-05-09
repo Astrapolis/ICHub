@@ -2,9 +2,8 @@
   import { createEventDispatcher } from "svelte";
   import { Actor } from "@dfinity/agent";
   import { Principal } from "@dfinity/principal";
-  import {
-    getActorFromCanisterId,
-  } from "../utils/actorUtils";
+  import { getActorFromCanisterId } from "../utils/actorUtils";
+  import { isCanisterInFollowList } from "../utils/devhubUtils";
   import Paper, { Title, Content } from "@smui/paper";
   import Card, {
     Content as CContent,
@@ -20,7 +19,8 @@
   import Snackbar, { Label as SLabel } from "@smui/snackbar";
 
   export let agent = null;
-  
+  export let userConfig = null;
+
   const dispatch = createEventDispatcher();
   let newCanisterId = null;
   let formRef = null;
@@ -30,15 +30,22 @@
   let snackbarRef = null;
   let newCanisterFound = false;
   let newCanisterActor = null;
-  let paperTitle = "follow new canister";
+  let paperTitle = "Follow New Canister";
   async function handleSubmitNewCanister(event) {
     event.preventDefault();
     console.log("submit with new canister id", newCanisterId);
+    if (isCanisterInFollowList(userConfig, newCanisterId)) {
+      snackContent = "This canister has already been followed.";
+      snackbarRef.open();
+      return;
+    }
+
     searching = true;
     snackContent = "";
     try {
       const actor = await getActorFromCanisterId(
-        Principal.fromText(newCanisterId),agent
+        Principal.fromText(newCanisterId),
+        agent
       );
 
       if (!!actor) {
@@ -66,62 +73,58 @@
   }
 </script>
 
-<div>
-  <Paper>
-    <Title>{paperTitle}</Title>
-    <Content>
-      <Snackbar bind:this={snackbarRef}>
-        <SLabel>{snackContent}</SLabel>
-      </Snackbar>
-      {#if !newCanisterFound}
-        <form on:submit={handleSubmitNewCanister} bind:this={formRef}>
-          <div>
-            <Textfield
-              variant="outlined"
-              bind:value={newCanisterId}
-              label="请输入新的canister id"
-              required
+<Paper>
+  <Title>{paperTitle}</Title>
+  <Content>
+    <Snackbar bind:this={snackbarRef}>
+      <SLabel>{snackContent}</SLabel>
+    </Snackbar>
+    {#if !newCanisterFound}
+      <form on:submit={handleSubmitNewCanister} bind:this={formRef}>
+        <div>
+          <Textfield
+            variant="outlined"
+            bind:value={newCanisterId}
+            label="input canister id"
+            required
+          />
+          {#if searching}
+            <CircularProgress
+              style="height: 32px; width: 32px;"
+              indeterminate
             />
-            {#if searching}
-              <CircularProgress
-                style="height: 32px; width: 32px;"
-                indeterminate
-              />
-            {:else}
-              <IconButton class="material-icons" type="submit"
-                >search</IconButton
-              >
-              <!-- <Button variant="raised" type="submit">
+          {:else}
+            <IconButton class="material-icons" type="submit">search</IconButton>
+            <!-- <Button variant="raised" type="submit">
               <Label>添加到观察列表</Label>
             </Button> -->
-            {/if}
-          </div>
-        </form>
-      {:else}
-        <Card>
-          <CContent
-            >The canister({newCanisterId}) is found. Would you like to follow it
-            now?</CContent
+          {/if}
+        </div>
+      </form>
+    {:else}
+      <Card>
+        <CContent
+          >The canister({newCanisterId}) is found. Would you like to follow it
+          now?</CContent
+        >
+        <Actions>
+          <Button
+            on:click={() => {
+              doFollowNewCanister(newCanisterId);
+            }}
           >
-          <Actions>
-            <Button
-              on:click={() => {
-                doFollowNewCanister(newCanisterId);
-              }}
-            >
-              <Label>Yes</Label>
-            </Button>
-            <Button
-              on:click={() => {
-                newCanisterFound = false;
-                newCanisterId = null;
-              }}
-            >
-              <Label>No</Label>
-            </Button>
-          </Actions>
-        </Card>
-      {/if}
-    </Content>
-  </Paper>
-</div>
+            <Label>Yes</Label>
+          </Button>
+          <Button
+            on:click={() => {
+              newCanisterFound = false;
+              newCanisterId = null;
+            }}
+          >
+            <Label>No</Label>
+          </Button>
+        </Actions>
+      </Card>
+    {/if}
+  </Content>
+</Paper>
