@@ -1,4 +1,4 @@
-use ic_cdk::export::candid::{Deserialize, Principal, CandidType};
+use ic_cdk::export::candid::{Deserialize, Principal, CandidType, IDLProg, TypeEnv, check_prog};
 use ic_cdk::api;
 
 #[derive(CandidType, Clone, Deserialize, Debug)]
@@ -153,4 +153,12 @@ pub async fn deposit_cycles(id_record: Principal) -> Result<(), String> {
             code as u8, msg
         )),
     }
+}
+
+pub fn did_to_js(prog: String) -> Option<String> {
+    let ast = prog.parse::<IDLProg>().ok()?;
+    let mut env = TypeEnv::new();
+    let actor = check_prog(&mut env, &ast).ok()?;
+    let res = ic_cdk::export::candid::bindings::javascript::compile(&env, &actor);
+    Some(res)
 }

@@ -1,8 +1,7 @@
 [workspace]
 members = [
     "src/hub",
-    "src/devhub"
-]
+    "src/devhub"]
 
 [profile.release]
 lto = true

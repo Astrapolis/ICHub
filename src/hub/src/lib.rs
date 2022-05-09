@@ -1,4 +1,4 @@
-use ic_cdk::export::candid::{Deserialize, Principal, CandidType, candid_method, IDLProg, TypeEnv, check_prog, encode_args};
+use ic_cdk::export::candid::{Deserialize, Principal, CandidType, candid_method, encode_args};
 use serde::Serialize;
 use std::cell::RefCell;
 use std::collections::{HashMap, HashSet};
@@ -172,11 +172,7 @@ fn get_canisters_by_user() -> CallResult<Vec<Principal>, String>{
 #[ic_cdk_macros::query(name = "did_to_js")]
 #[candid_method(query, rename = "did_to_js")]
 fn did_to_js(prog: String) -> Option<String> {
-    let ast = prog.parse::<IDLProg>().ok()?;
-    let mut env = TypeEnv::new();
-    let actor = check_prog(&mut env, &ast).ok()?;
-    let res = ic_cdk::export::candid::bindings::javascript::compile(&env, &actor);
-    Some(res)
+    management::did_to_js(prog)
 }
 
 candid::export_service!();

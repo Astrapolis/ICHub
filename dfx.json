@@ -14,7 +14,13 @@
       "type": "custom",
       "candid": "src/internet_identity/internet_identity.did",
       "wasm": "src/internet_identity/internet_identity_dummy.wasm"
-    },        
+    },
+    "ic_management": {
+      "type": "custom",
+      "candid": "src/ic_management/ic_management.did",
+      "wasm": "",
+      "declarations": {"env_override": "aaaaa-aa"}
+    },               
     "hub_assets": {
       "dependencies": [
         "hub"
