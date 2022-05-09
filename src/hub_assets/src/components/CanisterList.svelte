@@ -32,7 +32,7 @@
                 {#each canisterCfgList as canisterCfg, index (canisterCfg.canister_id)}
                     <Row>
                         <Cell>{index}</Cell>
-                        <Cell>{Principal.toText(canisterCfg.canister_id)}</Cell>
+                        <Cell>{canisterCfg.canister_id.toText()}</Cell>
                         <Cell
                             >{getCanisterUIConfigFieldValue(
                                 canisterCfg,

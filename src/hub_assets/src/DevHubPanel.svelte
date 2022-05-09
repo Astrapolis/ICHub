@@ -6,7 +6,7 @@
     import CanisterList from "./components/CanisterList.svelte";
     import { HttpAgent, Actor } from "@dfinity/agent";
     import Button, { Label } from "@smui/button";
-    import { getActorFromCanisterId } from "./utils/actorUtils";
+    import { getActorFromCanisterId, isLocalEnv } from "./utils/actorUtils";
     import { extractCanisterCfgList } from "./utils/devhubUtils";
     import {
         DEFAULT_CANISTER_CONFIG,
@@ -39,6 +39,14 @@
     onMount(async () => {
         console.log("onMount ready to load user config");
         agent = new HttpAgent({ identity });
+        if (isLocalEnv()) {
+            agent.fetchRootKey().catch((err) => {
+                console.warn(
+                    "Unable to fetch root key. Check to ensure that your local replica is running"
+                );
+                console.error(err);
+            });
+        }
         // devhubActor = createActor(activeCanisterId, { agentOptions: { identity } });
         devhubActor = await getActorFromCanisterId(activeCanisterId, agent);
         await getUserConfig();
@@ -49,8 +57,11 @@
         let newCfg = Object.assign({}, DEFAULT_CANISTER_CONFIG);
         newCfg.config = JSON.stringify(DEFAULT_UI_CONFIG);
         newCfg.canister_id = Principal.fromText(event.detail.canisterId);
+        // newCfg.meta_data[0].controller = Principal.fromText(newCfg.meta_data[0].controller);
         try {
+            devhubActor = await getActorFromCanisterId(activeCanisterId, agent);
             let result = await devhubActor.cache_canister_config(newCfg);
+            console.log("cache canister config result", result);
             if (result.Authenticated) {
                 await getUserConfig();
             } else {

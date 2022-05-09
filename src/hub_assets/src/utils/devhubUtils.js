@@ -5,13 +5,13 @@ export function isCanisterInFollowList(userConfig, canisterIdString) {
         return false;
     }
     if (userConfig.Authenticated) {
-        let bingo = userConfig.Authenticated.canister_configs.find(cfg => cfg.caninster_id.toText() === canisterIdString);
+        let bingo = userConfig.Authenticated.canister_configs.find(cfg => cfg.canister_id.toText() === canisterIdString);
         if (bingo) {
             return true;
         }
     }
     if (userConfig.UnAuthenticated) {
-        let bingo = userConfig.UnAuthenticated.canister_configs.find(cfg => cfg.caninster_id.toText() === canisterIdString);
+        let bingo = userConfig.UnAuthenticated.canister_configs.find(cfg => cfg.canister_id.toText() === canisterIdString);
         if (bingo) {
             return true;
         }
