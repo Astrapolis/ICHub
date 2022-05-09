@@ -50,7 +50,7 @@
         newCfg.config = JSON.stringify(DEFAULT_UI_CONFIG);
         newCfg.canister_id = Principal.fromText(event.detail.canisterId);
         try {
-            let result = await devhubActor.cache_canister_config([newCfg]);
+            let result = await devhubActor.cache_canister_config(newCfg);
             if (result.Authenticated) {
                 await getUserConfig();
             } else {
