@@ -1,10 +1,14 @@
+type CanisterCallEvent = record {
+    time_at: nat64;
+    caller: principal;
+    params: string;
+    result: blob;
+};
+
 type CanisterCall = record {
   canister_id : principal;
   function_name : text;
-  time_at: u64;
-  caller: principal;
-  params : text;
-  result : blob;
+  event: opt CanisterCallEvent;
 };
 
 type TestCaseView = record {

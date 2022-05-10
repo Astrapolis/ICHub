@@ -18,13 +18,18 @@ pub enum CallResult<T, U> {
 }
 
 #[derive(CandidType, Deserialize, Serialize, Debug, Clone)]
-pub struct CanisterCall {
-    canister_id: Principal,
-    function_name: String,
+pub struct CanisterCallEvent {
     time_at: u64,
     caller: Principal,
     params: String,
     result: Vec<u8>,
+}
+
+#[derive(CandidType, Deserialize, Serialize, Debug, Clone)]
+pub struct CanisterCall {
+    canister_id: Principal,
+    function_name: String,
+    event: Option<CanisterCallEvent>
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
