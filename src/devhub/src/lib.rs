@@ -151,11 +151,10 @@ impl UserConfig {
     }
     
     fn insert_test_case(&mut self, test_case: TestCaseView) {
-        let last_call_id = self.last_call_id + 1;
         self.test_cases.push(TestCase { 
             tag: test_case.tag, config: test_case.config, 
             time_at: test_case.time_at, 
-            canister_call_ids: (last_call_id..last_call_id+test_case.canister_calls.len() as u32) });
+            canister_call_ids: (self.last_call_id..self.last_call_id+test_case.canister_calls.len() as u32) });
         self.insert_canister_calls(test_case.canister_calls);            
     }
 
