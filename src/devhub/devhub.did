@@ -1,15 +1,15 @@
-type CanisterMeta = record {
-    moudule_hash : blob;
-    controller: principal;
-    time_updated: nat64;
-    did_file: text;
-};
-
 type CanisterCall = record {
   canister_id : principal;
   function_name : text;
   params : text;
   result : blob;
+};
+
+type TestCaseView = record {
+    tag: text;
+    config: text;
+    time_at: nat64;
+    canister_calls: vec CanisterCall;
 };
 
 type CanisterConfig = record {
@@ -18,7 +18,7 @@ type CanisterConfig = record {
   is_active : bool;
   is_public: bool;
   config: text;
-  meta_data: vec CanisterMeta };
+  meta_data: vec text };
 
 type UserConfigViewPrivate = record {
   users : vec principal;
@@ -49,14 +49,21 @@ type GetCallResult = variant {
   UnAuthenticated: text;
 };
 
+type GetTestResult = variant {
+  Authenticated : vec TestCaseView;
+  UnAuthenticated: text;
+};
+
 service devhub : {
   init : (principal, principal, nat32, text) -> ();
   add_user: (principal) -> (CallResult);
   cache_ui_config : (text) -> (CallResult);
   cache_canister_config : (CanisterConfig) -> (CallResult);
   cache_canister_calls : (vec CanisterCall) -> (CallResult);
+  cache_test_case: (TestCaseView) -> (CallResult);
   get_user_config : () -> (GetConfigResult) query;
   get_canister_calls: (opt principal, opt text, opt nat16 ) -> (GetCallResult) query;
+  get_test_cases: ( opt text, opt nat16, bool ) -> (GetTestResult) query;
   get_principal: () -> (principal) query;
   did_to_js: (text) -> (opt text) query;
 }

@@ -26,8 +26,24 @@ pub struct CanisterCall {
     result: Vec<u8>,
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone)]
+struct TestCase {
+    tag: String,
+    config: String,
+    time_at: u64,
+    canister_call_ids: std::ops::Range<u32>
+}
+
+#[derive(CandidType, Deserialize, Serialize, Debug, Clone)]
+pub struct TestCaseView {
+    tag: String,
+    config: String,
+    time_at: u64,
+    canister_calls: Vec<CanisterCall>
+}
+
 #[derive(CandidType, Debug, Deserialize, Clone, Serialize)]
-pub struct CanisterConfig {
+struct CanisterConfig {
     canister_id: Principal,
     time_updated: u64,
     is_active: bool,
@@ -36,7 +52,7 @@ pub struct CanisterConfig {
     meta_data: Vec<String>
 }
 
-#[derive(Serialize, Debug, Deserialize, CandidType)]
+#[derive(Serialize, Debug, Deserialize)]
 pub struct UserConfig {
     registry_canister_id: Principal,
     users: Vec<Principal>,
@@ -44,6 +60,8 @@ pub struct UserConfig {
     ui_config: String,
     canister_configs: Vec<CanisterConfig>,
     canister_calls: VecDeque<CanisterCall>,
+    last_call_id: u32,
+    test_cases: Vec<TestCase>,
 }
 
 #[derive(CandidType)]
@@ -52,7 +70,8 @@ pub struct UserConfigViewPrivate {
     ui_config: String,
     calls_limit: u32,
     canister_configs: Vec<CanisterConfig>,
-    canister_calls: Vec<CanisterCall>
+    canister_calls: Vec<CanisterCall>,
+    test_cases: Vec<TestCaseView>
 }
 
 #[derive(CandidType)]
@@ -70,7 +89,9 @@ impl UserConfig {
             ui_config : String::new(),
             calls_limit: u32::MAX,
             canister_configs: Vec::new(),
-            canister_calls: VecDeque::new()
+            canister_calls: VecDeque::new(),
+            last_call_id: 0,
+            test_cases: Vec::new()
         }
     }
 
@@ -108,17 +129,29 @@ impl UserConfig {
         self.canister_configs.push(canister_config.clone());
     }
 
-    fn insert_canister_calls(&mut self, canister_calls : &Vec<CanisterCall>){
+    fn insert_canister_calls(&mut self, canister_calls : Vec<CanisterCall>){
+        self.last_call_id += canister_calls.len() as u32;
         for canister_call in canister_calls {
             match self.canister_calls.len() as u32 == self.calls_limit {
                 true => {
                     self.canister_calls.pop_back();
-                    self.canister_calls.push_front(canister_call.clone())
+                    self.canister_calls.push_front(canister_call.clone());
                 }
-                false => {self.canister_calls.push_front(canister_call.clone())}
+                false => {
+                    self.canister_calls.push_front(canister_call.clone());
+                }
             }
         }
-    }    
+    }
+    
+    fn insert_test_case(&mut self, test_case: TestCaseView) {
+        let last_call_id = self.last_call_id + 1;
+        self.test_cases.push(TestCase { 
+            tag: test_case.tag, config: test_case.config, 
+            time_at: test_case.time_at, 
+            canister_call_ids: (last_call_id..last_call_id+test_case.canister_calls.len() as u32) });
+        self.insert_canister_calls(test_case.canister_calls);            
+    }
 
     fn get_user_config_private(&self) -> UserConfigViewPrivate {
         UserConfigViewPrivate{
@@ -126,7 +159,8 @@ impl UserConfig {
             ui_config: self.ui_config.clone(),
             calls_limit: self.calls_limit,
             canister_configs: self.get_canisters_configs(true, false),
-            canister_calls: self.get_canister_calls(None, None, Some(100))
+            canister_calls: self.get_canister_calls(None, None, Some(100)),
+            test_cases: self.get_test_cases(None, Some(10), true)
         }
     }
 
@@ -153,7 +187,7 @@ impl UserConfig {
     {
         let mut related_calls = Vec::new();
         for call in self.canister_calls.iter() {
-            if Some(related_calls.len() as u16) == limit {
+            if limit != None && related_calls.len() as u16 == limit.unwrap() {
                 return related_calls;
             }
             else if (Some(call.canister_id) == canister_id && (Some(call.function_name.clone()) == function_name ||  function_name == None))
@@ -163,7 +197,36 @@ impl UserConfig {
             }
         }
         return related_calls;
-    }        
+    }
+
+    fn get_canister_calls_by_range(&self, r : &std::ops::Range<u32>) -> Vec<CanisterCall>{
+        if self.last_call_id - r.start + 1 > self.canister_calls.len() as u32 {
+            return Vec::new()
+        }
+        self.canister_calls.range(
+            (self.last_call_id - r.end + 1) as usize..(self.last_call_id - r.start + 1) as usize)
+            .rev().cloned().collect()
+    }
+    
+    fn get_test_cases(&self, tag: Option<String>, limit: Option<u16>, include_canister_calls : bool) -> Vec<TestCaseView> {
+        let mut related_test_cases : Vec<TestCaseView> = Vec::new();
+        for test_case in self.test_cases.iter().rev() {
+            if limit != None && related_test_cases.len() as u16 == limit.unwrap(){
+                return related_test_cases;
+            }
+            else if tag == None || (Some(test_case.tag.clone()) == tag) {
+                related_test_cases.push(
+                    TestCaseView { tag: test_case.tag.clone(), config: test_case.config.clone(), time_at: test_case.time_at.clone(), 
+                        canister_calls: match include_canister_calls {
+                            true => {self.get_canister_calls_by_range(&test_case.canister_call_ids)}
+                            false => {Vec::new()}
+                        }
+                    }
+                );
+            }
+        }
+        related_test_cases
+    }
 }
 
 #[ic_cdk_macros::init]
@@ -256,7 +319,7 @@ async fn cache_canister_calls(canister_calls : Vec<CanisterCall>)-> CallResult<S
         let mut config = config.borrow_mut();
         match config.is_authenticated(&caller){
             true => {
-                config.insert_canister_calls(&canister_calls);
+                config.insert_canister_calls(canister_calls);
                 CallResult::Authenticated(String::from("canister calls are updated"))
             }
             false => {
@@ -266,6 +329,26 @@ async fn cache_canister_calls(canister_calls : Vec<CanisterCall>)-> CallResult<S
     }            
     )
 }
+
+#[ic_cdk_macros::update(name = "cache_test_case")]
+#[candid_method(update, rename = "cache_test_case")]
+async fn cache_test_case(test_case : TestCaseView)-> CallResult<String, String>{
+    USER_CONFIG.with(|config| {
+        let caller = api::caller();
+        let mut config = config.borrow_mut();
+        match config.is_authenticated(&caller){
+            true => {
+                config.insert_test_case(test_case);
+                CallResult::Authenticated(String::from("test case is cached"))
+            }
+            false => {
+                CallResult::UnAuthenticated(String::from("cache_test_case requires authentication"))
+            }
+        }
+    }            
+    )
+}
+
 
 #[ic_cdk_macros::query(name = "get_user_config")]
 #[candid_method(query, rename = "get_user_config")]
@@ -299,6 +382,25 @@ fn get_canister_calls(canister_id: Option<Principal>, function_name: Option<Stri
             }
             false => {
                 CallResult::UnAuthenticated(String::from("get_canister_calls requires authentication"))
+            }
+        }     
+    })   
+}
+
+#[ic_cdk_macros::query(name = "get_test_cases")]
+#[candid_method(query, rename = "get_test_cases")]
+fn get_test_cases(tag: Option<String>, limit: Option<u16>, include_canister_calls : bool) 
+                    -> CallResult<Vec<TestCaseView>, String>
+{
+    USER_CONFIG.with(|config| {
+        let caller = api::caller();
+        let config = config.borrow();
+        match config.is_authenticated(&caller){
+            true => {
+                CallResult::Authenticated(config.get_test_cases(tag, limit, include_canister_calls))
+            }
+            false => {
+                CallResult::UnAuthenticated(String::from("get_test_cases requires authentication"))
             }
         }     
     })   
