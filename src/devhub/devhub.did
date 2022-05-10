@@ -1,6 +1,8 @@
 type CanisterCall = record {
   canister_id : principal;
   function_name : text;
+  time_at: u64;
+  caller: principal;
   params : text;
   result : blob;
 };

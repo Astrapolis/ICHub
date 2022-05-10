@@ -22,6 +22,7 @@ pub struct CanisterCall {
     canister_id: Principal,
     function_name: String,
     time_at: u64,
+    caller: Principal,
     params: String,
     result: Vec<u8>,
 }
