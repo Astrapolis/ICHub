@@ -58,12 +58,6 @@
                                         console.log("unfollow", canisterCfg);
                                     }}><Label>unfollow</Label></Button
                                 >
-                                <Button
-                                    variant="raised"
-                                    on:click={() => {
-                                        console.log("management", canisterCfg);
-                                    }}><Label>management</Label></Button
-                                >
                             </div>
                         </Cell>
                     </Row>

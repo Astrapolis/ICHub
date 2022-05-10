@@ -29,10 +29,17 @@ export function extractCanisterCfgList(userConfig) {
     return list;
 }
 
-export function getCanisterUIConfigFieldValue(canisterCfg, fieldPath) {
-    if (canisterCfg.config[fieldPath] === undefined) {
-        return '-';
-    } else {
-        return canisterCfg.config[fieldPath];
+export function extractUICfg(userConfig) {
+    if (!userConfig || (!userConfig.Authenticated && !userConfig.UnAuthenticated)) {
+        throw "invalid ui config result";
     }
+    if (userConfig.UnAuthenticated) {
+        throw "permission denied";
+    }
+
+    return JSON.parse(userConfig.Authenticated.ui_config);
+}
+
+export function getCanisterUIConfigFieldValue(canisterCfg, fieldPath) {
+    return canisterCfg.config[fieldPath];
 }

@@ -48,7 +48,7 @@
   let anchorClasses = {};
   let anchor = null;
   let tabs = [TAB_HUB, TAB_CANISTER];
-  let active = TAB_HUB; // tabs必须用active这个名字来绑定，用其它的名字无法正常工作，好坑啊，费我半天！
+  let activeTab = TAB_HUB;
   let userType = USER_TYPE_NEW;
   let userLoaded = false;
   let userTypeLoading = false;
@@ -163,8 +163,7 @@
     {#if login}
       {#if userType === USER_TYPE_REGISTERED}
         <div class="top-tab-container">
-          <!-- Note: bind:active must be kept as it is, you can't use it like bind:activeTab.-->
-          <TabBar {tabs} let:tab bind:active>
+          <TabBar {tabs} let:tab bind:active={activeTab}>
             <!-- Note: the `tab` property is required! -->
             <Tab {tab}>
               <TabLabel>{tab}</TabLabel>
@@ -227,7 +226,7 @@
   </div>
   <div class="main-content-container">
     {#if userLoaded}
-      {#if active === TAB_HUB}
+      {#if activeTab === TAB_HUB}
         <HubPanel />
       {:else}
         <DevHubPanel

@@ -4,10 +4,11 @@
     import CircularProgress from "@smui/circular-progress";
     import NewFollowCard from "./components/NewFollowCard.svelte";
     import CanisterList from "./components/CanisterList.svelte";
+    import CaseSuitePanel from "./components/CaseSuitePanel.svelte";
     import { HttpAgent, Actor } from "@dfinity/agent";
     import Button, { Label } from "@smui/button";
     import { getActorFromCanisterId, isLocalEnv } from "./utils/actorUtils";
-    import { extractCanisterCfgList } from "./utils/devhubUtils";
+    import { extractCanisterCfgList, extractUICfg } from "./utils/devhubUtils";
     import {
         DEFAULT_CANISTER_CONFIG,
         DEFAULT_CALL_LIMITS,
@@ -22,6 +23,8 @@
     let canisterCfgList = [];
     let configLoaded = false;
     let configLoading = false;
+    let uiConfig = null;
+    let uiConfigUpdating = false;
 
     async function getUserConfig() {
         configLoading = true;
@@ -29,6 +32,7 @@
             userConfig = await devhubActor.get_user_config();
             console.log("get userConfig", userConfig);
             canisterCfgList = extractCanisterCfgList(userConfig);
+            uiConfig = extractUICfg(userConfig);
             configLoaded = true;
         } catch (err) {
             console.log("error occured when get user config", err);
@@ -59,7 +63,7 @@
         newCfg.canister_id = Principal.fromText(event.detail.canisterId);
         // newCfg.meta_data[0].controller = Principal.fromText(newCfg.meta_data[0].controller);
         try {
-            devhubActor = await getActorFromCanisterId(activeCanisterId, agent);
+            // devhubActor = await getActorFromCanisterId(activeCanisterId, agent);
             let result = await devhubActor.cache_canister_config(newCfg);
             console.log("cache canister config result", result);
             if (result.Authenticated) {
@@ -73,6 +77,16 @@
         } catch (err) {
             console.log("cache canister config error", err);
         }
+    }
+
+    async function onUpdateUIConfig(newUIConfig) {
+        uiConfigUpdating = true;
+        try {
+            await devhubActor.cache_ui_config(JSON.stringify(newUIConfig));
+        } catch (err) {
+            console.log("cache ui config error", err);
+        }
+        uiConfigUpdating = false;
     }
 </script>
 
@@ -94,6 +108,14 @@
                 on:newCanisterFollowed={onNewCanisterFollowed}
             />
             <CanisterList {canisterCfgList} {devhubActor} />
+            
+            <CaseSuitePanel
+                {identity}
+                {devhubActor}
+                {canisterCfgList}
+                {agent}
+                {uiConfig}
+            />
         {/if}
     </div>
 </div>

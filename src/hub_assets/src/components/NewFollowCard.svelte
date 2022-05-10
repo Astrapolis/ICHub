@@ -15,8 +15,9 @@
   import Textfield from "@smui/textfield";
   import Button, { Label } from "@smui/button";
   import IconButton from "@smui/icon-button";
-  import CircularProgress from "@smui/circular-progress";
+
   import Snackbar, { Label as SLabel } from "@smui/snackbar";
+  import LoadingPanel from "./LoadingPanel.svelte";
 
   export let agent = null;
   export let userConfig = null;
@@ -89,10 +90,11 @@
             required
           />
           {#if searching}
-            <CircularProgress
+            <!-- <CircularProgress
               style="height: 32px; width: 32px;"
               indeterminate
-            />
+            /> -->
+            <LoadingPanel description="searching the canister...." />
           {:else}
             <IconButton class="material-icons" type="submit">search</IconButton>
             <!-- <Button variant="raised" type="submit">
@@ -110,7 +112,9 @@
         <Actions>
           <Button
             on:click={() => {
-              doFollowNewCanister(newCanisterId);
+              setTimeout(() => {
+                doFollowNewCanister(newCanisterId);
+              }, 0);
             }}
           >
             <Label>Yes</Label>
