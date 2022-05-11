@@ -48,7 +48,7 @@
   let anchorClasses = {};
   let anchor = null;
   let tabs = [TAB_HUB, TAB_CANISTER];
-  let activeTab = TAB_HUB;
+  let activeTab = TAB_CANISTER;
   let userType = USER_TYPE_NEW;
   let userLoaded = false;
   let userTypeLoading = false;

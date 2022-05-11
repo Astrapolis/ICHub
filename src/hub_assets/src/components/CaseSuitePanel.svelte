@@ -1,6 +1,8 @@
 <script>
     import { onMount } from "svelte";
     // import { uuid } from "uuidv4";
+    import { Principal } from "@dfinity/principal";
+    import { Actor } from "@dfinity/agent";
     import Paper, { Title, Content } from "@smui/paper";
     import Button, { Label, Icon } from "@smui/button";
     import Dialog, {
@@ -17,6 +19,9 @@
         Header,
         Content as AContent,
     } from "@smui-extra/accordion";
+    import List, { Item, Meta, Label as LLabel } from "@smui/list";
+    import Checkbox from "@smui/checkbox";
+
     import { getActorFromCanisterId } from "../utils/actorUtils";
     import { getCanisterUIConfigFieldValue } from "../utils/devhubUtils";
     import LoadingPanel from "./LoadingPanel.svelte";
@@ -33,18 +38,10 @@
     let activeSuite = null;
     let selectedCanisterId = null;
     let selectedCanisterActor = null;
+    let selectedCanisterMethodList = null;
+    let selectedCanisterMethods = [];
     let newCaseDlgOpen = false;
     let loadingActor = false;
-    let loadingMethods = false;
-    let methodsLoaded = false;
-
-    $: {
-        if (selectedCanisterId) {
-            getCanisterActor(selectedCanisterId).then((actor) => {
-                selectedCanisterActor = actor;
-            });
-        }
-    }
 
     onMount(async () => {
         if (uiConfig.caseSuites) {
@@ -55,16 +52,38 @@
         // }
     });
 
+    async function onCaseSuiteCanisterSelected() {
+        console.log("onCaseSuiteCanisterSelected ==>", selectedCanisterId);
+        if (!!selectedCanisterId) {
+            try {
+                selectedCanisterActor = await getCanisterActor(
+                    selectedCanisterId
+                );
+                selectedCanisterMethodList = Actor.interfaceOf(
+                    selectedCanisterActor
+                )._fields.sort(([a], [b]) => (a > b ? 1 : -1));
+                console.log(
+                    "selected canister method list ====>",
+                    selectedCanisterMethodList
+                );
+            } catch (err) {
+                console.log("get canister actor error", err);
+            }
+        }
+    }
+
     async function getCanisterActor(canisterId) {
-        if (canisterActorMapper[canisterId]) {
-            return canisterActorMapper[canisterId];
-        } else {
+        if (!canisterActorMapper[canisterId]) {
             loadingActor = true;
-            let actor = await getActorFromCanisterId(canisterId, agent);
+            let cid = canisterId;
+            if (typeof(cid) === "string") {
+                cid = Principal.fromText(cid);
+            }
+            let actor = await getActorFromCanisterId(cid, agent);
             canisterActorMapper[canisterId] = actor;
             loadingActor = false;
-            return actor;
         }
+        return canisterActorMapper[canisterId];
     }
 
     async function handleNewCaseSuite(event) {
@@ -114,17 +133,20 @@
             scrimClickAction=""
             escapeKeyAction=""
         >
-        <DHeader>
-            <DTitle>New Case For {activeSuite.suite_name}</DTitle>
-        </DHeader>
+            <DHeader>
+                <DTitle>New Case For {activeSuite.suite_name}</DTitle>
+            </DHeader>
             <DContent>
                 <Paper>
                     <Title>
                         <Select
                             bind:value={selectedCanisterId}
+                            on:SMUISelect:change={async () => {
+                                console.log('canister id changed ====>');
+                                await onCaseSuiteCanisterSelected();
+                            }}
                             label="Select A Canister"
                         >
-                            <Option value="" />
                             {#each canisterCfgList as canisterCfg}
                                 <Option value={canisterCfg.canister_id.toText()}
                                     >{getCanisterUIConfigFieldValue(
@@ -149,14 +171,19 @@
                             </div>
                         {/if}
                         {#if selectedCanisterActor}
-                            <div>actor loaded</div>
-                        {/if}
-                        {#if loadingMethods}
-                            <div>
-                                <LoadingPanel
-                                    description="Loading canister methods..."
-                                />
-                            </div>
+                            <List checkList>
+                                {#each selectedCanisterMethodList as method}
+                                    <Item>
+                                        <LLabel>{method[0]}</LLabel>
+                                        <Meta>
+                                            <Checkbox
+                                                bind:group={selectedCanisterMethods}
+                                                value={method}
+                                            />
+                                        </Meta>
+                                    </Item>
+                                {/each}
+                            </List>
                         {/if}
                     </Content>
                 </Paper></DContent
@@ -167,10 +194,9 @@
                     on:click={() => {
                         selectedCanisterId = null;
                         selectedCanisterActor = null;
+                        selectedCanisterMethods = null;
                         newCaseDlgOpen = false;
                         loadingActor = false;
-                        loadingMethods = false;
-                        methodsLoaded = false;
                         activeSuite = null;
                     }}
                 >
