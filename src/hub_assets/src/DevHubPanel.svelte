@@ -83,6 +83,7 @@
         uiConfigUpdating = true;
         try {
             await devhubActor.cache_ui_config(JSON.stringify(newUIConfig));
+            uiConfig = Object.assign({}, newUIConfig);
         } catch (err) {
             console.log("cache ui config error", err);
         }
@@ -92,7 +93,7 @@
 
 <div>
     <div>
-        {#if configLoading}
+        {#if configLoading || uiConfigUpdating}
             <div>
                 <CircularProgress
                     layout="full-screen"
@@ -115,6 +116,7 @@
                 {canisterCfgList}
                 {agent}
                 {uiConfig}
+                {onUpdateUIConfig}
             />
         {/if}
     </div>

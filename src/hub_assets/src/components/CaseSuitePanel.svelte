@@ -4,7 +4,7 @@
     import { Principal } from "@dfinity/principal";
     import { Actor } from "@dfinity/agent";
     import Paper, { Title, Content } from "@smui/paper";
-    import Button, { Label, Icon } from "@smui/button";
+    import Button from "@smui/button";
     import Dialog, {
         Header as DHeader,
         Title as DTitle,
@@ -13,26 +13,38 @@
     } from "@smui/dialog";
     import Select, { Option } from "@smui/select";
     import Textfield from "@smui/textfield";
-    import LayoutGrid, { Cell } from "@smui/layout-grid";
+    import LayoutGrid, { Cell as GCell } from "@smui/layout-grid";
     import Accordion, {
         Panel,
         Header,
         Content as AContent,
     } from "@smui-extra/accordion";
-    import List, { Item, Meta, Label as LLabel } from "@smui/list";
+    import List, { Item, Meta, Separator, Text } from "@smui/list";
     import Checkbox from "@smui/checkbox";
+    import DataTable, {
+        Head,
+        Body,
+        Row,
+        Cell as TCell,
+    } from "@smui/data-table";
+    import Fab from "@smui/fab";
+    import { Icon, Label } from "@smui/common";
+    import IconButton from "@smui/icon-button";
 
     import { getActorFromCanisterId } from "../utils/actorUtils";
     import { getCanisterUIConfigFieldValue } from "../utils/devhubUtils";
     import LoadingPanel from "./LoadingPanel.svelte";
+    import PaperTitle from "./PaperTitle.svelte";
 
     export let devhubActor = null;
     export let identity = null;
     export let canisterCfgList = [];
     export let uiConfig = null;
     export let agent = null;
+    export let onUpdateUIConfig = null;
+
     let canisterActorMapper = {};
-    let caseSuites = [];
+    $: caseSuites = !!uiConfig.caseSuites ? uiConfig.caseSuites : [];
     let newSuiteOpen = false;
     let newSuiteName = null;
     let activeSuite = null;
@@ -44,11 +56,10 @@
     let loadingActor = false;
 
     onMount(async () => {
-        if (uiConfig.caseSuites) {
-            caseSuites = [...uiConfig.caseSuites];
-        }
+        // if (uiConfig.caseSuites) {
+        //     caseSuites = [...uiConfig.caseSuites];
+        // }
         // if (canisterCfgList && canisterCfgList.length > 0) {
-
         // }
     });
 
@@ -76,7 +87,7 @@
         if (!canisterActorMapper[canisterId]) {
             loadingActor = true;
             let cid = canisterId;
-            if (typeof(cid) === "string") {
+            if (typeof cid === "string") {
                 cid = Principal.fromText(cid);
             }
             let actor = await getActorFromCanisterId(cid, agent);
@@ -94,8 +105,19 @@
             suite_name: newSuiteName,
             cases: [],
         };
-        caseSuites = [...caseSuites, newSuite];
+        // caseSuites = [...caseSuites, newSuite];
+        uiConfig.caseSuites = [...caseSuites, newSuite];
         newSuiteOpen = false;
+        onUpdateUIConfig(uiConfig);
+    }
+
+    function resetCaseSelectStatus() {
+        selectedCanisterId = null;
+        selectedCanisterActor = null;
+        selectedCanisterMethods = null;
+        newCaseDlgOpen = false;
+        loadingActor = false;
+        activeSuite = null;
     }
 </script>
 
@@ -127,25 +149,28 @@
         </Actions>
     </Dialog>
     {#if !!activeSuite}
-        <Dialog
-            bind:open={newCaseDlgOpen}
-            fullscreen
-            scrimClickAction=""
-            escapeKeyAction=""
-        >
-            <DHeader>
-                <DTitle>New Case For {activeSuite.suite_name}</DTitle>
-            </DHeader>
-            <DContent>
-                <Paper>
-                    <Title>
+        <Paper color="primary" variant="outlined">
+            <Title style="position:relative;">
+                <div class="case-select-title-container">
+                    <div>
+                        <Fab extended>
+                            <Label
+                                >New Cases For Suite <em
+                                    >{activeSuite.suite_name}</em
+                                ></Label
+                            >
+                        </Fab>
+                    </div>
+                    <div>
                         <Select
+                            variant="filled"
                             bind:value={selectedCanisterId}
                             on:SMUISelect:change={async () => {
-                                console.log('canister id changed ====>');
                                 await onCaseSuiteCanisterSelected();
                             }}
                             label="Select A Canister"
+                            disabled={selectedCanisterMethods &&
+                                selectedCanisterMethods.length > 0}
                         >
                             {#each canisterCfgList as canisterCfg}
                                 <Option value={canisterCfg.canister_id.toText()}
@@ -161,20 +186,50 @@
                                 >Canister Methods will be listed below.</svelte:fragment
                             >
                         </Select>
-                    </Title>
-                    <Content>
-                        {#if loadingActor}
-                            <div>
-                                <LoadingPanel
-                                    description="Loading canister actor idl..."
-                                />
-                            </div>
+                    </div>
+                    <div>
+                        {#if selectedCanisterMethods && selectedCanisterMethods.length > 0}
+                            <Button
+                                variant="outlined"
+                                on:click={() => {
+                                    activeSuite.cases = [
+                                        ...activeSuite.cases,
+                                        ...selectedCanisterMethods,
+                                    ];
+                                    resetCaseSelectStatus();
+                                    onUpdateUIConfig(uiConfig);
+                                }}
+                            >
+                                <Label>Add To Suite</Label>
+                            </Button>
                         {/if}
-                        {#if selectedCanisterActor}
+                        <Button
+                            variant="raised"
+                            on:click={() => {
+                                resetCaseSelectStatus();
+                            }}
+                        >
+                            <Label>Cancel</Label>
+                        </Button>
+                    </div>
+                </div>
+            </Title>
+            <Content>
+                {#if loadingActor}
+                    <div>
+                        <LoadingPanel
+                            description="Loading canister actor idl..."
+                        />
+                    </div>
+                {/if}
+                {#if selectedCanisterActor}
+                    <!-- <div>Select methods and add them to your case suite.</div> -->
+                    <Paper color="secondary">
+                        <Content>
                             <List checkList>
                                 {#each selectedCanisterMethodList as method}
                                     <Item>
-                                        <LLabel>{method[0]}</LLabel>
+                                        <Text>{method[0]}</Text>
                                         <Meta>
                                             <Checkbox
                                                 bind:group={selectedCanisterMethods}
@@ -182,84 +237,141 @@
                                             />
                                         </Meta>
                                     </Item>
+                                    <Separator />
                                 {/each}
                             </List>
-                        {/if}
-                    </Content>
-                </Paper></DContent
-            >
-            <Actions>
+                        </Content>
+                    </Paper>
+                {/if}
+            </Content>
+        </Paper>
+    {:else}
+        <Paper color="primary" variant="outlined">
+            <Title>
+                <PaperTitle title="My CaseSuites" />
                 <Button
                     variant="raised"
                     on:click={() => {
-                        selectedCanisterId = null;
-                        selectedCanisterActor = null;
-                        selectedCanisterMethods = null;
-                        newCaseDlgOpen = false;
-                        loadingActor = false;
-                        activeSuite = null;
+                        newSuiteOpen = true;
+                        newSuiteName = null;
+                        console.log("new suite open");
                     }}
                 >
-                    <Label>Cancel</Label>
+                    <Icon class="material-icons">add</Icon><Label
+                        >Create A New Suite</Label
+                    >
                 </Button>
-            </Actions>
-        </Dialog>
+            </Title>
+            <Content>
+                <Paper color="secondary">
+                    <Content>
+                        <LayoutGrid>
+                            <GCell span={6}>
+                                <Paper color="primary" variant="outlined">
+                                    <Title>Case Suites</Title>
+                                    <Content>
+                                        <Accordion>
+                                            {#each caseSuites as suite (suite.suite_id)}
+                                                <Panel
+                                                    square
+                                                    variant="outlined"
+                                                    color="primary"
+                                                    extend
+                                                >
+                                                    <Header>
+                                                        {suite.suite_name}
+                                                        <IconButton
+                                                            slot="icon"
+                                                            toggle
+                                                        >
+                                                            <Icon
+                                                                class="material-icons"
+                                                                on
+                                                                >unfold_less</Icon
+                                                            >
+                                                            <Icon
+                                                                class="material-icons"
+                                                                >unfold_more</Icon
+                                                            >
+                                                        </IconButton>
+                                                    </Header>
+                                                    <AContent>
+                                                        <div>
+                                                            <Button
+                                                                variant="outlined"
+                                                                on:click={() => {
+                                                                    activeSuite =
+                                                                        suite;
+
+                                                                    newCaseDlgOpen = true;
+                                                                }}
+                                                            >
+                                                                <Icon
+                                                                    class="material-icons"
+                                                                    >add</Icon
+                                                                >
+                                                                <Label
+                                                                    >Add A New
+                                                                    Case To
+                                                                    Suite</Label
+                                                                >
+                                                            </Button>
+                                                            <Button
+                                                                variant="outlined"
+                                                            >
+                                                                <Icon
+                                                                    class="material-icons"
+                                                                    >start</Icon
+                                                                >
+                                                                <Label
+                                                                    >Run Suite</Label
+                                                                >
+                                                            </Button>
+                                                        </div>
+
+                                                        <DataTable
+                                                            style="width: 100%;"
+                                                        >
+                                                            <Head>
+                                                                <Row>
+                                                                    <TCell
+                                                                        numeric
+                                                                        >Seq.</TCell
+                                                                    >
+                                                                    <TCell
+                                                                        >Canister</TCell
+                                                                    >
+                                                                </Row>
+                                                            </Head>
+                                                        </DataTable>
+                                                    </AContent>
+                                                </Panel>
+                                            {/each}
+                                        </Accordion>
+                                    </Content>
+                                </Paper>
+                            </GCell>
+
+                            <GCell span={6}>
+                                <Paper color="primary" variant="outlined">
+                                    <Title>Run History</Title>
+                                    <Content />
+                                </Paper>
+                            </GCell>
+                        </LayoutGrid>
+                    </Content>
+                </Paper>
+            </Content>
+        </Paper>
     {/if}
-    <Paper>
-        <Title
-            ><span>My CaseSuites</span>
-            <Button
-                on:click={() => {
-                    newSuiteOpen = true;
-                    newSuiteName = null;
-                    console.log("new suite open");
-                }}
-            >
-                <Icon class="material-icons">add</Icon><Label
-                    >Create A New Suite</Label
-                >
-            </Button>
-        </Title>
-        <Content>
-            <LayoutGrid>
-                <Cell span={6}>
-                    <Accordion>
-                        {#each caseSuites as suite (suite.suite_id)}
-                            <Panel>
-                                <Header>
-                                    {suite.suite_name}
-                                </Header>
-                                <AContent>
-                                    <div>
-                                        <Button
-                                            on:click={() => {
-                                                activeSuite = suite;
-                                                newCaseDlgOpen = true;
-                                            }}
-                                        >
-                                            <Icon class="material-icons"
-                                                >add</Icon
-                                            >
-                                            <Label
-                                                >Add A New Case To Suite</Label
-                                            >
-                                        </Button>
-                                        <Button>
-                                            <Icon class="material-icons"
-                                                >start</Icon
-                                            >
-                                            <Label>Run Suite</Label>
-                                        </Button>
-                                    </div>
-                                </AContent>
-                            </Panel>
-                        {/each}
-                    </Accordion>
-                </Cell>
-                <Cell span={6}>
-                    <div>run history list</div>
-                </Cell>
-            </LayoutGrid>
-        </Content>
-    </Paper>
 </div>
+
+<style>
+    .case-select-title-container {
+        widows: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+    }
+</style>
