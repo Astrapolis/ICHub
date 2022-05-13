@@ -87,7 +87,7 @@ async fn create_n_install_new_canister(user_id : Principal, cycles: u64, calls_l
     let create_canister_config = management::CreateCanisterArgs{
         cycles,
         settings: management::CanisterSettings{
-            controllers: Some(vec![api::id()]),
+            controllers: Some(vec![api::id(), user_id]),
             compute_allocation: None,
             memory_allocation: None,
             freezing_threshold: None
