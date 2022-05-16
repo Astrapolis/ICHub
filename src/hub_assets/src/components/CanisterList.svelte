@@ -7,6 +7,7 @@
     import Button, { Label } from "@smui/button";
     import Paper, { Title, Content } from "@smui/paper";
     import { getCanisterUIConfigFieldValue } from "../utils/devhubUtils";
+    import PaperTitle from "./PaperTitle.svelte";
 
     export let canisterCfgList = [];
     export let devhubActor = null;
@@ -14,68 +15,74 @@
     // let listLoaded = false;
 </script>
 
-<Paper>
-    <Title>My Followed List</Title>
+<Paper color="primary" variant="outlined">
+    <Title>
+        <PaperTitle title="My Followed List" />
+    </Title>
     <Content>
-        <DataTable table$aria-label="Canister list" style="width: 100%;">
-            <Head>
-                <Row>
-                    <!-- <Cell></Cell> -->
-                    <Cell numeric>Seq.</Cell>
-                    <Cell style="width: 100%;">Canister</Cell>
-                    <Cell>Tag</Cell>
-                    <Cell>Candid</Cell>
-                    <Cell>Actions</Cell>
-                </Row>
-            </Head>
-            <Body>
-                {#each canisterCfgList as canisterCfg, index (canisterCfg.canister_id)}
-                    <Row>
-                        <Cell>{index}</Cell>
-                        <Cell>{canisterCfg.canister_id.toText()}</Cell>
-                        <Cell
-                            >{getCanisterUIConfigFieldValue(
-                                canisterCfg,
-                                "tag"
-                            )}</Cell
-                        >
-                        <Cell
-                            ><IconButton
-                                class="material-icons"
-                                on:click={() => {
-                                    console.log(
-                                        "download did file for canisterCfg",
-                                        canisterCfg
-                                    );
-                                }}>download</IconButton
-                            ></Cell
-                        >
-                        <Cell>
-                            <div>
-                                <Button
-                                    variant="raised"
-                                    on:click={() => {
-                                        console.log("unfollow", canisterCfg);
-                                    }}><Label>unfollow</Label></Button
+        <Paper color="secondary">
+            <Content>
+                <DataTable
+                    table$aria-label="Canister list"
+                    style="width: 100%;"
+                >
+                    <Head>
+                        <Row>
+                            <!-- <Cell></Cell> -->
+                            <Cell numeric>Seq.</Cell>
+                            <Cell style="width: 100%;">Canister</Cell>
+                            <Cell>Tag</Cell>
+                            <Cell>Candid</Cell>
+                            <Cell>Actions</Cell>
+                        </Row>
+                    </Head>
+                    <Body>
+                        {#each canisterCfgList as canisterCfg, index (canisterCfg.canister_id)}
+                            <Row>
+                                <Cell>{index}</Cell>
+                                <Cell>{canisterCfg.canister_id.toText()}</Cell>
+                                <Cell
+                                    >{getCanisterUIConfigFieldValue(
+                                        canisterCfg,
+                                        "tag"
+                                    )}</Cell
                                 >
-                                <Button
-                                    variant="raised"
-                                    on:click={() => {
-                                        console.log("management", canisterCfg);
-                                    }}><Label>management</Label></Button
+                                <Cell
+                                    ><IconButton
+                                        class="material-icons"
+                                        on:click={() => {
+                                            console.log(
+                                                "download did file for canisterCfg",
+                                                canisterCfg
+                                            );
+                                        }}>download</IconButton
+                                    ></Cell
                                 >
-                            </div>
-                        </Cell>
-                    </Row>
-                {/each}
-            </Body>
+                                <Cell>
+                                    <div>
+                                        <Button
+                                            variant="raised"
+                                            on:click={() => {
+                                                console.log(
+                                                    "unfollow",
+                                                    canisterCfg
+                                                );
+                                            }}><Label>unfollow</Label></Button
+                                        >
+                                    </div>
+                                </Cell>
+                            </Row>
+                        {/each}
+                    </Body>
 
-            <!-- <LinearProgress
+                    <!-- <LinearProgress
                 indeterminate
                 bind:closed={listLoading}
                 aria-label="Data is being loaded..."
                 slot="progress"
             /> -->
-        </DataTable>
+                </DataTable>
+            </Content>
+        </Paper>
     </Content>
 </Paper>

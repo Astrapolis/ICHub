@@ -21,6 +21,7 @@ export const DEFAULT_CALL_LIMITS = 100;
 
 export const DEFAULT_UI_CONFIG = {
     version: 1,
+    caseSuites: []
 };
 
 export const DEFAULT_CANISTER_CONFIG = {

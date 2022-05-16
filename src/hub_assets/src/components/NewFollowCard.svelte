@@ -13,10 +13,14 @@
     ActionIcons,
   } from "@smui/card";
   import Textfield from "@smui/textfield";
-  import Button, { Label } from "@smui/button";
+  import Button from "@smui/button";
   import IconButton from "@smui/icon-button";
-  import CircularProgress from "@smui/circular-progress";
-  import Snackbar, { Label as SLabel } from "@smui/snackbar";
+  import { Label, Icon } from "@smui/common";
+  import FormField from "@smui/form-field";
+
+  import Snackbar from "@smui/snackbar";
+  import LoadingPanel from "./LoadingPanel.svelte";
+  import PaperTitle from "./PaperTitle.svelte";
 
   export let agent = null;
   export let userConfig = null;
@@ -73,58 +77,75 @@
   }
 </script>
 
-<Paper>
-  <Title>{paperTitle}</Title>
+<Paper color="primary" variant="outlined">
+  <Title>
+    <PaperTitle title={paperTitle} />
+  </Title>
   <Content>
-    <Snackbar bind:this={snackbarRef}>
-      <SLabel>{snackContent}</SLabel>
-    </Snackbar>
-    {#if !newCanisterFound}
-      <form on:submit={handleSubmitNewCanister} bind:this={formRef}>
-        <div>
-          <Textfield
-            variant="outlined"
-            bind:value={newCanisterId}
-            label="input canister id"
-            required
-          />
-          {#if searching}
-            <CircularProgress
+    <Paper color="secondary">
+      <Content>
+        <Snackbar bind:this={snackbarRef}>
+          <Label>{snackContent}</Label>
+        </Snackbar>
+        {#if !newCanisterFound}
+          <form on:submit={handleSubmitNewCanister} bind:this={formRef}>
+            <FormField>
+              <Textfield
+                bind:value={newCanisterId}
+                label="input canister id"
+                required
+              />
+              {#if searching}
+                <!-- <CircularProgress
               style="height: 32px; width: 32px;"
               indeterminate
-            />
-          {:else}
-            <IconButton class="material-icons" type="submit">search</IconButton>
-            <!-- <Button variant="raised" type="submit">
-              <Label>添加到观察列表</Label>
-            </Button> -->
-          {/if}
-        </div>
-      </form>
-    {:else}
-      <Card>
-        <CContent
-          >The canister({newCanisterId}) is found. Would you like to follow it
-          now?</CContent
-        >
-        <Actions>
-          <Button
-            on:click={() => {
-              doFollowNewCanister(newCanisterId);
-            }}
-          >
-            <Label>Yes</Label>
-          </Button>
-          <Button
-            on:click={() => {
-              newCanisterFound = false;
-              newCanisterId = null;
-            }}
-          >
-            <Label>No</Label>
-          </Button>
-        </Actions>
-      </Card>
-    {/if}
+            /> -->
+                <LoadingPanel description="searching the canister...." />
+              {:else}
+                <IconButton
+                  variant="raised"
+                  color="primary"
+                  class="material-icons"
+                  type="submit">search</IconButton
+                >
+                <!-- <Button variant="raised" type="submit">
+                <Icon class="material-icons" color="primary">search</Icon>
+                <Label>添加到观察列表</Label>
+              </Button> -->
+              {/if}
+            </FormField>
+          </form>
+        {:else}
+          <Card>
+            <CContent
+              >The canister({newCanisterId}) is found. Would you like to follow
+              it now?</CContent
+            >
+            <Actions>
+              <Button
+                on:click={() => {
+                  setTimeout(() => {
+                    doFollowNewCanister(newCanisterId);
+                  }, 0);
+                }}
+              >
+                <Label>Yes</Label>
+              </Button>
+              <Button
+                on:click={() => {
+                  newCanisterFound = false;
+                  newCanisterId = null;
+                }}
+              >
+                <Label>No</Label>
+              </Button>
+            </Actions>
+          </Card>
+        {/if}
+      </Content>
+    </Paper>
   </Content>
 </Paper>
+
+<style>
+</style>
