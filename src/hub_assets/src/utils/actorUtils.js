@@ -50,7 +50,7 @@ async function getRemoteDidJs(canisterId, agent) {
 
     const actor = Actor.createActor(common_interface, { agent, canisterId });
     const candid_source = await actor.__get_candid_interface_tmp_hack();
-    console.log('candid_source', candid_source);
+    // console.log('candid_source', candid_source);
     return didToJs(candid_source, canisterId, agent);
 }
 

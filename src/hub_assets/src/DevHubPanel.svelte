@@ -5,6 +5,7 @@
     import NewFollowCard from "./components/NewFollowCard.svelte";
     import CanisterList from "./components/CanisterList.svelte";
     import CaseSuitePanel from "./components/CaseSuitePanel.svelte";
+    import LoadingPanel from "./components/LoadingPanel.svelte";
     import { HttpAgent, Actor } from "@dfinity/agent";
     import Button, { Label } from "@smui/button";
     import { getActorFromCanisterId, isLocalEnv } from "./utils/actorUtils";
@@ -33,6 +34,7 @@
             console.log("get userConfig", userConfig);
             canisterCfgList = extractCanisterCfgList(userConfig);
             uiConfig = extractUICfg(userConfig);
+            console.log("ui config ====>", uiConfig);
             configLoaded = true;
         } catch (err) {
             console.log("error occured when get user config", err);
@@ -82,8 +84,10 @@
     async function onUpdateUIConfig(newUIConfig) {
         uiConfigUpdating = true;
         try {
+            console.log("ready to update ui config", newUIConfig);
             await devhubActor.cache_ui_config(JSON.stringify(newUIConfig));
             uiConfig = Object.assign({}, newUIConfig);
+            console.log("ui config update done");
         } catch (err) {
             console.log("cache ui config error", err);
         }
@@ -93,15 +97,12 @@
 
 <div>
     <div>
-        {#if configLoading || uiConfigUpdating}
-            <div>
-                <CircularProgress
-                    layout="full-screen"
-                    description="loading configuration ..."
-                    style="height: 32px; width: 32px;"
-                    indeterminate
-                />
-            </div>
+        <!-- <LoadingPanel description="testing ..." /> -->
+        {#if configLoading}
+            <LoadingPanel
+                layout="full-screen"
+                description="loading configuration ..."
+            />
         {:else if configLoaded}
             <NewFollowCard
                 {agent}
@@ -109,7 +110,9 @@
                 on:newCanisterFollowed={onNewCanisterFollowed}
             />
             <CanisterList {canisterCfgList} {devhubActor} />
-            
+            {#if uiConfigUpdating}
+                <LoadingPanel description="upating configuration ..." />
+            {/if}
             <CaseSuitePanel
                 {identity}
                 {devhubActor}

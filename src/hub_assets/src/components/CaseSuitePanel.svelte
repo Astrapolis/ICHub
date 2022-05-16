@@ -1,5 +1,6 @@
 <script>
     import { onMount } from "svelte";
+    import { createEventDispatcher } from "svelte";
     // import { uuid } from "uuidv4";
     import { Principal } from "@dfinity/principal";
     import { Actor } from "@dfinity/agent";
@@ -35,6 +36,7 @@
     import { getCanisterUIConfigFieldValue } from "../utils/devhubUtils";
     import LoadingPanel from "./LoadingPanel.svelte";
     import PaperTitle from "./PaperTitle.svelte";
+    import NoDataPanel from "./NoDataPanel.svelte";
 
     export let devhubActor = null;
     export let identity = null;
@@ -52,15 +54,14 @@
     let selectedCanisterActor = null;
     let selectedCanisterMethodList = null;
     let selectedCanisterMethods = [];
-    let newCaseDlgOpen = false;
     let loadingActor = false;
+    let caseAdding = false;
+    let activeCase = null;
+    let caseConfigOpen = false;
+
 
     onMount(async () => {
-        // if (uiConfig.caseSuites) {
-        //     caseSuites = [...uiConfig.caseSuites];
-        // }
-        // if (canisterCfgList && canisterCfgList.length > 0) {
-        // }
+        console.log("CaseSuitePanel on mount");
     });
 
     async function onCaseSuiteCanisterSelected() {
@@ -115,9 +116,27 @@
         selectedCanisterId = null;
         selectedCanisterActor = null;
         selectedCanisterMethods = null;
-        newCaseDlgOpen = false;
         loadingActor = false;
         activeSuite = null;
+    }
+
+    function constructTestCase(canisterId, method) {
+        return {
+            case_id:
+                "case-" +
+                new Date().getTime() +
+                "-" +
+                Math.floor(Math.random() * 100),
+            canisterId,
+            method,
+            params: [],
+        };
+    }
+
+    async function saveUIConfiguration(newUIConfig) {
+        caseAdding = true;
+        await onUpdateUIConfig(newUIConfig);
+        caseAdding = false;
     }
 </script>
 
@@ -148,6 +167,7 @@
             </Button>
         </Actions>
     </Dialog>
+
     {#if !!activeSuite}
         <Paper color="primary" variant="outlined">
             <Title style="position:relative;">
@@ -190,21 +210,39 @@
                     <div>
                         {#if selectedCanisterMethods && selectedCanisterMethods.length > 0}
                             <Button
-                                variant="outlined"
-                                on:click={() => {
+                                variant="raised"
+                                disabled={caseAdding}
+                                on:click={async () => {
+                                    let newCases = [];
+                                    selectedCanisterMethods.forEach((m) =>
+                                        newCases.push(
+                                            constructTestCase(
+                                                selectedCanisterId,
+                                                m
+                                            )
+                                        )
+                                    );
                                     activeSuite.cases = [
                                         ...activeSuite.cases,
-                                        ...selectedCanisterMethods,
+                                        ...newCases,
                                     ];
+
+                                    await saveUIConfiguration(uiConfig);
                                     resetCaseSelectStatus();
-                                    onUpdateUIConfig(uiConfig);
                                 }}
                             >
-                                <Label>Add To Suite</Label>
+                                {#if caseAdding}
+                                    <LoadingPanel
+                                        description="saving ..."
+                                    />
+                                {:else}
+                                    <Label>Add To Suite</Label>
+                                {/if}
                             </Button>
                         {/if}
                         <Button
                             variant="raised"
+                            color="secondary"
                             on:click={() => {
                                 resetCaseSelectStatus();
                             }}
@@ -243,6 +281,21 @@
                         </Content>
                     </Paper>
                 {/if}
+                <Paper color="secondary">
+                    <Content>
+                        {#if activeSuite.cases && activeSuite.cases.length > 0}
+                            <List>
+                                {#each activeSuite.cases as testCase}
+                                    <Item>
+                                        <Text>{testCase.method[0]}</Text>
+                                    </Item>
+                                {/each}
+                            </List>
+                        {:else}
+                            <NoDataPanel description="No Method Selected" />
+                        {/if}
+                    </Content>
+                </Paper>
             </Content>
         </Paper>
     {:else}
@@ -302,8 +355,6 @@
                                                                 on:click={() => {
                                                                     activeSuite =
                                                                         suite;
-
-                                                                    newCaseDlgOpen = true;
                                                                 }}
                                                             >
                                                                 <Icon
@@ -341,8 +392,49 @@
                                                                     <TCell
                                                                         >Canister</TCell
                                                                     >
+                                                                    <TCell>
+                                                                        Method
+                                                                    </TCell>
+                                                                    <TCell>
+                                                                        Status
+                                                                    </TCell>
+                                                                    <TCell>
+                                                                        Operation
+                                                                    </TCell>
                                                                 </Row>
                                                             </Head>
+                                                            <Body>
+                                                                {#if suite.cases && suite.cases.lenght === 0}
+                                                                    <NoDataPanel
+                                                                        description="No Cases Yet"
+                                                                    />
+                                                                {:else}
+                                                                    {#each suite.cases as testCase, index (suite.suite_id + testCase.case_id)}
+                                                                        <Row>
+                                                                            <TCell
+                                                                                >{index}</TCell
+                                                                            >
+                                                                            <TCell
+                                                                                >{testCase.canisterId}</TCell
+                                                                            >
+                                                                            <TCell
+                                                                                >{testCase
+                                                                                    .method[0]}</TCell
+                                                                            >
+                                                                            <TCell>
+                                                                                Not Ready
+                                                                            </TCell>
+                                                                            <TCell>
+                                                                                <Button variant="raised" color="primary" on:click={() => {
+                                                                                    activeCase = testCase;
+                                                                                }}>
+                                                                                    <Label>Config</Label>
+                                                                                </Button>
+                                                                            </TCell>
+                                                                        </Row>
+                                                                    {/each}
+                                                                {/if}
+                                                            </Body>
                                                         </DataTable>
                                                     </AContent>
                                                 </Panel>
