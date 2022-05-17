@@ -1,7 +1,7 @@
 use ic_cdk::export::candid::{Deserialize, Principal, CandidType, candid_method, encode_args};
 use serde::Serialize;
 use std::cell::RefCell;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 use std::string::String;
 use ic_cdk_macros;
 use ic_cdk::api;
@@ -47,43 +47,97 @@ impl CanisterHub {
             CanisterStatsAction::UnFollow => {
                 self.canister_stats.entry(canister_id)
                 .and_modify(|canister_stat| canister_stat.followers -= 1);            
-            }            
+            }
         }
     }
 }
 
+#[derive(Deserialize, Serialize, Debug, Clone, CandidType, PartialEq, Eq)]
+pub struct UserConfigIndex {
+    canister_index : u16,
+    // 0 means the user created the user config, root user
+    config_index: u16,
+}
+
+#[derive(CandidType)]
+pub struct UserConfigIndexView {
+    canister_id : Principal,
+    config_index: u16,
+}
+
 #[derive(Deserialize, Serialize, Debug, Clone)]
-    pub struct Registry {
+pub struct CanisterState {
+    user_state_meta : CanisterStateMeta,
+    //[true, false, true] true mark for active userconfig
+    configs: Vec<UserConfigMeta>
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct CanisterStateMeta {
+    canister_id : Principal,
+    is_public : bool,
+    user_config_limit : u16,
+    calls_limit: u32,
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone)]
+pub struct UserConfigMeta {
+    users : Vec<Principal>,
+    is_active : bool
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Registry {
     //map<user_id, vec<canister_id>>
-    registry : HashMap<Principal, Vec<Principal>>,
-    existing_canister_ids: HashSet<Principal>
+    user_registry : HashMap<Principal, Vec<UserConfigIndex>>,
+    //map<canister_id, user_state_meta>
+    canister_registry: Vec<CanisterState>
 }
 
 impl Registry{
     pub fn new() -> Self{
         Registry{
-            registry: HashMap::new(),
-            existing_canister_ids: HashSet::new()
+            user_registry: HashMap::new(),
+            canister_registry: Vec::new()
         }
     }
 
-    fn user_is_authenticated(& self, user : Principal) -> bool{
-        self.registry.contains_key(&user)
+    fn user_is_authenticated(& self, user : &Principal, user_config_index : &UserConfigIndex) -> bool{
+        match self.user_registry.get(user) {
+            Some(v) => {
+                 v.contains(user_config_index) 
+                }
+            None => false
+            }
+        }
+
+    // check if certain canister_id exsits, none if not, index if exists
+    fn canister_is_authenticated(& self, canister_id : Principal) -> Option<usize>{
+        self.canister_registry.iter().position(|state| state.user_state_meta.canister_id == canister_id)
     }
 
-    fn canister_is_authenticated(& self, user : Principal) -> bool{
-        self.existing_canister_ids.contains(&user)
+    fn insert_user_registry(&mut self, user: Principal, user_config_index : UserConfigIndex) {
+        self.user_registry.entry(user)
+                     .and_modify(|user_configs| {user_configs.push(user_config_index.clone())})
+                     .or_insert(vec![user_config_index.clone()]);
     }
 
-    fn add_canister_for_user(&mut self, canister_id: Principal, user: Principal) {
-        self.registry.entry(user)
-                     .and_modify(|canister_ids| {canister_ids.push(canister_id)})
-                     .or_insert(vec![canister_id]);
-        self.existing_canister_ids.insert(canister_id);
-    }
+    fn insert_canister_registry(&mut self, user_state_meta : CanisterStateMeta, user_config_meta : UserConfigMeta) -> UserConfigIndex{
+        match self.canister_registry.iter().position(|state| state.user_state_meta.canister_id == user_state_meta.canister_id) {
+            None => {
+                self.canister_registry.push(CanisterState{user_state_meta, configs: vec![user_config_meta]});
+                UserConfigIndex{canister_index: (self.canister_registry.len() - 1) as u16, config_index: 0}
+            }
+            Some(state_index) => {
+                let configs = &mut self.canister_registry[state_index].configs;
+                configs.push(user_config_meta);
+                UserConfigIndex{ canister_index: state_index as u16, config_index: (configs.len() - 1) as u16 }
+            }
+        }
+    } 
 }
 
-async fn create_n_install_new_canister(user_id : Principal, cycles: u64, calls_limit : u32, ui_config : String) -> Result<Principal, String>{
+async fn create_n_install_new_canister(user_id : Principal, cycles: u64, calls_limit : u32, ui_config : String, is_public : bool, user_configs_limit : u16) -> Result<Principal, String>{
     let create_canister_config = management::CreateCanisterArgs{
         cycles,
         settings: management::CanisterSettings{
@@ -95,7 +149,7 @@ async fn create_n_install_new_canister(user_id : Principal, cycles: u64, calls_l
     };
     match management::create_canister(create_canister_config).await {
         Ok(canister_id_record) => {
-            match encode_args((api::id(), user_id, calls_limit, ui_config)) {
+            match encode_args((user_id, calls_limit, ui_config, is_public, user_configs_limit)) {
                 Ok(args) => {
                     match management::install_canister(&canister_id_record.canister_id, STORAGE_WASM.to_vec(), args).await {
                         Ok(_) => {
@@ -116,14 +170,20 @@ async fn create_n_install_new_canister(user_id : Principal, cycles: u64, calls_l
 //create and install canister for end user
 #[ic_cdk_macros::update(name = "register_new_canister")]
 #[candid_method(update, rename = "register_new_canister")]
-async fn register_new_canister(cycles: u64, calls_limit : u32, ui_config : String)-> Result<Principal, String>{
+async fn register_new_canister(cycles: u64, calls_limit : u32, ui_config : String, 
+                                is_public : bool, user_config_limit : u16)-> Result<UserConfigIndexView, String>{
     let user = api::caller();
-    match create_n_install_new_canister(user, cycles, calls_limit, ui_config).await {
+    match create_n_install_new_canister(user, cycles, calls_limit, ui_config, is_public, user_config_limit).await {
         Ok(canister_id) => {
             REGISTRY.with(|registry|  {
                 let mut registry = registry.borrow_mut();
-                registry.add_canister_for_user(canister_id, user);
-                Ok(canister_id)
+
+                let user_config_index = registry.insert_canister_registry(
+                    CanisterStateMeta {canister_id, is_public, user_config_limit,calls_limit},
+                    UserConfigMeta{is_active: true, users: vec![user]}
+                );
+                registry.insert_user_registry(user, user_config_index.clone());
+                Ok(UserConfigIndexView{canister_id, config_index: 0})
             })
         }
         Err(msg) => {
@@ -132,36 +192,71 @@ async fn register_new_canister(cycles: u64, calls_limit : u32, ui_config : Strin
     }
 }
 
-#[ic_cdk_macros::update(name = "add_user_to_existing_canister")]
-#[candid_method(update, rename = "add_user_to_existing_canister")]
-async fn add_user_to_existing_canister(user : Principal)-> CallResult<String, String>{
-    let canister_id = api::caller();
+#[ic_cdk_macros::update(name = "add_user_to_existing_user_config")]
+#[candid_method(update, rename = "add_user_to_existing_user_config")]
+async fn add_user_to_existing_user_config(existing_user: Principal, new_user : Principal, config_index: u16)-> CallResult<String, String>{
+    let canister_id = api::caller();    
     REGISTRY.with(|registry|  {
         let mut registry = registry.borrow_mut();
         match registry.canister_is_authenticated(canister_id) {
-            true => {
-                registry.add_canister_for_user(canister_id, user);
-                CallResult::Authenticated(format!("{} is added as an user for canister {}", user.to_string(), canister_id.to_string()))
-            }
-            false => {
-                CallResult::UnAuthenticated(format!("{} is not a hub canister", canister_id.to_string()))
+            None => {CallResult::UnAuthenticated(format!("{} is not a hub canister", canister_id.to_string()))}
+            Some(canister_index) => {
+                let user_config_index = UserConfigIndex{canister_index : canister_index as u16, config_index};
+                match registry.user_is_authenticated(&existing_user, &user_config_index) {
+                    true => {
+                        registry.insert_user_registry(new_user, user_config_index);
+                        CallResult::Authenticated(format!("{} is added as an user for canister {}", new_user.to_string(), canister_id.to_string()))
+                    }
+                    false => {
+                        CallResult::UnAuthenticated(format!("{} is not a hub canister", canister_id.to_string()))
+                    }
+                }
             }
         }
     }
     )
 }
 
-#[ic_cdk_macros::query(name = "get_canisters_by_user")]
-#[candid_method(query, rename = "get_canisters_by_user")]
-fn get_canisters_by_user() -> CallResult<Vec<Principal>, String>{
+#[ic_cdk_macros::update(name = "add_user_to_existing_canister")]
+#[candid_method(update, rename = "add_user_to_existing_canister")]
+async fn add_user_to_existing_canister(new_user : Principal)-> CallResult<String, String>{
+    let canister_id = api::caller();    
+    REGISTRY.with(|registry|  {
+        let mut registry = registry.borrow_mut();
+        match registry.canister_is_authenticated(canister_id) {
+            None => {CallResult::UnAuthenticated(format!("{} is not a registered canister", canister_id.to_string()))}
+            Some(canister_index) => {
+                let state_meta = registry.canister_registry[canister_index].user_state_meta.clone();
+                match state_meta.is_public {
+                    true => {
+                        let user_config_index = registry.insert_canister_registry(state_meta, UserConfigMeta{users : vec![new_user], is_active : true} );
+                        registry.insert_user_registry(new_user, user_config_index);
+                        CallResult::Authenticated(format!("{} is registered", new_user.to_string()))
+                    }
+                    false => {CallResult::UnAuthenticated(format!("{} is not a public canister", canister_id.to_string()))}
+                }
+            }
+        }
+    }
+    )
+}
+
+#[ic_cdk_macros::query(name = "get_user_configs_by_user")]
+#[candid_method(query, rename = "get_user_configs_by_user")]
+fn get_user_configs_by_user() -> CallResult<Vec<UserConfigIndexView>, String>{
     let user = api::caller();
     REGISTRY.with(|registry|  {
-        let registry = registry.borrow_mut();
-        match registry.user_is_authenticated(user) {
-            true => {
-                CallResult::Authenticated(registry.registry.get(&user).unwrap().clone())
+        let registry = registry.borrow();
+        match registry.user_registry.get(&user) {
+            Some(configs) => {
+                let confic_indexes = configs.iter().map(|c| 
+                    UserConfigIndexView{
+                        canister_id: registry.canister_registry[c.canister_index as usize].user_state_meta.canister_id, 
+                        config_index: c.config_index}
+                    ).collect();
+                CallResult::Authenticated(confic_indexes)
             }
-            false => {
+            None => {
                 CallResult::UnAuthenticated(format!("{} is not a hub user", user.to_string()))
             }
         }

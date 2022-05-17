@@ -1,15 +1,74 @@
 use candid::{Deserialize, Principal, CandidType, candid_method, IDLProg, TypeEnv, check_prog};
 use serde::Serialize;
 use std::cell::RefCell;
-use std::collections::{VecDeque};
+use std::collections::VecDeque;
 use std::string::String;
 use ic_cdk_macros;
 use ic_cdk::api;
 use ic_cdk::api::stable::{stable_bytes, StableWriter};
 
 thread_local! {
-    static STATE: std::cell::RefCell<UserConfig>  = 
-    RefCell::new(UserConfig::default());
+    static STATE: std::cell::RefCell<CanisterState>  = 
+    RefCell::new(CanisterState::default());
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct CanisterState {
+    user_configs : Vec<UserConfig>,
+    registry_canister_id : Principal,
+    state_meta : StateMeta,
+}
+
+#[derive(Deserialize, Serialize, Debug, CandidType)]
+pub struct StateMeta {
+    is_public : bool,
+    user_configs_limit : u16,
+    calls_limit: u32
+}
+
+impl CanisterState {
+    fn init(&mut self, registry_canister_id : Principal, user_config : UserConfig, state_meta : StateMeta){
+        self.registry_canister_id = registry_canister_id;
+        self.user_configs[0] = user_config;
+        self.state_meta = state_meta;
+    }
+
+    fn is_authenticated(&self, user_config_index: u16, user: &Principal) -> bool {
+        // The anonymous principal is not allowed to interact with canister.
+        match self.user_configs.get(user_config_index as usize) {
+            None => {false}
+            Some(config) => {
+                if config.users.contains(user) {
+                    true
+                } else {
+                    false
+                }
+            }
+        }
+    }
+
+    fn is_root_user(&self, user: &Principal) -> bool {
+        // check if user is in root user config
+        self.user_configs[0].users.contains(user)
+    }
+    
+    fn check_num_configs_by_user(& self, user: &Principal) -> usize {
+        self.user_configs.iter().filter(|&c| c.users[0] == *user).count()
+    }
+
+    fn add_user_config(&mut self, user_config : UserConfig) {
+        self.user_configs.push(user_config)
+    }
+}
+
+impl Default for CanisterState {
+    fn default() -> Self {
+        Self { 
+            user_configs: vec![UserConfig::default()],
+            registry_canister_id: Principal::anonymous(),
+            state_meta : StateMeta{is_public: false, user_configs_limit : 1, calls_limit : u32::MAX}
+        }
+    }
 }
 
 #[derive(CandidType, Deserialize)]
@@ -61,10 +120,10 @@ struct CanisterConfig {
 
 #[derive(Serialize, Debug, Deserialize)]
 pub struct UserConfig {
-    registry_canister_id: Principal,
     users: Vec<Principal>,
     calls_limit: u32,
     ui_config: String,
+    is_active: bool,
     canister_configs: Vec<CanisterConfig>,
     canister_calls: VecDeque<CanisterCall>,
     last_call_id: u32,
@@ -90,10 +149,10 @@ pub struct UserConfigViewPublic {
 
 impl Default for UserConfig {
     fn default() -> Self{
-        UserConfig {
-            registry_canister_id: Principal::anonymous(),
+        Self {
             users : vec![Principal::anonymous()],
             ui_config : String::new(),
+            is_active: true,
             calls_limit: u32::MAX,
             canister_configs: Vec::new(),
             canister_calls: VecDeque::new(),
@@ -104,25 +163,22 @@ impl Default for UserConfig {
 }
 
 impl UserConfig {
-    fn init(&mut self, registry_canister_id : Principal, user : Principal, calls_limit : u32, ui_config : String) {
-        self.registry_canister_id = registry_canister_id; 
-        self.users = vec![user];
-        self.calls_limit = calls_limit;
-        self.ui_config = ui_config;
+    fn new(user : Principal, calls_limit : u32, ui_config : String) -> Self{
+        Self {
+            users : vec![user],
+            ui_config,
+            is_active: true,
+            calls_limit,
+            canister_configs: Vec::new(),
+            canister_calls: VecDeque::new(),
+            last_call_id: 0,
+            test_cases: Vec::new()
+        }
     }
 
     fn add_user(&mut self, user: Principal) {
         self.users.push(user);
     }    
-
-    fn is_authenticated(&self, user: &Principal) -> bool {
-        // The anonymous principal is not allowed to interact with canister.
-        if self.users.contains(user) {
-            true
-        } else {
-            false
-        }
-    }
 
     fn update_ui_config(&mut self, ui_config : &String){
         self.ui_config = ui_config.clone();
@@ -239,30 +295,55 @@ impl UserConfig {
 
 #[ic_cdk_macros::init]
 #[candid_method(init)]
-async fn init(registry_canister_id : Principal, user : Principal, calls_limit : u32, ui_config : String){
-    STATE.with(|config| {
-        let mut config = config.borrow_mut();
-        config.init(registry_canister_id, user, calls_limit, ui_config);
+async fn init(user : Principal, calls_limit : u32, 
+                ui_config : String, is_public : bool, user_configs_limit : u16){
+    let state_meta = StateMeta{is_public, user_configs_limit, calls_limit};
+    let registry_canister_id = api::caller();
+    STATE.with(|config_state| {
+        let mut config_state = config_state.borrow_mut();
+        config_state.init(registry_canister_id, 
+                            UserConfig::new(user, calls_limit, ui_config), state_meta);
     }        
     );
 }
 
-#[ic_cdk_macros::update(name = "add_user")]
-#[candid_method(update, rename = "add_user")]
-async fn add_user(new_user : Principal) -> CallResult<String, String>{
+#[ic_cdk_macros::update(name = "update_state_meta")]
+#[candid_method(update, rename = "update_state_meta")]
+async fn update_state_meta(state_meta : StateMeta) -> CallResult<String, String>{
+    STATE.with(|config_state| {
+        let caller = api::caller();
+        let mut config_state = config_state.borrow_mut();
+        match config_state.is_root_user(&caller) {
+            true => {
+                config_state.state_meta = state_meta;
+                CallResult::Authenticated(String::from("state meta data is updated"))
+            }
+            false => {
+                CallResult::UnAuthenticated(format!("{} is not root user", caller))
+            }
+        }
+    }        
+    )    
+}
+
+#[ic_cdk_macros::update(name = "add_user_to_existing_user_config")]
+#[candid_method(update, rename = "add_user_to_existing_user_config")]
+async fn add_user_to_existing_user_config(user_config_index : u16, new_user : Principal) -> CallResult<String, String>{
     let caller = api::caller();
     let (is_authenticated, registry_canister_id ) = 
-    STATE.with(|config|{
-        let config = config.borrow();
-        (config.is_authenticated(&caller), config.registry_canister_id)});
+    STATE.with(|config_state|{
+        let config_state = config_state.borrow();
+        (config_state.is_authenticated(user_config_index, &caller), config_state.registry_canister_id)});
     match is_authenticated {
         true => {
-            let call_result: Result<(CallResult<String, String>,), _> = api::call::call(registry_canister_id, "add_user_to_existing_canister", (new_user,)).await;        
+            let call_result: Result<(CallResult<String, String>,), _> = 
+                api::call::call(registry_canister_id, "add_user_to_existing_user_config", (caller, new_user,user_config_index)).await;        
             match call_result {
                 Ok(result) => {
                     match result.0  {
                         CallResult::Authenticated(msg) =>{
-                            STATE.with(|config| config.borrow_mut().add_user(caller));
+                            STATE.with(|config_state| {config_state.borrow_mut().user_configs[user_config_index as usize].add_user(caller)}
+                        );
                             CallResult::Authenticated(msg)
                         }
                         CallResult::UnAuthenticated(msg) => {
@@ -279,17 +360,60 @@ async fn add_user(new_user : Principal) -> CallResult<String, String>{
             CallResult::UnAuthenticated(String::from("add_user requires authentication"))
         }
     }
-}        
+}
+
+#[ic_cdk_macros::update(name = "add_user_config")]
+#[candid_method(update, rename = "add_user_config")]
+async fn add_user_config(ui_config : String) -> CallResult<String, String>{
+    let new_user = api::caller();
+    let (configs_owned, is_root_user, registry_canister_id ) = 
+    STATE.with(|config_state|{
+        let config_state = config_state.borrow();
+        (config_state.check_num_configs_by_user(&new_user), 
+        config_state.is_root_user(&new_user),
+        config_state.registry_canister_id)});
+    let is_allowed = configs_owned <= 3 && is_root_user == false || is_root_user == true;
+    match is_allowed {
+        true => {
+            let call_result: Result<(CallResult<String, String>,), _> = 
+                api::call::call(registry_canister_id, "add_user_to_existing_canister", (new_user,)).await;        
+            match call_result {
+                Ok(result) => {
+                    match result.0  {
+                        CallResult::Authenticated(msg) =>{
+                            STATE.with(|config_state| {
+                                let mut config_state = config_state.borrow_mut();
+                                let user_config = UserConfig::new(new_user, config_state.state_meta.calls_limit, ui_config);
+                                config_state.add_user_config(user_config);
+                            }
+                        );
+                            CallResult::Authenticated(msg)
+                        }
+                        CallResult::UnAuthenticated(msg) => {
+                            CallResult::UnAuthenticated(msg)
+                        }
+                    }
+                }
+                Err(msg) => {
+                    panic!("{:?}, {}", msg.0, msg.1)
+                }
+            }                
+        }
+        false => {
+            CallResult::UnAuthenticated(format!("add_user_config limit exceeds for {}", new_user))
+        }
+    }
+}
 
 #[ic_cdk_macros::update(name = "cache_ui_config")]
 #[candid_method(update, rename = "cache_ui_config")]
-async fn cache_ui_config(ui_config : String) -> CallResult<String, String>{
-    STATE.with(|config| {
+async fn cache_ui_config(user_config_index : u16, ui_config : String) -> CallResult<String, String>{
+    STATE.with(|config_state| {
         let caller = api::caller();
-        let mut config = config.borrow_mut();
-        match config.is_authenticated(&caller){
+        let mut config_state = config_state.borrow_mut();
+        match config_state.is_authenticated(user_config_index, &caller){
             true => {
-                config.update_ui_config(&ui_config);
+                config_state.user_configs[user_config_index as usize].update_ui_config(&ui_config);
                 CallResult::Authenticated(String::from("ui config is updated"))
             }
             false => {
@@ -302,74 +426,74 @@ async fn cache_ui_config(ui_config : String) -> CallResult<String, String>{
 
 #[ic_cdk_macros::update(name = "cache_canister_config")]
 #[candid_method(update, rename = "cache_canister_config")]
-async fn cache_canister_config(canister_config : CanisterConfig) -> CallResult<String, String>{
-    STATE.with(|config| {
+async fn cache_canister_config(user_config_index : u16, canister_config : CanisterConfig) -> CallResult<String, String>{
+    STATE.with(|config_state| {
         let caller = api::caller();
-        let mut config = config.borrow_mut();
-        match config.is_authenticated(&caller){
+        let mut config_state = config_state.borrow_mut();
+        match config_state.is_authenticated(user_config_index, &caller){
             true => {
-                config.update_canister_config(&canister_config);
+                config_state.user_configs[user_config_index as usize].update_canister_config(&canister_config);
                 CallResult::Authenticated(String::from("canister config is updated"))
             }
             false => {
                 CallResult::UnAuthenticated(String::from("cache_canister_config requires authentication"))
             }
         }
-    }           
-    )
+    }        
+    )    
 }
 
 #[ic_cdk_macros::update(name = "cache_canister_calls")]
 #[candid_method(update, rename = "cache_canister_calls")]
-async fn cache_canister_calls(canister_calls : Vec<CanisterCall>)-> CallResult<String, String>{
-    STATE.with(|config| {
+async fn cache_canister_calls(user_config_index: u16, canister_calls : Vec<CanisterCall>)-> CallResult<String, String>{
+    STATE.with(|config_state| {
         let caller = api::caller();
-        let mut config = config.borrow_mut();
-        match config.is_authenticated(&caller){
+        let mut config_state = config_state.borrow_mut();
+        match config_state.is_authenticated(user_config_index, &caller){
             true => {
-                config.insert_canister_calls(canister_calls);
+                config_state.user_configs[user_config_index as usize].insert_canister_calls(canister_calls);
                 CallResult::Authenticated(String::from("canister calls are updated"))
             }
             false => {
                 CallResult::UnAuthenticated(String::from("cache_canister_calls requires authentication"))
             }
         }
-    }            
-    )
+    }        
+    )      
 }
 
 #[ic_cdk_macros::update(name = "cache_test_case")]
 #[candid_method(update, rename = "cache_test_case")]
-async fn cache_test_case(test_case : TestCaseView)-> CallResult<String, String>{
-    STATE.with(|config| {
+async fn cache_test_case(user_config_index: u16, test_case : TestCaseView)-> CallResult<String, String>{
+    STATE.with(|config_state| {
         let caller = api::caller();
-        let mut config = config.borrow_mut();
-        match config.is_authenticated(&caller){
+        let mut config_state = config_state.borrow_mut();
+        match config_state.is_authenticated(user_config_index, &caller){
             true => {
-                config.insert_test_case(test_case);
+                config_state.user_configs[user_config_index as usize].insert_test_case(test_case);
                 CallResult::Authenticated(String::from("test case is cached"))
             }
             false => {
                 CallResult::UnAuthenticated(String::from("cache_test_case requires authentication"))
             }
         }
-    }            
-    )
+    }        
+    )        
 }
 
 
 #[ic_cdk_macros::query(name = "get_user_config")]
 #[candid_method(query, rename = "get_user_config")]
-fn get_user_config() -> CallResult<UserConfigViewPrivate, UserConfigViewPublic>{
-    STATE.with(|config| {
+fn get_user_config(user_config_index: u16) -> CallResult<UserConfigViewPrivate, UserConfigViewPublic>{
+    STATE.with(|config_state| {
         let caller = api::caller();        
-        let config = config.borrow();
-        match config.is_authenticated(&caller){
+        let config_state = config_state.borrow();
+        match config_state.is_authenticated(user_config_index, &caller){
             true => {
-                CallResult::Authenticated(config.get_user_config_private())
+                CallResult::Authenticated(config_state.user_configs[user_config_index as usize].get_user_config_private())
             }
             false => {
-                CallResult::UnAuthenticated(config.get_user_config_public())
+                CallResult::UnAuthenticated(config_state.user_configs[user_config_index as usize].get_user_config_public())
             }
         }   
     }        
@@ -378,40 +502,44 @@ fn get_user_config() -> CallResult<UserConfigViewPrivate, UserConfigViewPublic>{
 
 #[ic_cdk_macros::query(name = "get_canister_calls")]
 #[candid_method(query, rename = "get_canister_calls")]
-fn get_canister_calls(canister_id: Option<Principal>, function_name: Option<String>, limit: Option<u16>) 
+fn get_canister_calls(user_config_index: u16, canister_id: Option<Principal>, function_name: Option<String>, limit: Option<u16>) 
                     -> CallResult<Vec<CanisterCall>, String>
 {
-    STATE.with(|config| {
-        let caller = api::caller();
-        let config = config.borrow();
-        match config.is_authenticated(&caller){
+    STATE.with(|config_state| {
+        let caller = api::caller();        
+        let config_state = config_state.borrow();
+        match config_state.is_authenticated(user_config_index, &caller){
             true => {
-                CallResult::Authenticated(config.get_canister_calls(canister_id, function_name, limit))
+                CallResult::Authenticated(config_state.user_configs[user_config_index as usize]
+                                                      .get_canister_calls(canister_id, function_name, limit))
             }
             false => {
                 CallResult::UnAuthenticated(String::from("get_canister_calls requires authentication"))
             }
-        }     
-    })   
+        }   
+    }        
+    )
 }
 
 #[ic_cdk_macros::query(name = "get_test_cases")]
 #[candid_method(query, rename = "get_test_cases")]
-fn get_test_cases(tag: Option<String>, limit: Option<u16>, include_canister_calls : bool) 
+fn get_test_cases(user_config_index: u16, tag: Option<String>, limit: Option<u16>, include_canister_calls : bool) 
                     -> CallResult<Vec<TestCaseView>, String>
 {
-    STATE.with(|config| {
-        let caller = api::caller();
-        let config = config.borrow();
-        match config.is_authenticated(&caller){
+    STATE.with(|config_state| {
+        let caller = api::caller();        
+        let config_state = config_state.borrow();
+        match config_state.is_authenticated(user_config_index, &caller){
             true => {
-                CallResult::Authenticated(config.get_test_cases(tag, limit, include_canister_calls))
+                CallResult::Authenticated(config_state.user_configs[user_config_index as usize]
+                                                      .get_test_cases(tag, limit, include_canister_calls))
             }
             false => {
                 CallResult::UnAuthenticated(String::from("get_test_cases requires authentication"))
             }
-        }     
-    })   
+        }   
+    }        
+    )       
 }
 
 #[ic_cdk_macros::query(name = "get_principal")]

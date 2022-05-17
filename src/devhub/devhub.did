@@ -1,3 +1,9 @@
+type StateMeta = record {
+    is_public : bool;
+    user_configs_limit : nat16;
+    calls_limit: nat32;
+};
+
 type CanisterCallEvent = record {
     time_at: nat64;
     caller: principal;
@@ -24,7 +30,8 @@ type CanisterConfig = record {
   is_active : bool;
   is_public: bool;
   config: text;
-  meta_data: vec text };
+  meta_data: vec text 
+};
 
 type UserConfigViewPrivate = record {
   users : vec principal;
@@ -32,6 +39,7 @@ type UserConfigViewPrivate = record {
   calls_limit: nat32;
   canister_configs : vec CanisterConfig;
   canister_calls : vec CanisterCall;
+  test_cases : vec TestCaseView;
 };
 
 type UserConfigViewPublic = record {
@@ -61,15 +69,17 @@ type GetTestResult = variant {
 };
 
 service devhub : {
-  init : (principal, principal, nat32, text) -> ();
-  add_user: (principal) -> (CallResult);
-  cache_ui_config : (text) -> (CallResult);
-  cache_canister_config : (CanisterConfig) -> (CallResult);
-  cache_canister_calls : (vec CanisterCall) -> (CallResult);
-  cache_test_case: (TestCaseView) -> (CallResult);
-  get_user_config : () -> (GetConfigResult) query;
-  get_canister_calls: (opt principal, opt text, opt nat16 ) -> (GetCallResult) query;
-  get_test_cases: ( opt text, opt nat16, bool ) -> (GetTestResult) query;
+  init : (principal, nat32, text, bool, nat16) -> ();
+  update_state_meta : (StateMeta) -> (CallResult);
+  add_user_to_existing_user_config: (nat16, principal) -> (CallResult);
+  add_user_config : (text) -> (CallResult);
+  cache_ui_config : (nat16, text) -> (CallResult);
+  cache_canister_config : (nat16, CanisterConfig) -> (CallResult);
+  cache_canister_calls : (nat16, vec CanisterCall) -> (CallResult);
+  cache_test_case: (nat16, TestCaseView) -> (CallResult);
+  get_user_config : (nat16) -> (GetConfigResult) query;
+  get_canister_calls: (nat16, opt principal, opt text, opt nat16 ) -> (GetCallResult) query;
+  get_test_cases: (nat16, opt text, opt nat16, bool ) -> (GetTestResult) query;
   get_principal: () -> (principal) query;
   did_to_js: (text) -> (opt text) query;
 }

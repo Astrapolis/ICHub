@@ -1,21 +1,27 @@
+type UserConfigIndexView = record {
+    canister_id : principal;
+    config_index : nat16;
+};
+
 type CallResult = variant {
   Authenticated : text;
   UnAuthenticated: text;
 };
 
-type RegisterCallResult = variant {
-  Authenticated : principal;
-  UnAuthenticated: text;
+type RegisterCanisterResult = variant {
+  Ok : UserConfigIndexView; 
+  Err: text;
 };
 
-type GetCanistersQueryResult = variant {
-  Authenticated : vec principal;
+type GetUserConfigsQueryResult = variant {
+  Authenticated : vec UserConfigIndexView;
   UnAuthenticated: text;
 };
 
 service devhub : {
-  register_new_canister : (nat64, nat32, text) -> (variant {Ok : principal; Err: text;});
+  register_new_canister : (nat64, nat32, text, bool, nat16) -> (RegisterCanisterResult);
+  add_user_to_existing_user_config : (principal, principal, nat16) -> (CallResult);
   add_user_to_existing_canister : (principal) -> (CallResult);
-  get_canisters_by_user : () -> (GetCanistersQueryResult) query;
+  get_user_configs_by_user : () -> (GetUserConfigsQueryResult) query;
   did_to_js: (text) -> (opt text) query;
 }
