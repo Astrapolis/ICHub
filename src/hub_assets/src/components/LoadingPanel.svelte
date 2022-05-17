@@ -14,7 +14,7 @@
 >
     <div class="loading-content-container">
         <CircularProgress style="height: 32px; width: 32px;" indeterminate />
-        <Label class="description-label">{description}</Label>
+        <span class="description-label">{description}</span>
     </div>
 </div>
 

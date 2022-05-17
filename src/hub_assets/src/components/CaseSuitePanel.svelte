@@ -59,7 +59,6 @@
     let activeCase = null;
     let caseConfigOpen = false;
 
-
     onMount(async () => {
         console.log("CaseSuitePanel on mount");
     });
@@ -129,6 +128,7 @@
                 Math.floor(Math.random() * 100),
             canisterId,
             method,
+            methodSpec: method[1].display(),
             params: [],
         };
     }
@@ -163,6 +163,43 @@
         </DContent>
         <Actions>
             <Button variant="raised">
+                <Label>Cancel</Label>
+            </Button>
+        </Actions>
+    </Dialog>
+
+    <Dialog bind:open={caseConfigOpen} fullscreen>
+        <DHeader>
+            <DTitle>Configure Case Parameters</DTitle>
+        </DHeader>
+        <DContent>
+            {#if !!activeCase}
+                <Paper>
+                    <Title>
+                        <div class="case-config-title-container">
+                            <div>
+                                <span class="case-method-name"
+                                    >{activeCase.method[0] + ":"}</span
+                                >
+                            </div>
+                            <div>
+                                <span class="case-method-spec"
+                                    >{activeCase.methodSpec}</span
+                                >
+                            </div>
+                        </div>
+                    </Title>
+                    <Content>params should be listed here.</Content>
+                </Paper>
+            {/if}
+        </DContent>
+        <Actions>
+            <Button
+                variant="raised"
+                on:click={() => {
+                    activeCase = null;
+                }}
+            >
                 <Label>Cancel</Label>
             </Button>
         </Actions>
@@ -232,9 +269,7 @@
                                 }}
                             >
                                 {#if caseAdding}
-                                    <LoadingPanel
-                                        description="saving ..."
-                                    />
+                                    <LoadingPanel description="saving ..." />
                                 {:else}
                                     <Label>Add To Suite</Label>
                                 {/if}
@@ -267,7 +302,13 @@
                             <List checkList>
                                 {#each selectedCanisterMethodList as method}
                                     <Item>
-                                        <Text>{method[0]}</Text>
+                                        <Text
+                                            ><span class="case-method-name"
+                                                >{method[0] + ":"}</span
+                                            ><span class="case-method-spec"
+                                                >{method[1].display()}</span
+                                            ></Text
+                                        >
                                         <Meta>
                                             <Checkbox
                                                 bind:group={selectedCanisterMethods}
@@ -287,7 +328,12 @@
                             <List>
                                 {#each activeSuite.cases as testCase}
                                     <Item>
-                                        <Text>{testCase.method[0]}</Text>
+                                        <span class="case-method-name"
+                                            >{testCase.method[0]}</span
+                                        >
+                                        <span class="case-method-spec"
+                                            >{testCase.methodSpec}</span
+                                        >
                                     </Item>
                                 {/each}
                             </List>
@@ -316,143 +362,120 @@
                 </Button>
             </Title>
             <Content>
-                <Paper color="secondary">
-                    <Content>
-                        <LayoutGrid>
-                            <GCell span={6}>
-                                <Paper color="primary" variant="outlined">
-                                    <Title>Case Suites</Title>
-                                    <Content>
-                                        <Accordion>
-                                            {#each caseSuites as suite (suite.suite_id)}
-                                                <Panel
-                                                    square
-                                                    variant="outlined"
-                                                    color="primary"
-                                                    extend
-                                                >
-                                                    <Header>
-                                                        {suite.suite_name}
+                <!-- <Paper color="secondary">
+                    <Content> -->
+                <!-- <LayoutGrid>
+                    <GCell span={6}>
+                        <Paper color="secondary">
+                            <Title>Case Suites</Title>
+                            <Content> -->
+                <Accordion>
+                    {#each caseSuites as suite (suite.suite_id)}
+                        <Panel square variant="raised" extend>
+                            <Header>
+                                {suite.suite_name}
+                                <IconButton slot="icon" toggle>
+                                    <Icon class="material-icons" on
+                                        >unfold_less</Icon
+                                    >
+                                    <Icon class="material-icons"
+                                        >unfold_more</Icon
+                                    >
+                                </IconButton>
+                            </Header>
+                            <AContent>
+                                <div>
+                                    <Button
+                                        variant="raised"
+                                        on:click={() => {
+                                            activeSuite = suite;
+                                        }}
+                                    >
+                                        <Icon class="material-icons">add</Icon>
+                                        <Label>Add Case</Label>
+                                    </Button>
+                                    <Button variant="raised">
+                                        <Icon class="material-icons">start</Icon
+                                        >
+                                        <Label>Run Suite</Label>
+                                    </Button>
+                                </div>
+
+                                <DataTable style="width: 100%;">
+                                    <Head>
+                                        <Row>
+                                            <TCell numeric>Seq.</TCell>
+                                            <TCell>Canister</TCell>
+                                            <TCell>Method</TCell>
+                                            <TCell>Status</TCell>
+                                            <TCell>Actions</TCell>
+                                        </Row>
+                                    </Head>
+                                    <Body>
+                                        {#if suite.cases && suite.cases.lenght === 0}
+                                            <NoDataPanel
+                                                description="No Cases Yet"
+                                            />
+                                        {:else}
+                                            {#each suite.cases as testCase, index (suite.suite_id + testCase.case_id)}
+                                                <Row>
+                                                    <TCell>{index}</TCell>
+                                                    <TCell
+                                                        >{testCase.canisterId}</TCell
+                                                    >
+                                                    <TCell
+                                                        ><span
+                                                            class="case-method-name"
+                                                            >{testCase
+                                                                .method[0] +
+                                                                ":"}</span
+                                                        ><span
+                                                            class="case-method-spec"
+                                                            >{testCase.methodSpec}</span
+                                                        ></TCell
+                                                    >
+                                                    <TCell>Not Ready</TCell>
+                                                    <TCell>
                                                         <IconButton
-                                                            slot="icon"
-                                                            toggle
+                                                            class="material-icons"
+                                                            on:click={() => {
+                                                                activeCase =
+                                                                    testCase;
+                                                                caseConfigOpen = true;
+                                                            }}
                                                         >
-                                                            <Icon
-                                                                class="material-icons"
-                                                                on
-                                                                >unfold_less</Icon
-                                                            >
-                                                            <Icon
-                                                                class="material-icons"
-                                                                >unfold_more</Icon
-                                                            >
+                                                            settings
                                                         </IconButton>
-                                                    </Header>
-                                                    <AContent>
-                                                        <div>
-                                                            <Button
-                                                                variant="outlined"
-                                                                on:click={() => {
-                                                                    activeSuite =
-                                                                        suite;
-                                                                }}
+                                                        {#if index > 0}
+                                                            <IconButton
+                                                                class="material-icons"
                                                             >
-                                                                <Icon
-                                                                    class="material-icons"
-                                                                    >add</Icon
-                                                                >
-                                                                <Label
-                                                                    >Add A New
-                                                                    Case To
-                                                                    Suite</Label
-                                                                >
-                                                            </Button>
-                                                            <Button
-                                                                variant="outlined"
-                                                            >
-                                                                <Icon
-                                                                    class="material-icons"
-                                                                    >start</Icon
-                                                                >
-                                                                <Label
-                                                                    >Run Suite</Label
-                                                                >
-                                                            </Button>
-                                                        </div>
-
-                                                        <DataTable
-                                                            style="width: 100%;"
-                                                        >
-                                                            <Head>
-                                                                <Row>
-                                                                    <TCell
-                                                                        numeric
-                                                                        >Seq.</TCell
-                                                                    >
-                                                                    <TCell
-                                                                        >Canister</TCell
-                                                                    >
-                                                                    <TCell>
-                                                                        Method
-                                                                    </TCell>
-                                                                    <TCell>
-                                                                        Status
-                                                                    </TCell>
-                                                                    <TCell>
-                                                                        Operation
-                                                                    </TCell>
-                                                                </Row>
-                                                            </Head>
-                                                            <Body>
-                                                                {#if suite.cases && suite.cases.lenght === 0}
-                                                                    <NoDataPanel
-                                                                        description="No Cases Yet"
-                                                                    />
-                                                                {:else}
-                                                                    {#each suite.cases as testCase, index (suite.suite_id + testCase.case_id)}
-                                                                        <Row>
-                                                                            <TCell
-                                                                                >{index}</TCell
-                                                                            >
-                                                                            <TCell
-                                                                                >{testCase.canisterId}</TCell
-                                                                            >
-                                                                            <TCell
-                                                                                >{testCase
-                                                                                    .method[0]}</TCell
-                                                                            >
-                                                                            <TCell>
-                                                                                Not Ready
-                                                                            </TCell>
-                                                                            <TCell>
-                                                                                <Button variant="raised" color="primary" on:click={() => {
-                                                                                    activeCase = testCase;
-                                                                                }}>
-                                                                                    <Label>Config</Label>
-                                                                                </Button>
-                                                                            </TCell>
-                                                                        </Row>
-                                                                    {/each}
-                                                                {/if}
-                                                            </Body>
-                                                        </DataTable>
-                                                    </AContent>
-                                                </Panel>
+                                                                arrow_upward
+                                                            </IconButton>
+                                                        {/if}
+                                                    </TCell>
+                                                </Row>
                                             {/each}
-                                        </Accordion>
-                                    </Content>
-                                </Paper>
-                            </GCell>
+                                        {/if}
+                                    </Body>
+                                </DataTable>
+                            </AContent>
+                        </Panel>
+                    {/each}
+                </Accordion>
+                <!-- </Content>
+                        </Paper>
+                    </GCell>
 
-                            <GCell span={6}>
-                                <Paper color="primary" variant="outlined">
-                                    <Title>Run History</Title>
-                                    <Content />
-                                </Paper>
-                            </GCell>
-                        </LayoutGrid>
-                    </Content>
-                </Paper>
+                    <GCell span={6}>
+                        <Paper color="secondary" >
+                            <Title>Run History</Title>
+                            <Content />
+                        </Paper>
+                    </GCell>
+                </LayoutGrid> -->
+                <!-- </Content>
+                </Paper> -->
             </Content>
         </Paper>
     {/if}
@@ -465,5 +488,19 @@
         flex-direction: row;
         align-items: center;
         justify-content: space-between;
+    }
+    .case-config-title-container {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+    }
+    .case-method-name {
+        font-weight: bold;
+        color: var(--mdc-theme-primary);
+    }
+
+    .case-method-spec {
+        font-style: italic;
     }
 </style>
