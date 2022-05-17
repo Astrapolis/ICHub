@@ -23,3 +23,8 @@ a {
 a:visited {
   color: color.scale(#40b3ff, $lightness: -35%);
 }
+
+:root {
+  --mdc-theme-primary: #{theme.$primary};
+  --mdc-theme-secondary: #{theme.$secondary};
+}

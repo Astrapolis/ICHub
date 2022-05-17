@@ -13,6 +13,12 @@
   import TabBar from "@smui/tab-bar";
   import Paper, { Title as PTitle, Content } from "@smui/paper";
   import Button from "@smui/button";
+  import Dialog, {
+    Header as DHeader,
+    Title as DTitle,
+    Content as DContent,
+    Actions,
+  } from "@smui/dialog";
   import Fab from "@smui/fab";
   import { Label } from "@smui/common";
   import { Anchor } from "@smui/menu-surface";
@@ -57,6 +63,7 @@
   let registering = false;
   let hubActor = null;
   let devhubsOfCurrentIdentity = [];
+  let profileOpen = false;
   // let inTestMode = false;
 
   function setLoginStatus() {
@@ -159,46 +166,55 @@
 </script>
 
 <main class="site-layout-container">
-  <TopAppBar color="secondary" variant="static">
+  <Dialog bind:open={profileOpen}>
+    <DHeader>
+      <DTitle>My Profile</DTitle>
+    </DHeader>
+    {#if login}
+      <DContent>
+        <Label>Principal:</Label>
+        <Fab extended>
+          <Label>{identity.getPrincipal()}</Label>
+        </Fab>
+      </DContent>
+      {/if}
+    <Actions>
+      <Button variant="raised">
+        <Label>Cancel</Label>
+      </Button>
+    </Actions>
+  </Dialog>
+  <TopAppBar color="primary" variant="static">
     <!-- <div class="top-app-bar-container flexor"> -->
     <Row>
       <Section>
         <IconButton class="material-icons">menu</IconButton>
       </Section>
-
       {#if login}
         {#if userType === USER_TYPE_REGISTERED}
           <!-- <div class="top-tab-container"> -->
           <Section>
-            <TabBar {tabs} let:tab bind:active={activeTab} >
+            <TabBar {tabs} let:tab bind:active={activeTab}>
               <!-- Note: the `tab` property is required! -->
               <Tab {tab}>
-                <Label>{tab}</Label>
+                <!-- <Label>{tab}</Label> -->
+                <Button
+                  variant="raised"
+                  color={activeTab === tab ? "primary" : "secondary"}
+                >
+                  <Label>{tab}</Label>
+                </Button>
               </Tab>
             </TabBar>
           </Section>
           <!-- </div> -->
         {/if}
         <Section align="end">
-          <!-- <div class="top-profile-container">
-            <span>{identity.getPrincipal()}</span>
-            <div
-              class={Object.keys(anchorClasses).join(" ")}
-              use:Anchor={{
-                addClass: (className) => {
-                  if (!anchorClasses[className]) {
-                    anchorClasses[className] = true;
-                  }
-                },
-                removeClass: (className) => {
-                  if (anchorClasses[className]) {
-                    delete anchorClasses[className];
-                    anchorClasses = anchorClasses;
-                  }
-                },
-              }}
-              bind:this={anchor}
-            > -->
+          <IconButton class="material-icons"
+            on:click={() => {
+              profileOpen = true;
+            }}
+          >person</IconButton>
           <IconButton
             class="material-icons"
             on:click={async () => {
@@ -210,37 +226,11 @@
               registering = false;
             }}>logout</IconButton
           >
-          <!-- <Menu
-                bind:this={logoutMenu}
-                anchor={false}
-                bind:anchorElement={anchor}
-                anchorCorner="BOTTOM_LEFT"
-              >
-                <List>
-                  <Item
-                    on:SMUI:action={async () => {
-                      await authClient.logout();
-                      login = false;
-                      userLoaded = false;
-                      userType = USER_TYPE_NEW;
-                      userTypeLoading = false;
-                      registering = false;
-                    }}
-                  >
-                    <Text>Logout</Text>
-                  </Item>
-                </List>
-              </Menu> -->
-          <!-- </div>
-          </div> -->
         </Section>
       {/if}
     </Row>
   </TopAppBar>
   <div class="main-content-container">
-    <!-- {#if inTestMode}
-      <TestComponent />
-    {:else if userLoaded} -->
     {#if userLoaded}
       {#if activeTab === TAB_HUB}
         <HubPanel />
