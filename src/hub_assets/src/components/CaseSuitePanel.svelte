@@ -38,7 +38,7 @@
     import PaperTitle from "./PaperTitle.svelte";
     import NoDataPanel from "./NoDataPanel.svelte";
     import MethodParamRender from "./MethodParamRender.svelte";
-    import {getHashCodeFromString} from "../utils/stringUtils";
+    import { getHashCodeFromString } from "../utils/stringUtils";
 
     export let devhubActor = null;
     export let identity = null;
@@ -60,6 +60,8 @@
     let caseAdding = false;
     let activeCase = null;
     let caseConfigOpen = false;
+    let bufferedCaseMethodParams = {};
+    const CASEMETHOD_STAUTS_MAP = ["NA", "Not Ready", "Ready"];
 
     onMount(async () => {
         console.log("CaseSuitePanel on mount");
@@ -123,8 +125,9 @@
     }
 
     function constructTestCase(canisterId, method) {
+        let readyToRun = method[1].argTypes.lenght === 0 ? -1 : 0; // -1 :NA, 0: Not Ready, 1: Ready to Run
         let params = [];
-        method[1].argTypes.forEach(argType=>{
+        method[1].argTypes.forEach((argType) => {
             params.push(argType.name);
         });
         return {
@@ -136,7 +139,8 @@
             canisterId,
             methodName: method[0],
             methodSpec: method[1].display(),
-            params,
+            params, //parameter value stored to run this case.
+            readyToRun,
         };
     }
 
@@ -144,6 +148,15 @@
         caseAdding = true;
         await onUpdateUIConfig(newUIConfig);
         caseAdding = false;
+    }
+
+    async function onCaseMethodParamValueSet(event) {
+        event.preventDefault();
+        console.log('buffered value ===>', bufferedCaseMethodParams);
+    }
+
+    function onParameterValueChanged(event) {
+        bufferedCaseMethodParams[event.detail.paramIndex] = event.detail.inputValue;
     }
 </script>
 
@@ -197,14 +210,23 @@
                         </div>
                     </Title>
                     <Content>
-                        {#each activeCase.params as param, index (activeCase.case_id + '-' + index)}
-                            <MethodParamRender 
-                            methodName={activeCase.methodName}
-                            paramIndex={index}
-                            canisterId={activeCase.canisterId}
-                            {agent}
-                            />
-                        {/each}
+                        <form
+                            on:submit={onCaseMethodParamValueSet}
+                            style="margin: 10px"
+                        >
+                            {#each activeCase.params as param, index (activeCase.case_id + "-" + index)}
+                                <MethodParamRender
+                                    methodName={activeCase.methodName}
+                                    paramIndex={index}
+                                    canisterId={activeCase.canisterId}
+                                    {agent}
+                                    on:paramValueSet={onParameterValueChanged}
+                                />
+                            {/each}
+                            <Button variant="raised" type="submit">
+                                <Label>Save</Label>
+                            </Button>
+                        </form>
                     </Content>
                 </Paper>
             {/if}
@@ -442,26 +464,33 @@
                                                     <TCell
                                                         ><span
                                                             class="case-method-name"
-                                                            >{testCase
-                                                                .methodName +
+                                                            >{testCase.methodName +
                                                                 ":"}</span
                                                         ><span
                                                             class="case-method-spec"
                                                             >{testCase.methodSpec}</span
                                                         ></TCell
                                                     >
-                                                    <TCell>Not Ready</TCell>
+                                                    <TCell
+                                                        >{CASEMETHOD_STAUTS_MAP[
+                                                            testCase.readyToRun +
+                                                                1
+                                                        ]}</TCell
+                                                    >
                                                     <TCell>
-                                                        <IconButton
-                                                            class="material-icons"
-                                                            on:click={() => {
-                                                                activeCase =
-                                                                    testCase;
-                                                                caseConfigOpen = true;
-                                                            }}
-                                                        >
-                                                            settings
-                                                        </IconButton>
+                                                        {#if testCase.readyToRun !== -1}
+                                                            <IconButton
+                                                                class="material-icons"
+                                                                on:click={() => {
+                                                                    activeCase =
+                                                                        testCase;
+                                                                    caseConfigOpen = true;
+                                                                    bufferedCaseMethodParams = {};
+                                                                }}
+                                                            >
+                                                                settings
+                                                            </IconButton>
+                                                        {/if}
                                                         {#if index > 0}
                                                             <IconButton
                                                                 class="material-icons"

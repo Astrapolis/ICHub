@@ -35,6 +35,10 @@
     let inputErrorMsg = null;
     let saveDisable = true;
 
+    export function getTypeResult() {
+        return inputValue;
+    }
+
     $: if (inputValue || inputValue === null) {
         let validResult = validateInputValue();
         console.log("input valid", validResult.invalid);
@@ -48,6 +52,10 @@
             inputInvalid = false;
             inputErrorMsg = null;
             saveDisable = false;
+            dispatch("paramValueSet", {
+                paramIndex,
+                inputValue,
+            });
         }
     }
 
@@ -82,71 +90,51 @@
             return {
                 invalid: false,
             };
-            // inputInvalid = false;
-            // inputErrorMsg = null;
-            // console.log("check result", valueProbe);
         } catch (e) {
-            // console.log("check error", e.message);
-            // inputInvalid = true;
             return {
                 invalid: true,
                 message: e.message,
             };
-            // inputErrorMsg = e.message;
         }
     }
 
-    function onParamValueCommit(event) {
-        dispatch("MethodValueChanged", {
-            // method: paramCfg,
-            newValue: paramValue,
-        });
-    }
-
-    async function onSaveTextValue(event) {
-        dispatch("paramValueSet", {
-            paramIndex,
-            inputValue,
-        });
-    }
-
-    async function onSaveFixedNatValue(event) {}
 </script>
 
-<Paper>
+<!-- <Paper>
     <Title>{paramTypeName}</Title>
-    <Content>
-        {#if renderType === CONSTANT.RENDER_TYPE}
-            <form on:submit|preventDefault={onSaveTextValue}>
-                <FormField>
-                    <div>
-                        <Textfield
-                            style="min-width: 250px;"
-                            variant="outlined"
-                            bind:dirty={inputDirty}
-                            bind:value={inputValue}
-                            invalid={inputInvalid}
-                            label={`Input ${paramTypeName} value`}
-                            required
-                        >
-                            <HelperText validationMsg slot="helper">
-                                {inputErrorMsg}
-                            </HelperText>
-                        </Textfield>
-                    </div>
-                    <Button variant="raised" type="submit" disabled={saveDisable}>
-                        <Label>Save</Label>
-                    </Button>
-                </FormField>
-            </form>
-        {:else}
-            {renderType}
-        {/if}
-        <!-- <form on:submit|preventDefault={onParamValueCommit} style="margin: 10px">
+    <Content> -->
+<div>
+    {#if renderType === CONSTANT.RENDER_TYPE}
+        <!-- <form on:submit|preventDefault={onSaveTypeValue}> -->
+        <!-- <FormField> -->
+        <!-- <div> -->
+        <Textfield
+            style="min-width: 250px;"
+            variant="outlined"
+            name={`f${paramIndex}`}
+            bind:dirty={inputDirty}
+            bind:value={inputValue}
+            invalid={inputInvalid}
+            label={`Input ${paramTypeName} value`}
+            required
+        >
+            <HelperText validationMsg slot="helper">
+                {inputErrorMsg}
+            </HelperText>
+        </Textfield>
+        <!-- </div> -->
+
+        <!-- </FormField> -->
+        <!-- </form> -->
+    {:else}
+        {renderType}
+    {/if}
+</div>
+<!-- <form on:submit|preventDefault={onParamValueCommit} style="margin: 10px">
             <Textfield variant="outlined" bind:value={paramValue}  label={paramCfg.name} required />
             <Button variant="raised" type="submit">
                 <Label>Save</Label>
             </Button>
         </form> -->
-    </Content>
-</Paper>
+<!-- </Content>
+</Paper> -->
