@@ -37,6 +37,7 @@
     import LoadingPanel from "./LoadingPanel.svelte";
     import PaperTitle from "./PaperTitle.svelte";
     import NoDataPanel from "./NoDataPanel.svelte";
+    import MethodParamRender from "./MethodParamRender.svelte";
     import {getHashCodeFromString} from "../utils/stringUtils";
 
     export let devhubActor = null;
@@ -122,6 +123,10 @@
     }
 
     function constructTestCase(canisterId, method) {
+        let params = [];
+        method[1].argTypes.forEach(argType=>{
+            params.push(argType.name);
+        });
         return {
             case_id:
                 "case-" +
@@ -129,9 +134,9 @@
                 "-" +
                 Math.floor(Math.random() * 100),
             canisterId,
-            method,
+            methodName: method[0],
             methodSpec: method[1].display(),
-            params: [],
+            params,
         };
     }
 
@@ -181,7 +186,7 @@
                         <div class="case-config-title-container">
                             <div>
                                 <span class="case-method-name"
-                                    >{activeCase.method[0] + ":"}</span
+                                    >{activeCase.methodName + ":"}</span
                                 >
                             </div>
                             <div>
@@ -191,7 +196,16 @@
                             </div>
                         </div>
                     </Title>
-                    <Content>params should be listed here.</Content>
+                    <Content>
+                        {#each activeCase.params as param, index (activeCase.case_id + '-' + index)}
+                            <MethodParamRender 
+                            methodName={activeCase.methodName}
+                            paramIndex={index}
+                            canisterId={activeCase.canisterId}
+                            {agent}
+                            />
+                        {/each}
+                    </Content>
                 </Paper>
             {/if}
         </DContent>
@@ -331,7 +345,7 @@
                                 {#each activeSuite.cases as testCase}
                                     <Item>
                                         <span class="case-method-name"
-                                            >{testCase.method[0]}</span
+                                            >{testCase.methodName}</span
                                         >
                                         <span class="case-method-spec"
                                             >{testCase.methodSpec}</span
@@ -429,7 +443,7 @@
                                                         ><span
                                                             class="case-method-name"
                                                             >{testCase
-                                                                .method[0] +
+                                                                .methodName +
                                                                 ":"}</span
                                                         ><span
                                                             class="case-method-spec"

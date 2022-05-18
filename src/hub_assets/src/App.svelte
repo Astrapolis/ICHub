@@ -238,7 +238,7 @@
         <DevHubPanel
           {identity}
           activeCanisterId={devhubsOfCurrentIdentity[0].canister_id}
-          activeCanisterIndex={devhubsOfCurrentIdentity[0].config_index}
+          activeConfigIndex={devhubsOfCurrentIdentity[0].config_index}
         />
       {/if}
     {:else}

@@ -53,3 +53,19 @@ export const RENDER_VARIANT = "visitVariant";
 export const RENDER_OPT = "visitOpt";
 export const RENDER_VEC = "visitVec";
 export const RENDER_REC = "visitRec";
+
+export const RENDER_PRIMITIVE = "visitPrimitive";
+export const RENDER_EMPTY = "visitEmpty";
+export const RENDER_BOOL = "visitBool";
+export const RENDER_RESERVED = "visitReserved";
+export const RENDER_TEXT = "visitText";
+export const RENDER_NUMBER = "visitNumber";
+export const RENDER_INT = "visitInt";
+export const RENDER_NAT = "visitNat";
+
+export const RENDER_FLOAT = "visitFloat";
+export const RENDER_FIXEDINT = "visitFixedInt";
+export const RENDER_FIXEDNAT = "visitFixedNat";
+export const RENDER_PRINCIPAL = "visitPrincipal";
+export const RENDER_FUNC = "visitFunc";
+export const RENDER_SERVICE = "visitService";
