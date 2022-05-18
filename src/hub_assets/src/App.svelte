@@ -21,7 +21,6 @@
   } from "@smui/dialog";
   import Fab from "@smui/fab";
   import { Label } from "@smui/common";
-  import { Anchor } from "@smui/menu-surface";
 
   import { Principal } from "@dfinity/principal";
   import { AuthClient } from "@dfinity/auth-client";
@@ -38,6 +37,7 @@
     HUB_OFFICIAL_CONFIG,
     DEFAULT_UI_CONFIG,
     DEFAULT_CALL_LIMITS,
+    DEFAULT_USER_CONFIG_LIMIT,
   } from "./constant";
 
   const TAB_HUB = "Hub";
@@ -52,9 +52,6 @@
   let authClient = null;
   let identity = null;
   let logining = false;
-  let logoutMenu = null;
-  let anchorClasses = {};
-  let anchor = null;
   let tabs = [TAB_HUB, TAB_CANISTER];
   let activeTab = TAB_CANISTER;
   let userType = USER_TYPE_NEW;
@@ -104,7 +101,7 @@
   async function getUserRegisterStatus() {
     userTypeLoading = true;
     try {
-      let result = await hubActor.get_canisters_by_user();
+      let result = await hubActor.get_user_configs_by_user();
       console.log("get_canisters_by_user result", result);
       if (result.Authenticated && result.Authenticated.length > 0) {
         userType = USER_TYPE_REGISTERED;
@@ -124,7 +121,9 @@
       let result = await hubActor.register_new_canister(
         BigInt(DEFAULT_CYCLE_FOR_NEW_DEVHUB),
         DEFAULT_CALL_LIMITS,
-        JSON.stringify(DEFAULT_UI_CONFIG)
+        JSON.stringify(DEFAULT_UI_CONFIG),
+        true, // is public
+        DEFAULT_USER_CONFIG_LIMIT
       );
       console.log("register result", result);
       if (result.Ok) {
@@ -177,7 +176,7 @@
           <Label>{identity.getPrincipal()}</Label>
         </Fab>
       </DContent>
-      {/if}
+    {/if}
     <Actions>
       <Button variant="raised">
         <Label>Cancel</Label>
@@ -210,11 +209,12 @@
           <!-- </div> -->
         {/if}
         <Section align="end">
-          <IconButton class="material-icons"
+          <IconButton
+            class="material-icons"
             on:click={() => {
               profileOpen = true;
-            }}
-          >person</IconButton>
+            }}>person</IconButton
+          >
           <IconButton
             class="material-icons"
             on:click={async () => {
@@ -237,7 +237,8 @@
       {:else}
         <DevHubPanel
           {identity}
-          activeCanisterId={devhubsOfCurrentIdentity[0]}
+          activeCanisterId={devhubsOfCurrentIdentity[0].canister_id}
+          activeCanisterIndex={devhubsOfCurrentIdentity[0].config_index}
         />
       {/if}
     {:else}

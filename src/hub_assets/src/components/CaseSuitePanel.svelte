@@ -37,6 +37,7 @@
     import LoadingPanel from "./LoadingPanel.svelte";
     import PaperTitle from "./PaperTitle.svelte";
     import NoDataPanel from "./NoDataPanel.svelte";
+    import {getHashCodeFromString} from "../utils/stringUtils";
 
     export let devhubActor = null;
     export let identity = null;
@@ -91,6 +92,7 @@
                 cid = Principal.fromText(cid);
             }
             let actor = await getActorFromCanisterId(cid, agent);
+            // console.log("actor ====>", Actor.interfaceOf(actor));
             canisterActorMapper[canisterId] = actor;
             loadingActor = false;
         }
@@ -100,7 +102,7 @@
     async function handleNewCaseSuite(event) {
         // event.preventDefault();
         let newSuite = {
-            isDirty: true,
+            // isDirty: true,
             suite_id: "casesuite-" + new Date().getTime(),
             suite_name: newSuiteName,
             cases: [],
@@ -174,7 +176,7 @@
         </DHeader>
         <DContent>
             {#if !!activeCase}
-                <Paper>
+                <Paper color="secondary" variant="raised">
                     <Title>
                         <div class="case-config-title-container">
                             <div>

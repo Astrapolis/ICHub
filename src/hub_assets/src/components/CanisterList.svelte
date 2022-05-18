@@ -29,6 +29,7 @@
                     <Cell numeric>Seq.</Cell>
                     <Cell style="width: 100%;">Canister</Cell>
                     <Cell>Tag</Cell>
+                    <Cell>Version</Cell>
                     <Cell>Candid</Cell>
                     <Cell>Actions</Cell>
                 </Row>

@@ -41,4 +41,15 @@ export const DEFAULT_CANISTER_CONFIG = {
             did_file: "",
         }),
     ],
-}
+};
+
+export const DEFAULT_USER_CONFIG_LIMIT = 32;
+
+export const RENDER_TYPE = "visitType";
+export const RENDER_NULL = "visitNull";
+export const RENDER_RECORD = "visitRecord";
+export const RENDER_TUPLE = "visitTuple";
+export const RENDER_VARIANT = "visitVariant";
+export const RENDER_OPT = "visitOpt";
+export const RENDER_VEC = "visitVec";
+export const RENDER_REC = "visitRec";

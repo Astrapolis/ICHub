@@ -17,6 +17,7 @@
     } from "./constant";
     export let identity;
     export let activeCanisterId; // type of principal not string
+    export let activeCanisterIndex;
 
     let agent = null;
     let devhubActor = null;
@@ -30,7 +31,7 @@
     async function getUserConfig() {
         configLoading = true;
         try {
-            userConfig = await devhubActor.get_user_config();
+            userConfig = await devhubActor.get_user_config(activeCanisterIndex);
             console.log("get userConfig", userConfig);
             canisterCfgList = extractCanisterCfgList(userConfig);
             uiConfig = extractUICfg(userConfig);
@@ -66,7 +67,7 @@
         // newCfg.meta_data[0].controller = Principal.fromText(newCfg.meta_data[0].controller);
         try {
             // devhubActor = await getActorFromCanisterId(activeCanisterId, agent);
-            let result = await devhubActor.cache_canister_config(newCfg);
+            let result = await devhubActor.cache_canister_config(activeCanisterIndex, newCfg);
             console.log("cache canister config result", result);
             if (result.Authenticated) {
                 await getUserConfig();
@@ -85,7 +86,7 @@
         uiConfigUpdating = true;
         try {
             console.log("ready to update ui config", newUIConfig);
-            await devhubActor.cache_ui_config(JSON.stringify(newUIConfig));
+            await devhubActor.cache_ui_config(activeCanisterIndex, JSON.stringify(newUIConfig));
             uiConfig = Object.assign({}, newUIConfig);
             console.log("ui config update done");
         } catch (err) {
