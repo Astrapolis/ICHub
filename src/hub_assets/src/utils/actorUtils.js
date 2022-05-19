@@ -31,7 +31,13 @@ async function didToJs(candid_source, canisterId, agent) {
 
 async function getLocalDidJs(canisterId) {
     const origin = window.location.origin;
-    const url = `${origin}/_/candid?canisterId=${canisterId.toText()}&format=js`;
+    let canisterIdString = null;
+    if (typeof canisterId != "string") {
+        canisterIdString = canisterId.toText();
+    } else {
+        canisterIdString = canisterId;
+    }
+    const url = `${origin}/_/candid?canisterId=${canisterIdString}&format=js`;
     const response = await fetch(url);
     if (!response.ok) {
         return undefined;
@@ -119,4 +125,11 @@ export async function getActorFromCanisterId(canisterId, agent) {
     const dataUri = 'data:text/javascript;charset=utf-8,' + encodeURIComponent(js);
     const candid = await eval('import("' + dataUri + '")');
     return Actor.createActor(candid.idlFactory, { agent, canisterId });
+}
+
+export function getFieldFromActor(actor, methodName) {
+    if (!(actor && methodName)) return undefined;
+    return Actor.interfaceOf(actor)._fields.find((f) => {
+        return f[0] === methodName;
+    });
 }

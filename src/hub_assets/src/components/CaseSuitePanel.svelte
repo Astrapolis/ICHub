@@ -40,7 +40,10 @@
     import { Icon, Label } from "@smui/common";
     import IconButton from "@smui/icon-button";
 
-    import { getActorFromCanisterId } from "../utils/actorUtils";
+    import {
+        getActorFromCanisterId,
+        getFieldFromActor,
+    } from "../utils/actorUtils";
     import { getCanisterUIConfigFieldValue } from "../utils/devhubUtils";
     import LoadingPanel from "./LoadingPanel.svelte";
     import PaperTitle from "./PaperTitle.svelte";
@@ -84,6 +87,7 @@
      */
     let runningCasesStatus = [];
     let caseRunPreparing = false;
+    let caseRunning = false;
 
     onMount(async () => {
         console.log("CaseSuitePanel on mount");
@@ -209,19 +213,19 @@
         caseRunPreparing = true;
         runningCasesStatus = [];
         let parserMap = getParserMap();
-        runningSuite.cases.forEach(async (testCase, index) => {
+        for (const [index, testCase] of runningSuite.cases.entries()) {
             let actor = await getCanisterActor(testCase.canisterId);
-            let field = Actor.interfaceOf(actor)._fields.find((f) => {
-                return f[0] === testCase.methodName;
-            });
+            let field = getFieldFromActor(actor, testCase.methodName);
             let paramValues = [];
-            testCase.params.forEach((param, index) => {
-                paramValues[index] = field[1].argTypes[index].accept(
-                    parserMap[testCase.paramValueParsers[index]](), param
+            testCase.params.forEach((param, idx) => {
+                paramValues[idx] = field[1].argTypes[idx].accept(
+                    parserMap[testCase.paramValueParsers[idx]](),
+                    param
                 );
             });
             runningCasesStatus[index] = {
                 case_id: testCase.case_id,
+                methodName: testCase.methodName,
                 methodSpec: testCase.methodSpec,
                 callSpec:
                     testCase.methodName +
@@ -231,11 +235,30 @@
                 status: 0,
                 result: null,
             };
-        });
+        }
 
-        console.log('running cases ====>', runningCasesStatus);
+        // console.log("running cases ====>", runningCasesStatus);
 
         caseRunPreparing = false;
+    }
+
+    async function doRunCase() {
+        caseRunning = true;
+        let tempCases = runningCasesStatus.slice();
+        console.log("running cases ===>", runningCasesStatus);
+        for (const [index, testCase] of tempCases.entries()) {
+        // await tempCases.forEach(async (testCase, index) => {
+            testCase.status = 1;
+            runningCasesStatus = [...runningCasesStatus];
+            console.log("calling ===> ", testCase.methodName);
+            testCase.result = await testCase.actor[testCase.methodName](
+                ...testCase.paramValues
+            );
+            console.log("result ===> ", testCase.result);
+            testCase.status = 2;
+            runningCasesStatus = [...runningCasesStatus];
+        }
+        caseRunning = false;
     }
 </script>
 
@@ -355,17 +378,39 @@
                         {#if caseRunPreparing}
                             <LoadingPanel description="preparing ..." />
                         {:else if runningCasesStatus.length > 0}
-                            <List>
+                            <List threeLine nonInteractive>
                                 {#each runningCasesStatus as testCase, index (testCase.case_id)}
                                     <Item>
                                         <Text>
                                             <PrimaryText
-                                                >{testCase.methodSpec}</PrimaryText
+                                                >{testCase.methodName +
+                                                    testCase.methodSpec}</PrimaryText
                                             >
 
                                             <SecondaryText
                                                 >{`Run:${testCase.callSpec}`}</SecondaryText
                                             >
+                                            {#if testCase.status === 0}
+                                                <SecondaryText
+                                                    >Result: not start yet</SecondaryText
+                                                >
+                                            {:else if testCase.status === 1}
+                                                <SecondaryText
+                                                    >Result: waiting...</SecondaryText
+                                                >
+                                            {:else}
+                                                <SecondaryText>
+                                                    {"Result:" +
+                                                        JSON.stringify(
+                                                            testCase.result,
+                                                            (k, v) =>
+                                                                typeof v ===
+                                                                "bigint"
+                                                                    ? v.toString()
+                                                                    : v
+                                                        )}
+                                                </SecondaryText>
+                                            {/if}
                                         </Text>
                                         {#if testCase.status === 0}
                                             <Meta class="material-icons">
@@ -591,11 +636,12 @@
                                             disabled={getRunSuiteDisableStatus(
                                                 suite
                                             )}
-                                            on:click={ async () => {
+                                            on:click={async () => {
                                                 runningSuite = suite;
                                                 suiteRunningDlgOpen = true;
                                                 runningCasesStatus = [];
                                                 await prepareCaseCallData();
+                                                await doRunCase();
                                             }}
                                         >
                                             <Icon class="material-icons"
@@ -724,7 +770,7 @@
     }
 
     .suite-top-toolbar-container {
-        width : 100%;
+        width: 100%;
         height: 100%;
         display: flex;
         flex-direction: row;
