@@ -18,10 +18,24 @@ type GetUserConfigsQueryResult = variant {
   UnAuthenticated: text;
 };
 
+type CanisterStateView = record {
+    user_state_meta : CanisterStateMeta;
+    num_configs: nat16;
+    root_user: principal;
+};
+
+type CanisterStateMeta = record {
+    canister_id : principal;
+    is_public : bool;
+    user_config_limit : nat16;
+    calls_limit : nat32;
+}
+
 service devhub : {
   register_new_canister : (nat64, nat32, text, bool, nat16) -> (RegisterCanisterResult);
   add_user_to_existing_user_config : (principal, principal, nat16) -> (CallResult);
   add_user_to_existing_canister : (principal) -> (CallResult);
   get_user_configs_by_user : () -> (GetUserConfigsQueryResult) query;
   did_to_js: (text) -> (opt text) query;
+  get_public_canister_states : () -> (vec CanisterStateView) query;
 }

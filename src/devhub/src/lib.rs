@@ -5,6 +5,7 @@ use std::collections::VecDeque;
 use std::string::String;
 use ic_cdk_macros;
 use ic_cdk::api;
+use std::mem::size_of_val;
 use ic_cdk::api::stable::{stable_bytes, StableWriter};
 
 thread_local! {
@@ -137,7 +138,8 @@ pub struct UserConfigViewPrivate {
     calls_limit: u32,
     canister_configs: Vec<CanisterConfig>,
     canister_calls: Vec<CanisterCall>,
-    test_cases: Vec<TestCaseView>
+    test_cases: Vec<TestCaseView>,
+    mem_size : u32
 }
 
 #[derive(CandidType)]
@@ -224,7 +226,8 @@ impl UserConfig {
             calls_limit: self.calls_limit,
             canister_configs: self.get_canisters_configs(true, false),
             canister_calls: self.get_canister_calls(None, None, Some(100)),
-            test_cases: self.get_test_cases(None, Some(10), true)
+            test_cases: self.get_test_cases(None, Some(10), true),
+            mem_size: size_of_val(&*self) as u32
         }
     }
 

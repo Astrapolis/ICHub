@@ -65,14 +65,22 @@ pub struct UserConfigIndexView {
     config_index: u16,
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(CandidType)]
+pub struct CanisterStateView {
+    user_state_meta : CanisterStateMeta,
+    //[true, false, true] true mark for active userconfig
+    num_configs: u16,
+    root_user: Principal
+}
+
+#[derive(Deserialize, Serialize, Debug, Clone,)]
 pub struct CanisterState {
     user_state_meta : CanisterStateMeta,
     //[true, false, true] true mark for active userconfig
     configs: Vec<UserConfigMeta>
 }
 
-#[derive(Deserialize, Serialize, Debug, Clone)]
+#[derive(Deserialize, Serialize, Debug, Clone, CandidType)]
 pub struct CanisterStateMeta {
     canister_id : Principal,
     is_public : bool,
@@ -260,6 +268,23 @@ fn get_user_configs_by_user() -> CallResult<Vec<UserConfigIndexView>, String>{
                 CallResult::UnAuthenticated(format!("{} is not a hub user", user.to_string()))
             }
         }
+    }     
+    )
+}
+
+#[ic_cdk_macros::query(name = "get_public_canister_states")]
+#[candid_method(query, rename = "get_public_canister_states")]
+fn get_public_canister_states() -> Vec<CanisterStateView>{
+    REGISTRY.with(|registry|  {
+        let registry = registry.borrow();
+        registry.canister_registry.iter().filter_map(|state|{
+            match state.user_state_meta.is_public == true {
+                true => {Some(CanisterStateView{user_state_meta: state.user_state_meta.clone(), 
+                                                num_configs: state.configs.len() as u16, 
+                                                root_user: state.configs[0].users[0]})}
+                false => {None}
+            }
+        }).collect()
     }     
     )
 }

@@ -30,7 +30,7 @@ type CanisterConfig = record {
   is_active : bool;
   is_public: bool;
   config: text;
-  meta_data: vec text 
+  meta_data: vec text;
 };
 
 type UserConfigViewPrivate = record {
@@ -40,6 +40,7 @@ type UserConfigViewPrivate = record {
   canister_configs : vec CanisterConfig;
   canister_calls : vec CanisterCall;
   test_cases : vec TestCaseView;
+  mem_size : nat32;
 };
 
 type UserConfigViewPublic = record {
