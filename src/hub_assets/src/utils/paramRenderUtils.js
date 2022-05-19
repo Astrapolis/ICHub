@@ -294,7 +294,17 @@ export function getGeneralTypeRender() {
 }
 
 export function getPrimitiveValueParser() {
-    let parser = { ...new GeneralValueParser(), ...new PrimitiveValueParser() };
-    console.log("primitive parser", parser);
+    let parser = new PrimitiveValueParser();
+    // console.log("primitive parser", parser);
     return parser;
+}
+
+const valueParserMapper = {
+
+};
+
+valueParserMapper[CONSTANT.VALUE_PARSER_PRIMITIVE] = getPrimitiveValueParser;
+
+export function getParserMap() {
+    return valueParserMapper;
 }

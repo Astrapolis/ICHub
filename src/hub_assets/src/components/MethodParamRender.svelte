@@ -51,6 +51,7 @@
             dispatch("paramValueSet", {
                 paramIndex,
                 inputValue,
+                parserType: CONSTANT.VALUE_PARSER_PRIMITIVE
             });
         }
     }

@@ -4,6 +4,7 @@
     // import { uuid } from "uuidv4";
     import { Principal } from "@dfinity/principal";
     import { Actor } from "@dfinity/agent";
+    import { IDL } from "@dfinity/candid";
     import Paper, { Title, Content } from "@smui/paper";
     import Button from "@smui/button";
     import Dialog, {
@@ -20,7 +21,14 @@
         Header,
         Content as AContent,
     } from "@smui-extra/accordion";
-    import List, { Item, Meta, Separator, Text } from "@smui/list";
+    import List, {
+        Item,
+        Meta,
+        Separator,
+        Text,
+        PrimaryText,
+        SecondaryText,
+    } from "@smui/list";
     import Checkbox from "@smui/checkbox";
     import DataTable, {
         Head,
@@ -38,7 +46,9 @@
     import PaperTitle from "./PaperTitle.svelte";
     import NoDataPanel from "./NoDataPanel.svelte";
     import MethodParamRender from "./MethodParamRender.svelte";
-    import { getHashCodeFromString } from "../utils/stringUtils";
+    import * as CONSTANT from "../constant";
+    import { getParserMap } from "../utils/paramRenderUtils";
+    import { getHashCodeFromString, getUUID } from "../utils/stringUtils";
 
     export let devhubActor = null;
     export let identity = null;
@@ -63,6 +73,17 @@
     let bufferedCaseMethodParams = {};
     let caseParamValueSaving = false;
     const CASEMETHOD_STAUTS_MAP = ["NA", "Not Ready", "Ready"];
+    let runningSuite = null;
+    let suiteRunning = false;
+    let suiteRunningDlgOpen = false;
+    /**
+     * runningStatus : {
+     *  status: <int>, 0: waiting, 1: running, 2: finished
+     *  result: <any>
+     * }
+     */
+    let runningCasesStatus = [];
+    let caseRunPreparing = false;
 
     onMount(async () => {
         console.log("CaseSuitePanel on mount");
@@ -107,7 +128,7 @@
         // event.preventDefault();
         let newSuite = {
             // isDirty: true,
-            suite_id: "casesuite-" + new Date().getTime(),
+            suite_id: "casesuite-" + getUUID(),
             suite_name: newSuiteName,
             cases: [],
         };
@@ -129,20 +150,18 @@
         let readyToRun = method[1].argTypes.length === 0 ? -1 : 0; // -1 :NA, 0: Not Ready, 1: Ready to Run
         let params = [];
         let paramsSpec = [];
+        let paramValueParsers = [];
         method[1].argTypes.forEach((argType) => {
             paramsSpec.push(argType.display());
         });
         return {
-            case_id:
-                "case-" +
-                new Date().getTime() +
-                "-" +
-                Math.floor(Math.random() * 100),
+            case_id: "case-" + getUUID(),
             canisterId,
             methodName: method[0],
             methodSpec: method[1].display(),
             paramsSpec,
-            params, //parameter value stored to run this case.
+            params, // parameter value stored to run this case.
+            paramValueParsers, // parser that use to parse the parameter value
             readyToRun,
         };
     }
@@ -157,7 +176,9 @@
         event.preventDefault();
         console.log("buffered value ===>", bufferedCaseMethodParams);
         activeCase.paramsSpec.forEach((spec, index) => {
-            activeCase.params[index] = bufferedCaseMethodParams[index];
+            activeCase.params[index] = bufferedCaseMethodParams[index].value;
+            activeCase.paramValueParsers[index] =
+                bufferedCaseMethodParams[index].parserType;
         });
         activeCase.readyToRun = 1;
         caseParamValueSaving = true;
@@ -169,15 +190,52 @@
     }
 
     function onParameterValueChanged(event) {
-        bufferedCaseMethodParams[event.detail.paramIndex] =
-            event.detail.inputValue;
+        bufferedCaseMethodParams[event.detail.paramIndex] = {
+            value: event.detail.inputValue,
+            parserType: event.detail.parserType,
+        };
     }
 
     function getRunSuiteDisableStatus(suite) {
         if (suite.cases.length === 0) {
             return true;
         }
-        return !suite.cases.every(testCase => !!Math.abs(testCase.readyToRun))
+        return !suite.cases.every(
+            (testCase) => !!Math.abs(testCase.readyToRun)
+        );
+    }
+
+    async function prepareCaseCallData() {
+        caseRunPreparing = true;
+        runningCasesStatus = [];
+        let parserMap = getParserMap();
+        runningSuite.cases.forEach(async (testCase, index) => {
+            let actor = await getCanisterActor(testCase.canisterId);
+            let field = Actor.interfaceOf(actor)._fields.find((f) => {
+                return f[0] === testCase.methodName;
+            });
+            let paramValues = [];
+            testCase.params.forEach((param, index) => {
+                paramValues[index] = field[1].argTypes[index].accept(
+                    parserMap[testCase.paramValueParsers[index]](), param
+                );
+            });
+            runningCasesStatus[index] = {
+                case_id: testCase.case_id,
+                methodSpec: testCase.methodSpec,
+                callSpec:
+                    testCase.methodName +
+                    IDL.FuncClass.argsToString(field[1].argTypes, paramValues),
+                actor,
+                paramValues,
+                status: 0,
+                result: null,
+            };
+        });
+
+        console.log('running cases ====>', runningCasesStatus);
+
+        caseRunPreparing = false;
     }
 </script>
 
@@ -267,6 +325,71 @@
                 <Label>Cancel</Label>
             </Button>
         </Actions>
+    </Dialog>
+    <Dialog bind:open={suiteRunningDlgOpen} fullscreen>
+        <DHeader>
+            <DTitle>Test Suite Running Panel</DTitle>
+        </DHeader>
+        <DContent>
+            {#if !!runningSuite}
+                <Paper>
+                    <Content>
+                        {#if suiteRunning}
+                            <LoadingPanel
+                                description="Test Suite is running, please wait..."
+                            />
+                        {:else}
+                            <Button variant="raised">
+                                <Icon class="material-icons">save</Icon>
+                                <Label>Save</Label>
+                            </Button>
+                            <Button variant="raised" color="secondary">
+                                <Icon class="material-icons">delete</Icon>
+                                <Label>Discard</Label>
+                            </Button>
+                        {/if}
+                    </Content>
+                </Paper>
+                <Paper>
+                    <Content>
+                        {#if caseRunPreparing}
+                            <LoadingPanel description="preparing ..." />
+                        {:else if runningCasesStatus.length > 0}
+                            <List>
+                                {#each runningCasesStatus as testCase, index (testCase.case_id)}
+                                    <Item>
+                                        <Text>
+                                            <PrimaryText
+                                                >{testCase.methodSpec}</PrimaryText
+                                            >
+
+                                            <SecondaryText
+                                                >{`Run:${testCase.callSpec}`}</SecondaryText
+                                            >
+                                        </Text>
+                                        {#if testCase.status === 0}
+                                            <Meta class="material-icons">
+                                                pending
+                                            </Meta>
+                                        {:else if testCase.status === 1}
+                                            <Meta
+                                                ><LoadingPanel
+                                                    description="running"
+                                                /></Meta
+                                            >
+                                        {:else}
+                                            <Meta class="material-icons">
+                                                done
+                                            </Meta>
+                                        {/if}
+                                    </Item>
+                                {/each}
+                            </List>
+                        {/if}
+                    </Content>
+                </Paper>
+            {/if}
+        </DContent>
     </Dialog>
 
     {#if !!activeSuite}
@@ -448,21 +571,45 @@
                                 </IconButton>
                             </Header>
                             <AContent>
-                                <div>
-                                    <Button
-                                        variant="raised"
-                                        on:click={() => {
-                                            activeSuite = suite;
-                                        }}
-                                    >
-                                        <Icon class="material-icons">add</Icon>
-                                        <Label>Add Case</Label>
-                                    </Button>
-                                    <Button variant="raised" disabled={getRunSuiteDisableStatus(suite)}>
-                                        <Icon class="material-icons">start</Icon
+                                <div class="suite-top-toolbar-container">
+                                    <div>
+                                        <Button
+                                            variant="raised"
+                                            on:click={() => {
+                                                activeSuite = suite;
+                                            }}
                                         >
-                                        <Label>Run Suite</Label>
-                                    </Button>
+                                            <Icon class="material-icons"
+                                                >add</Icon
+                                            >
+                                            <Label>Add Case</Label>
+                                        </Button>
+                                    </div>
+                                    <div>
+                                        <Button
+                                            variant="raised"
+                                            disabled={getRunSuiteDisableStatus(
+                                                suite
+                                            )}
+                                            on:click={ async () => {
+                                                runningSuite = suite;
+                                                suiteRunningDlgOpen = true;
+                                                runningCasesStatus = [];
+                                                await prepareCaseCallData();
+                                            }}
+                                        >
+                                            <Icon class="material-icons"
+                                                >start</Icon
+                                            >
+                                            <Label>Run Suite</Label>
+                                        </Button>
+                                        <Button variant="raised">
+                                            <Icon class="material-icons"
+                                                >history</Icon
+                                            >
+                                            <Label>View History</Label>
+                                        </Button>
+                                    </div>
                                 </div>
 
                                 <DataTable style="width: 100%;">
@@ -574,5 +721,14 @@
 
     .case-method-spec {
         font-style: italic;
+    }
+
+    .suite-top-toolbar-container {
+        width : 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
     }
 </style>

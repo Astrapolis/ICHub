@@ -69,3 +69,5 @@ export const RENDER_FIXEDNAT = "visitFixedNat";
 export const RENDER_PRINCIPAL = "visitPrincipal";
 export const RENDER_FUNC = "visitFunc";
 export const RENDER_SERVICE = "visitService";
+
+export const VALUE_PARSER_PRIMITIVE = "PrimitiveValueParser";
