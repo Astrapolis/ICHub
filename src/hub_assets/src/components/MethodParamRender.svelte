@@ -71,6 +71,9 @@
             let argType = fieldClass.argTypes[paramIndex];
             renderType = argType.accept(getGeneralTypeRender(), null);
             paramTypeName = argType.name;
+            if (savedValue !== undefined) {
+                inputValue = savedValue;
+            }
         }
     });
 
@@ -97,7 +100,6 @@
             };
         }
     }
-
 </script>
 
 <!-- <Paper>

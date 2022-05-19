@@ -1,5 +1,5 @@
 <script>
-    import { onMount } from "svelte";
+    import { onMount, tick } from "svelte";
     import { createEventDispatcher } from "svelte";
     // import { uuid } from "uuidv4";
     import { Principal } from "@dfinity/principal";
@@ -61,6 +61,7 @@
     let activeCase = null;
     let caseConfigOpen = false;
     let bufferedCaseMethodParams = {};
+    let caseParamValueSaving = false;
     const CASEMETHOD_STAUTS_MAP = ["NA", "Not Ready", "Ready"];
 
     onMount(async () => {
@@ -125,10 +126,11 @@
     }
 
     function constructTestCase(canisterId, method) {
-        let readyToRun = method[1].argTypes.lenght === 0 ? -1 : 0; // -1 :NA, 0: Not Ready, 1: Ready to Run
+        let readyToRun = method[1].argTypes.length === 0 ? -1 : 0; // -1 :NA, 0: Not Ready, 1: Ready to Run
         let params = [];
+        let paramsSpec = [];
         method[1].argTypes.forEach((argType) => {
-            params.push(argType.name);
+            paramsSpec.push(argType.display());
         });
         return {
             case_id:
@@ -139,6 +141,7 @@
             canisterId,
             methodName: method[0],
             methodSpec: method[1].display(),
+            paramsSpec,
             params, //parameter value stored to run this case.
             readyToRun,
         };
@@ -152,11 +155,22 @@
 
     async function onCaseMethodParamValueSet(event) {
         event.preventDefault();
-        console.log('buffered value ===>', bufferedCaseMethodParams);
+        console.log("buffered value ===>", bufferedCaseMethodParams);
+        activeCase.paramsSpec.forEach((spec, index) => {
+            activeCase.params[index] = bufferedCaseMethodParams[index];
+        });
+        activeCase.readyToRun = 1;
+        caseParamValueSaving = true;
+        await onUpdateUIConfig(uiConfig);
+        caseParamValueSaving = false;
+        await tick();
+        activeCase = null;
+        caseConfigOpen = false;
     }
 
     function onParameterValueChanged(event) {
-        bufferedCaseMethodParams[event.detail.paramIndex] = event.detail.inputValue;
+        bufferedCaseMethodParams[event.detail.paramIndex] =
+            event.detail.inputValue;
     }
 </script>
 
@@ -214,18 +228,23 @@
                             on:submit={onCaseMethodParamValueSet}
                             style="margin: 10px"
                         >
-                            {#each activeCase.params as param, index (activeCase.case_id + "-" + index)}
+                            {#each activeCase.paramsSpec as param, index (activeCase.case_id + "-" + index)}
                                 <MethodParamRender
                                     methodName={activeCase.methodName}
                                     paramIndex={index}
                                     canisterId={activeCase.canisterId}
                                     {agent}
+                                    savedValue={activeCase.params[index]}
                                     on:paramValueSet={onParameterValueChanged}
                                 />
                             {/each}
-                            <Button variant="raised" type="submit">
-                                <Label>Save</Label>
-                            </Button>
+                            {#if !caseParamValueSaving}
+                                <Button variant="raised" type="submit">
+                                    <Label>Save</Label>
+                                </Button>
+                            {:else}
+                                <LoadingPanel description="saving ..." />
+                            {/if}
                         </form>
                     </Content>
                 </Paper>
@@ -485,7 +504,8 @@
                                                                     activeCase =
                                                                         testCase;
                                                                     caseConfigOpen = true;
-                                                                    bufferedCaseMethodParams = {};
+                                                                    bufferedCaseMethodParams =
+                                                                        {};
                                                                 }}
                                                             >
                                                                 settings
