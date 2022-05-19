@@ -23,7 +23,6 @@
 
     const dispatch = createEventDispatcher();
 
-    // let paramValue = null;
     let renderType = null;
     let paramTypeName = null;
     let canisterActor = null;
@@ -33,7 +32,6 @@
     let inputDirty = false;
     let inputInvalid = false;
     let inputErrorMsg = null;
-    let saveDisable = true;
 
     export function getTypeResult() {
         return inputValue;
@@ -41,17 +39,15 @@
 
     $: if (inputValue || inputValue === null) {
         let validResult = validateInputValue();
-        console.log("input valid", validResult.invalid);
+        
         if (validResult.invalid) {
             if (inputDirty) {
                 inputInvalid = true;
                 inputErrorMsg = validResult.message;
-                saveDisable = true;
             }
         } else {
             inputInvalid = false;
             inputErrorMsg = null;
-            saveDisable = false;
             dispatch("paramValueSet", {
                 paramIndex,
                 inputValue,
@@ -60,12 +56,11 @@
     }
 
     onMount(async () => {
-        // paramValue = paramCfg.storedValue;
         canisterActor = await getActorFromCanisterId(canisterId, agent);
         let field = Actor.interfaceOf(canisterActor)._fields.find((f) => {
             return f[0] === methodName;
         });
-        console.log("field ====>", field);
+
         if (field && paramIndex >= 0) {
             fieldClass = field[1];
             let argType = fieldClass.argTypes[paramIndex];
@@ -102,14 +97,8 @@
     }
 </script>
 
-<!-- <Paper>
-    <Title>{paramTypeName}</Title>
-    <Content> -->
 <div>
     {#if renderType === CONSTANT.RENDER_TYPE}
-        <!-- <form on:submit|preventDefault={onSaveTypeValue}> -->
-        <!-- <FormField> -->
-        <!-- <div> -->
         <Textfield
             style="min-width: 250px;"
             variant="outlined"
@@ -124,19 +113,7 @@
                 {inputErrorMsg}
             </HelperText>
         </Textfield>
-        <!-- </div> -->
-
-        <!-- </FormField> -->
-        <!-- </form> -->
     {:else}
         {renderType}
     {/if}
 </div>
-<!-- <form on:submit|preventDefault={onParamValueCommit} style="margin: 10px">
-            <Textfield variant="outlined" bind:value={paramValue}  label={paramCfg.name} required />
-            <Button variant="raised" type="submit">
-                <Label>Save</Label>
-            </Button>
-        </form> -->
-<!-- </Content>
-</Paper> -->

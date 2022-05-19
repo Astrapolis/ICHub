@@ -172,6 +172,13 @@
         bufferedCaseMethodParams[event.detail.paramIndex] =
             event.detail.inputValue;
     }
+
+    function getRunSuiteDisableStatus(suite) {
+        if (suite.cases.length === 0) {
+            return true;
+        }
+        return !suite.cases.every(testCase => !!Math.abs(testCase.readyToRun))
+    }
 </script>
 
 <div>
@@ -451,7 +458,7 @@
                                         <Icon class="material-icons">add</Icon>
                                         <Label>Add Case</Label>
                                     </Button>
-                                    <Button variant="raised">
+                                    <Button variant="raised" disabled={getRunSuiteDisableStatus(suite)}>
                                         <Icon class="material-icons">start</Icon
                                         >
                                         <Label>Run Suite</Label>
