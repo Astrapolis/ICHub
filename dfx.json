@@ -1,5 +1,9 @@
 {
   "canisters": {
+    "microblog": {
+      "main": "src/microblog/main.mo",
+      "type": "motoko"
+    },
     "devhub": {
       "candid": "src/devhub/devhub.did",
       "package": "devhub",

@@ -53,6 +53,7 @@
     import PaperTitle from "./PaperTitle.svelte";
     import NoDataPanel from "./NoDataPanel.svelte";
     import MethodParamRender from "./MethodParamRender.svelte";
+    import CaseSuiteHistoryPanel from "./CaseSuiteHistoryPanel.svelte";
     import * as CONSTANT from "../constant";
     import { getParserMap } from "../utils/paramRenderUtils";
     import {
@@ -98,6 +99,12 @@
     let caseRunPreparing = false;
     let caseRunStartTime = 0;
     let resultSaving = false;
+
+    let historySuite = null;
+    let historyDlgOpen = false;
+    $: if (!historyDlgOpen) {
+        historySuite = null;
+    }
 
     onMount(async () => {
         console.log("CaseSuitePanel on mount");
@@ -322,6 +329,7 @@
         });
 
         try {
+            console.log('ready to save test case view', testCaseView);
             let result = await devhubActor.cache_test_case(
                 activeConfigIndex,
                 testCaseView
@@ -333,6 +341,7 @@
         resultSaving = false;
         resetRunStatus();
     }
+    
 </script>
 
 <div>
@@ -479,7 +488,7 @@
                                     <Item>
                                         <Text>
                                             <PrimaryText
-                                                >{testCase.methodName +
+                                                >{testCase.canisterId + ":" + testCase.methodName +
                                                     testCase.methodSpec}</PrimaryText
                                             >
 
@@ -536,6 +545,26 @@
             {/if}
         </DContent>
     </Dialog>
+    <Dialog bind:open={historyDlgOpen} scrimClickAction="" escapeKeyAction="" fullscreen>
+        {#if !!historySuite}
+        <DHeader>
+            <DTitle>Call History for {historySuite.suite_name}</DTitle>
+        </DHeader>
+        <DContent>
+            <CaseSuiteHistoryPanel 
+                activeSuiteId={historySuite.suite_id}
+                {activeConfigIndex}
+                {devhubActor}
+            />
+        </DContent>
+        <Actions>
+            <Button variant="raised">
+                <Label>Cancel</Label>
+            </Button>
+        </Actions>
+        {/if}
+    </Dialog>
+
 
     {#if !!activeSuite}
         <Paper color="primary" variant="outlined">
@@ -749,7 +778,12 @@
                                             >
                                             <Label>Run Suite</Label>
                                         </Button>
-                                        <Button variant="raised">
+                                        <Button variant="raised" 
+                                            on:click={() => {
+                                                historySuite = suite;
+                                                historyDlgOpen = true;
+                                            }}
+                                        >
                                             <Icon class="material-icons"
                                                 >history</Icon
                                             >
