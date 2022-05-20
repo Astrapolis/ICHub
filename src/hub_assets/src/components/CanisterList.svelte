@@ -45,6 +45,9 @@
                                 "tag"
                             )}</Cell
                         >
+                        <Cell>
+                            ...
+                        </Cell>
                         <Cell
                             ><IconButton
                                 class="material-icons"

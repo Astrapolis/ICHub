@@ -116,6 +116,7 @@
             {/if}
             <CaseSuitePanel
                 {identity}
+                {activeConfigIndex}
                 {devhubActor}
                 {canisterCfgList}
                 {agent}

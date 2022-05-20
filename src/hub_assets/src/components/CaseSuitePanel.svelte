@@ -45,14 +45,21 @@
         getFieldNormalizedResult,
         getFuncArgsNormalizedForm,
     } from "../utils/actorUtils";
-    import { getCanisterUIConfigFieldValue } from "../utils/devhubUtils";
+    import {
+        getCanisterUIConfigFieldValue,
+        convertTimestampToBigInt,
+    } from "../utils/devhubUtils";
     import LoadingPanel from "./LoadingPanel.svelte";
     import PaperTitle from "./PaperTitle.svelte";
     import NoDataPanel from "./NoDataPanel.svelte";
     import MethodParamRender from "./MethodParamRender.svelte";
     import * as CONSTANT from "../constant";
     import { getParserMap } from "../utils/paramRenderUtils";
-    import { getHashCodeFromString, getUUID } from "../utils/stringUtils";
+    import {
+        getUUID,
+        str2Utf8Bytes,
+        utf8Bytes2Str,
+    } from "../utils/stringUtils";
 
     export let devhubActor = null;
     export let identity = null;
@@ -60,6 +67,7 @@
     export let uiConfig = null;
     export let agent = null;
     export let onUpdateUIConfig = null;
+    export let activeConfigIndex = null;
 
     let canisterActorMapper = {};
     $: caseSuites = !!uiConfig.caseSuites ? uiConfig.caseSuites : [];
@@ -88,6 +96,8 @@
      */
     let runningCasesStatus = [];
     let caseRunPreparing = false;
+    let caseRunStartTime = 0;
+    let resultSaving = false;
 
     onMount(async () => {
         console.log("CaseSuitePanel on mount");
@@ -225,6 +235,7 @@
             });
             runningCasesStatus[index] = {
                 case_id: testCase.case_id,
+                canisterId: testCase.canisterId,
                 methodName: testCase.methodName,
                 methodSpec: testCase.methodSpec,
                 callSpec:
@@ -247,24 +258,80 @@
         suiteRunning = true;
         let tempCases = runningCasesStatus.slice();
         console.log("running cases ===>", runningCasesStatus);
+        caseRunStartTime = new Date().getTime();
         for (const [index, testCase] of tempCases.entries()) {
-            // await tempCases.forEach(async (testCase, index) => {
-            testCase.status = 1;
-            runningCasesStatus = [...runningCasesStatus];
-            console.log("calling ===> ", testCase.methodName);
-            let callResult = await testCase.actor[testCase.methodName](
-                ...testCase.paramValues
-            );
-            console.log("result ===> ", callResult);
-
-            testCase.result = getFieldNormalizedResult(
-                testCase.field[1],
-                callResult
-            );
-            testCase.status = 2;
-            runningCasesStatus = [...runningCasesStatus];
+            try {
+                testCase.status = 1;
+                runningCasesStatus = [...runningCasesStatus];
+                console.log("calling ===> ", testCase.methodName);
+                testCase.startTime = new Date().getTime();
+                let callResult = await testCase.actor[testCase.methodName](
+                    ...testCase.paramValues
+                );
+                console.log("result ===> ", callResult);
+                testCase.endTime = new Date().getTime();
+                testCase.result = getFieldNormalizedResult(
+                    testCase.field[1],
+                    callResult
+                );
+                testCase.status = 2;
+                runningCasesStatus = [...runningCasesStatus];
+            } catch (err) {
+                testCase.status = -1;
+                testCase.error = err;
+                testCase.result = "Error occurs: " + err.message;
+            }
         }
         suiteRunning = false;
+    }
+    function resetRunStatus() {
+        suiteRunningDlgOpen = false;
+        runningSuite = null;
+        resultSaving = false;
+        runningCasesStatus = [];
+    }
+
+    async function doSaveSuiteResults() {
+        resultSaving = true;
+        let canisterCalls = [];
+        let testCaseView = {
+            tag: runningSuite.suite_id,
+            config: JSON.stringify({ suite_name: runningSuite.suite_name }),
+            time_at: convertTimestampToBigInt(caseRunStartTime),
+            canister_calls: canisterCalls,
+        };
+
+        runningCasesStatus.forEach((run) => {
+            let caseRun = {
+                canister_id:
+                    typeof run.canisterId === "string"
+                        ? Principal.fromText(run.canisterId)
+                        : run.canisterId,
+                function_name: run.methodName + run.methodSpec,
+                // event: []
+                event: [
+                    {
+                        time_at: convertTimestampToBigInt(run.startTime),
+                        caller: identity.getPrincipal(),
+                        params: run.callSpec,
+                        result: str2Utf8Bytes(run.result),
+                    },
+                ],
+            };
+            canisterCalls.push(caseRun);
+        });
+
+        try {
+            let result = await devhubActor.cache_test_case(
+                activeConfigIndex,
+                testCaseView
+            );
+            console.log("suite saving result ===>", result);
+        } catch (err) {
+            console.log("error occurs when saving suite run result", err);
+        }
+        resultSaving = false;
+        resetRunStatus();
     }
 </script>
 
@@ -355,7 +422,12 @@
             </Button>
         </Actions>
     </Dialog>
-    <Dialog bind:open={suiteRunningDlgOpen} fullscreen  scrimClickAction="" escapeKeyAction="">
+    <Dialog
+        bind:open={suiteRunningDlgOpen}
+        fullscreen
+        scrimClickAction=""
+        escapeKeyAction=""
+    >
         <DHeader>
             <DTitle>Test Suite Running Panel</DTitle>
         </DHeader>
@@ -368,16 +440,29 @@
                                 description="Test Suite is running, please wait..."
                             />
                         {:else}
-                            <Button variant="raised">
-                                <Icon class="material-icons">save</Icon>
-                                <Label>Save</Label>
+                            <Button
+                                variant="raised"
+                                on:click={async () => {
+                                    await doSaveSuiteResults();
+                                }}
+                                disabled={resultSaving}
+                            >
+                                {#if resultSaving}
+                                    <LoadingPanel description="Saving..." />
+                                {:else}
+                                    <Icon class="material-icons">save</Icon>
+                                    <Label>Save</Label>
+                                {/if}
                             </Button>
-                            <Button variant="raised" color="secondary" on:click={() => {
-                                suiteRunningDlgOpen = false;
-                                runningSuite = null;
-                                runningCasesStatus = [];
 
-                            }}>
+                            <Button
+                                variant="raised"
+                                color="secondary"
+                                disabled={resultSaving}
+                                on:click={() => {
+                                    resetRunStatus();
+                                }}
+                            >
                                 <Icon class="material-icons">delete</Icon>
                                 <Label>Discard</Label>
                             </Button>
@@ -409,6 +494,10 @@
                                                 <SecondaryText
                                                     >Result: waiting...</SecondaryText
                                                 >
+                                            {:else if testCase.status === -1}
+                                                <SecondaryText color="primary">
+                                                    {testCase.result}
+                                                </SecondaryText>
                                             {:else}
                                                 <SecondaryText>
                                                     {"Result:" +

@@ -145,7 +145,8 @@ export function getFieldNormalizedResult(field, callResult) {
     } else {
         result = callResult;
     }
-    return result;
+
+    return IDL.FuncClass.argsToString(field.retTypes,result);
 }
 
 export function getFuncArgsNormalizedForm(field, values) {

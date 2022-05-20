@@ -43,3 +43,7 @@ export function extractUICfg(userConfig) {
 export function getCanisterUIConfigFieldValue(canisterCfg, fieldPath) {
     return canisterCfg.config[fieldPath];
 }
+
+export function convertTimestampToBigInt(ts) {
+    return ts * 1000000;
+}
