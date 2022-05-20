@@ -1,4 +1,5 @@
 import { Actor, HttpAgent } from '@dfinity/agent';
+import { IDL } from "@dfinity/candid";
 
 export function is_local(agent) {
     // @ts-ignore
@@ -132,4 +133,21 @@ export function getFieldFromActor(actor, methodName) {
     return Actor.interfaceOf(actor)._fields.find((f) => {
         return f[0] === methodName;
     });
+}
+
+export function getFieldNormalizedResult(field, callResult) {
+    if (!field) return;
+    let result;
+    if (field.retTypes.length === 0) {
+        result = [];
+    } else if (field.retTypes.length === 1) {
+        result = [callResult];
+    } else {
+        result = callResult;
+    }
+    return result;
+}
+
+export function getFuncArgsNormalizedForm(field, values) {
+    return IDL.FuncClass.argsToString(field.argTypes, values);
 }

@@ -4,7 +4,6 @@
     // import { uuid } from "uuidv4";
     import { Principal } from "@dfinity/principal";
     import { Actor } from "@dfinity/agent";
-    import { IDL } from "@dfinity/candid";
     import Paper, { Title, Content } from "@smui/paper";
     import Button from "@smui/button";
     import Dialog, {
@@ -43,6 +42,8 @@
     import {
         getActorFromCanisterId,
         getFieldFromActor,
+        getFieldNormalizedResult,
+        getFuncArgsNormalizedForm,
     } from "../utils/actorUtils";
     import { getCanisterUIConfigFieldValue } from "../utils/devhubUtils";
     import LoadingPanel from "./LoadingPanel.svelte";
@@ -87,7 +88,6 @@
      */
     let runningCasesStatus = [];
     let caseRunPreparing = false;
-    let caseRunning = false;
 
     onMount(async () => {
         console.log("CaseSuitePanel on mount");
@@ -229,8 +229,9 @@
                 methodSpec: testCase.methodSpec,
                 callSpec:
                     testCase.methodName +
-                    IDL.FuncClass.argsToString(field[1].argTypes, paramValues),
+                    getFuncArgsNormalizedForm(field[1], paramValues),
                 actor,
+                field,
                 paramValues,
                 status: 0,
                 result: null,
@@ -243,22 +244,27 @@
     }
 
     async function doRunCase() {
-        caseRunning = true;
+        suiteRunning = true;
         let tempCases = runningCasesStatus.slice();
         console.log("running cases ===>", runningCasesStatus);
         for (const [index, testCase] of tempCases.entries()) {
-        // await tempCases.forEach(async (testCase, index) => {
+            // await tempCases.forEach(async (testCase, index) => {
             testCase.status = 1;
             runningCasesStatus = [...runningCasesStatus];
             console.log("calling ===> ", testCase.methodName);
-            testCase.result = await testCase.actor[testCase.methodName](
+            let callResult = await testCase.actor[testCase.methodName](
                 ...testCase.paramValues
             );
-            console.log("result ===> ", testCase.result);
+            console.log("result ===> ", callResult);
+
+            testCase.result = getFieldNormalizedResult(
+                testCase.field[1],
+                callResult
+            );
             testCase.status = 2;
             runningCasesStatus = [...runningCasesStatus];
         }
-        caseRunning = false;
+        suiteRunning = false;
     }
 </script>
 
@@ -349,7 +355,7 @@
             </Button>
         </Actions>
     </Dialog>
-    <Dialog bind:open={suiteRunningDlgOpen} fullscreen>
+    <Dialog bind:open={suiteRunningDlgOpen} fullscreen  scrimClickAction="" escapeKeyAction="">
         <DHeader>
             <DTitle>Test Suite Running Panel</DTitle>
         </DHeader>
@@ -366,7 +372,12 @@
                                 <Icon class="material-icons">save</Icon>
                                 <Label>Save</Label>
                             </Button>
-                            <Button variant="raised" color="secondary">
+                            <Button variant="raised" color="secondary" on:click={() => {
+                                suiteRunningDlgOpen = false;
+                                runningSuite = null;
+                                runningCasesStatus = [];
+
+                            }}>
                                 <Icon class="material-icons">delete</Icon>
                                 <Label>Discard</Label>
                             </Button>
