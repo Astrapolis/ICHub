@@ -80,7 +80,7 @@ service devhub : {
   cache_test_case: (nat16, TestCaseView) -> (CallResult);
   get_user_config : (nat16) -> (GetConfigResult) query;
   get_canister_calls: (nat16, opt principal, opt text, opt nat16 ) -> (GetCallResult) query;
-  get_test_cases: (nat16, opt text, opt nat16, bool ) -> (GetTestResult) query;
+  get_test_cases: (nat16, opt text, opt nat16 ) -> (GetTestResult) query;
   get_principal: () -> (principal) query;
   did_to_js: (text) -> (opt text) query;
 }
