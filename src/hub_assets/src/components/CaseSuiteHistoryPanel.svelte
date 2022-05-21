@@ -19,7 +19,8 @@
     import IconButton from "@smui/icon-button";
     import { Icon, Label } from "@smui/common";
 
-    import {utf8Bytes2Str} from "../utils/stringUtils";
+    import { utf8Bytes2Str } from "../utils/stringUtils";
+    import { convertBignumberToDate } from "../utils/devhubUtils";
 
     export let activeSuiteId = null;
     export let activeConfigIndex = null;
@@ -34,20 +35,15 @@
         let result = await devhubActor.get_test_cases(
             activeConfigIndex,
             [activeSuiteId],
-            [DEFAULT_CALL_HISTORY_LIMIT],
-            true
+            [DEFAULT_CALL_HISTORY_LIMIT]
         );
 
-        console.log('history result', result);
+        console.log("history result", result);
         return result;
     }
 
-    function parseHistoryEntry(history) {
-        history.config = JSON.parse(history.config);
-        history.canister_calls.forEach(run  => {
-            run.event[0].result = utf8Bytes2Str(run.event[0].result);
-        })
-        return history;
+    function convertResult(result) {
+        return utf8Bytes2Str(result);
     }
 </script>
 
@@ -57,45 +53,50 @@
             <LoadingPanel description="Loading call history..." />
         {:then suiteCallHistory}
             {#if suiteCallHistory.Authenticated}
-            
-            <Accordion>
-                {#each suiteCallHistory.Authenticated as historyRaw}
-                    <!-- {@const history = parseHistoryEntry(historyRaw)} -->
-                    <Panel square variant="raised" extend>
-                        <Header>
-                            {`Run at: ${history.time_at}`}
-                            <IconButton slot="icon" toggle>
-                                <Icon class="material-icons" on
-                                    >unfold_less</Icon
-                                >
-                                <Icon class="material-icons"
-                                    >unfold_more</Icon
-                                >
-                            </IconButton>
-                        </Header>
-                        <AContent>
-                            <List threeLine nonInteractive>
-                                {#each historyRaw.canister_calls as testCase, index (testCase.canister_id + '-' + testCase.function_name)}
-                                    <Item>
-                                        <Text>
-                                            <PrimaryText
-                                                >{testCase.canister_id + ":" + testCase.function_name}</PrimaryText
-                                            >
+                <Accordion>
+                    {#each suiteCallHistory.Authenticated as historyRaw}
+                        <!-- {@const history = parseHistoryEntry(historyRaw)} -->
+                        <Panel square variant="raised" extend>
+                            <Header>
+                                {`Run at: ${convertBignumberToDate(
+                                    historyRaw.time_at
+                                ).toLocaleString()}`}
+                                <IconButton slot="icon" toggle>
+                                    <Icon class="material-icons" on
+                                        >unfold_less</Icon
+                                    >
+                                    <Icon class="material-icons"
+                                        >unfold_more</Icon
+                                    >
+                                </IconButton>
+                            </Header>
+                            <AContent>
+                                <List threeLine nonInteractive>
+                                    {#each historyRaw.canister_calls as testCase, index (testCase.canister_id + "-" + testCase.function_name)}
+                                        <Item>
+                                            <Text>
+                                                <PrimaryText
+                                                    >{testCase.canister_id +
+                                                        ":" +
+                                                        testCase.function_name}</PrimaryText
+                                                >
 
-                                            <SecondaryText
-                                                >{`Run:${testCase.event[0].params}`}</SecondaryText
-                                            >
-                                            <SecondaryText>
-                                                {`Result:${testCase.event[0].result}`}
-                                            </SecondaryText>
-                                        </Text>
-                                    </Item>
-                                {/each}
-                            </List>
-                        </AContent>
-                    </Panel>
-                {/each}
-            </Accordion>
+                                                <SecondaryText
+                                                    >{`Run:${testCase.event[0].params}`}</SecondaryText
+                                                >
+                                                <SecondaryText>
+                                                    {`Result:${convertResult(
+                                                        testCase.event[0].result
+                                                    )}`}
+                                                </SecondaryText>
+                                            </Text>
+                                        </Item>
+                                    {/each}
+                                </List>
+                            </AContent>
+                        </Panel>
+                    {/each}
+                </Accordion>
             {:else}
                 <span>{suiteCallHistory.UnAuthenticated}</span>
             {/if}

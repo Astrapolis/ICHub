@@ -1,4 +1,5 @@
 import { Principal } from "@dfinity/principal";
+import { BigNumber } from "bignumber.js";
 
 export function isCanisterInFollowList(userConfig, canisterIdString) {
     if (!userConfig || (!userConfig.Authenticated && !userConfig.UnAuthenticated)) {
@@ -46,4 +47,10 @@ export function getCanisterUIConfigFieldValue(canisterCfg, fieldPath) {
 
 export function convertTimestampToBigInt(ts) {
     return ts * 1000000;
+}
+
+export function convertBignumberToDate(bn) {
+    let big = new BigNumber(bn).dividedBy(1000000).toFixed(0);
+    let d = new Date(parseInt(big));
+    return d;
 }
