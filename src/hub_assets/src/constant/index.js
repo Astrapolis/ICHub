@@ -71,3 +71,4 @@ export const RENDER_FUNC = "visitFunc";
 export const RENDER_SERVICE = "visitService";
 
 export const VALUE_PARSER_PRIMITIVE = "PrimitiveValueParser";
+export const VALUE_PARSER_RECORD = "RecordValueParser";

@@ -8,6 +8,10 @@
     import Button from "@smui/button";
     import { Icon, Label } from "@smui/common";
     import FormField from "@smui/form-field";
+
+    import LoadingPanel from "./LoadingPanel.svelte";
+    import PrimitiveRender from "./params/PrimitiveRender.svelte";
+    import GeneralRender from "./params/GeneralRender.svelte";
     import {
         getGeneralTypeRender,
         getPrimitiveValueParser,
@@ -15,106 +19,45 @@
     import { getActorFromCanisterId, isLocalEnv } from "../utils/actorUtils";
     import * as CONSTANT from "../constant";
 
+    // export let paramSpec = null;
     export let methodName = null;
-    export let paramIndex = null;
     export let canisterId = null;
-    export let savedValue = null;
     export let agent = null;
+    export let savedValues = null;
 
     const dispatch = createEventDispatcher();
 
-    let renderType = null;
-    let paramTypeName = null;
+    let specLoading = false;
     let canisterActor = null;
-    let fieldClass = null;
-
-    let inputValue = null;
-    let inputDirty = false;
-    let inputInvalid = false;
-    let inputErrorMsg = null;
-
-    export function getTypeResult() {
-        return inputValue;
-    }
-
-    $: if (inputValue || inputValue === null) {
-        let validResult = validateInputValue();
-        
-        if (validResult.invalid) {
-            if (inputDirty) {
-                inputInvalid = true;
-                inputErrorMsg = validResult.message;
-            }
-        } else {
-            inputInvalid = false;
-            inputErrorMsg = null;
-            dispatch("paramValueSet", {
-                paramIndex,
-                inputValue,
-                parserType: CONSTANT.VALUE_PARSER_PRIMITIVE
-            });
-        }
-    }
+    let fieldIDL = null;
 
     onMount(async () => {
+        specLoading = true;
         canisterActor = await getActorFromCanisterId(canisterId, agent);
+        specLoading = false;
         let field = Actor.interfaceOf(canisterActor)._fields.find((f) => {
             return f[0] === methodName;
         });
 
-        if (field && paramIndex >= 0) {
-            fieldClass = field[1];
-            let argType = fieldClass.argTypes[paramIndex];
-            renderType = argType.accept(getGeneralTypeRender(), null);
-            paramTypeName = argType.name;
-            if (savedValue !== undefined) {
-                inputValue = savedValue;
-            }
-        }
+        fieldIDL = field[1];
     });
 
-    function validateInputValue() {
-        try {
-            let valueProbe = fieldClass.argTypes[paramIndex].accept(
-                getPrimitiveValueParser(),
-                inputValue
-            );
-            if (!fieldClass.argTypes[paramIndex].covariant(valueProbe)) {
-                throw new Error(
-                    `${inputValue} is not of type ${fieldClass.argTypes[
-                        paramIndex
-                    ].display()}`
-                );
-            }
-            return {
-                invalid: false,
-            };
-        } catch (e) {
-            return {
-                invalid: true,
-                message: e.message,
-            };
-        }
+    function onParameterValueChanged(event, index) {
+        console.log("onParameterValueChanged relay ==>", event);
+        dispatch("paramValueSet", { paramIndex: index, ...event.detail });
     }
 </script>
 
 <div>
-    {#if renderType === CONSTANT.RENDER_TYPE}
-        <Textfield
-            style="min-width: 250px;"
-            variant="outlined"
-            name={`f${paramIndex}`}
-            bind:dirty={inputDirty}
-            bind:value={inputValue}
-            invalid={inputInvalid}
-            label={`Input ${paramTypeName} value`}
-            required
-        >
-            <HelperText validationMsg slot="helper">
-                {inputErrorMsg}
-            </HelperText>
-        </Textfield>
-    {:else}
-        {renderType}
+    {#if specLoading}
+        <LoadingPanel description="loading case method spec ..." />
+    {:else if !!fieldIDL}
+        {#each fieldIDL.argTypes as argIDL, index}
+            <GeneralRender
+                {argIDL}
+                savedValue={savedValues[index]}
+                on:paramValueSet={(evt) => onParameterValueChanged(evt, index)}
+            />
+        {/each}
     {/if}
 </div>

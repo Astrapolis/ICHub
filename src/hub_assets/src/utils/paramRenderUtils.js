@@ -103,10 +103,10 @@ function RenderParamFactory() {
 
 };
 
-function GeneralValueParser() {
-    
+export function GeneralValueParser() {
+
     this.visitType = (t, d) => {
-        throw new Error('Not implemented');
+        return t.accept(new PrimitiveValueParser(), d);
     };
 
     this.visitPrimitive = (t, d) => {
@@ -122,7 +122,7 @@ function GeneralValueParser() {
     };
 
     this.visitNull = (t, d) => {
-        return this.visitPrimitive(t, d);
+        return t.accept(new PrimitiveValueParser(), d);
     };
 
     this.visitReserved = (t, d) => {
@@ -174,7 +174,15 @@ function GeneralValueParser() {
     };
 
     this.visitRecord = (t, fields, d) => {
-        return this.visitConstruct(t, d);
+        console.log('checking record', t, fields, d);
+        const v = {};
+        fields.forEach(([key, _], i) => {
+
+            const value = _.accept(new GeneralValueParser(), d[key]);
+            v[key] = value;
+
+        });
+        return v;
     };
 
     this.visitTuple = (t, components, d) => {

@@ -55,7 +55,11 @@
     import MethodParamRender from "./MethodParamRender.svelte";
     import CaseSuiteHistoryPanel from "./CaseSuiteHistoryPanel.svelte";
     import * as CONSTANT from "../constant";
-    import { getParserMap } from "../utils/paramRenderUtils";
+    import {
+        getParserMap,
+        getGeneralTypeRender,
+        GeneralValueParser,
+    } from "../utils/paramRenderUtils";
     import {
         getUUID,
         str2Utf8Bytes,
@@ -84,6 +88,7 @@
     let activeCase = null;
     let caseConfigOpen = false;
     let bufferedCaseMethodParams = {};
+    let paramValueSaveDisabled = true;
     let caseParamValueSaving = false;
     const CASEMETHOD_STAUTS_MAP = ["NA", "Not Ready", "Ready"];
     let runningSuite = null;
@@ -195,26 +200,73 @@
 
     async function onCaseMethodParamValueSet(event) {
         event.preventDefault();
-        console.log("buffered value ===>", bufferedCaseMethodParams);
-        activeCase.paramsSpec.forEach((spec, index) => {
-            activeCase.params[index] = bufferedCaseMethodParams[index].value;
-            activeCase.paramValueParsers[index] =
-                bufferedCaseMethodParams[index].parserType;
-        });
-        activeCase.readyToRun = 1;
-        caseParamValueSaving = true;
-        await onUpdateUIConfig(uiConfig);
-        caseParamValueSaving = false;
-        await tick();
-        activeCase = null;
-        caseConfigOpen = false;
+        console.log(
+            "buffered value ===>",
+            bufferedCaseMethodParams,
+            activeCase
+        );
+        let caseCanisterActor = await getCanisterActor(
+            activeCase.canisterId,
+            agent
+        );
+        let field = getFieldFromActor(caseCanisterActor, activeCase.methodName);
+        if (field) {
+            let valueValid = true;
+            try {
+                activeCase.paramsSpec.forEach((spec, index) => {
+                    let probeValue = field[1].argTypes[index].accept(
+                        new GeneralValueParser(),
+                        bufferedCaseMethodParams[index]
+                    );
+                    activeCase.params[index] = bufferedCaseMethodParams[index];
+                    // activeCase.paramValueParsers[index] =
+                    //     bufferedCaseMethodParams[index].parserType;
+                });
+            } catch (err) {
+                console.log("parse value error", err);
+                valueValid = false;
+            }
+            if (valueValid) {
+                activeCase.readyToRun = 1;
+                caseParamValueSaving = true;
+                await onUpdateUIConfig(uiConfig);
+                caseParamValueSaving = false;
+                await tick();
+                activeCase = null;
+                caseConfigOpen = false;
+            } else {
+                console.log(
+                    "value can not be saved due to invalid value field exists"
+                );
+            }
+        }
     }
 
-    function onParameterValueChanged(event) {
-        bufferedCaseMethodParams[event.detail.paramIndex] = {
-            value: event.detail.inputValue,
-            parserType: event.detail.parserType,
-        };
+    async function onParameterValueChanged(event) {
+        console.log("onParameterValueChanged file ===>", event);
+        bufferedCaseMethodParams[event.detail.paramIndex] =
+            event.detail.inputValue;
+        let caseCanisterActor = await getCanisterActor(
+            activeCase.canisterId,
+            agent
+        );
+        let field = getFieldFromActor(caseCanisterActor, activeCase.methodName);
+        if (field) {
+            let valueValid = true;
+            try {
+                activeCase.paramsSpec.forEach((spec, index) => {
+                    let probeValue = field[1].argTypes[index].accept(
+                        new GeneralValueParser(),
+                        bufferedCaseMethodParams[index]
+                    );
+                });
+            } catch (err) {
+                valueValid = false;
+            }
+            if (valueValid) {
+                paramValueSaveDisabled = false;
+            }
+        }
     }
 
     function getRunSuiteDisableStatus(suite) {
@@ -235,8 +287,10 @@
             let field = getFieldFromActor(actor, testCase.methodName);
             let paramValues = [];
             testCase.params.forEach((param, idx) => {
+                console.log("prepare checking", param, field[1].argTypes[idx]);
                 paramValues[idx] = field[1].argTypes[idx].accept(
-                    parserMap[testCase.paramValueParsers[idx]](),
+                    // parserMap[testCase.paramValueParsers[idx]](),
+                    new GeneralValueParser(),
                     param
                 );
             });
@@ -329,7 +383,7 @@
         });
 
         try {
-            console.log('ready to save test case view', testCaseView);
+            console.log("ready to save test case view", testCaseView);
             let result = await devhubActor.cache_test_case(
                 activeConfigIndex,
                 testCaseView
@@ -341,7 +395,6 @@
         resultSaving = false;
         resetRunStatus();
     }
-    
 </script>
 
 <div>
@@ -398,18 +451,18 @@
                             on:submit={onCaseMethodParamValueSet}
                             style="margin: 10px"
                         >
-                            {#each activeCase.paramsSpec as param, index (activeCase.case_id + "-" + index)}
-                                <MethodParamRender
-                                    methodName={activeCase.methodName}
-                                    paramIndex={index}
-                                    canisterId={activeCase.canisterId}
-                                    {agent}
-                                    savedValue={activeCase.params[index]}
-                                    on:paramValueSet={onParameterValueChanged}
-                                />
-                            {/each}
+                            <!-- {#each activeCase.paramsSpec as param, index (activeCase.case_id + "-" + index)} -->
+                            <MethodParamRender
+                                methodName={activeCase.methodName}
+                                canisterId={activeCase.canisterId}
+                                {agent}
+                                savedValues={activeCase.params}
+                                on:paramValueSet={async (event) =>
+                                    await onParameterValueChanged(event)}
+                            />
+                            <!-- {/each} -->
                             {#if !caseParamValueSaving}
-                                <Button variant="raised" type="submit">
+                                <Button variant="raised" type="submit" disabled={paramValueSaveDisabled}>
                                     <Label>Save</Label>
                                 </Button>
                             {:else}
@@ -488,7 +541,9 @@
                                     <Item>
                                         <Text>
                                             <PrimaryText
-                                                >{testCase.canisterId + ":" + testCase.methodName +
+                                                >{testCase.canisterId +
+                                                    ":" +
+                                                    testCase.methodName +
                                                     testCase.methodSpec}</PrimaryText
                                             >
 
@@ -545,26 +600,30 @@
             {/if}
         </DContent>
     </Dialog>
-    <Dialog bind:open={historyDlgOpen} scrimClickAction="" escapeKeyAction="" fullscreen>
+    <Dialog
+        bind:open={historyDlgOpen}
+        scrimClickAction=""
+        escapeKeyAction=""
+        fullscreen
+    >
         {#if !!historySuite}
-        <DHeader>
-            <DTitle>Call History for {historySuite.suite_name}</DTitle>
-        </DHeader>
-        <DContent>
-            <CaseSuiteHistoryPanel 
-                activeSuiteId={historySuite.suite_id}
-                {activeConfigIndex}
-                {devhubActor}
-            />
-        </DContent>
-        <Actions>
-            <Button variant="raised">
-                <Label>Cancel</Label>
-            </Button>
-        </Actions>
+            <DHeader>
+                <DTitle>Call History for {historySuite.suite_name}</DTitle>
+            </DHeader>
+            <DContent>
+                <CaseSuiteHistoryPanel
+                    activeSuiteId={historySuite.suite_id}
+                    {activeConfigIndex}
+                    {devhubActor}
+                />
+            </DContent>
+            <Actions>
+                <Button variant="raised">
+                    <Label>Cancel</Label>
+                </Button>
+            </Actions>
         {/if}
     </Dialog>
-
 
     {#if !!activeSuite}
         <Paper color="primary" variant="outlined">
@@ -778,7 +837,8 @@
                                             >
                                             <Label>Run Suite</Label>
                                         </Button>
-                                        <Button variant="raised" 
+                                        <Button
+                                            variant="raised"
                                             on:click={() => {
                                                 historySuite = suite;
                                                 historyDlgOpen = true;
@@ -838,6 +898,7 @@
                                                                     activeCase =
                                                                         testCase;
                                                                     caseConfigOpen = true;
+                                                                    paramValueSaveDisabled = true;
                                                                     bufferedCaseMethodParams =
                                                                         {};
                                                                 }}

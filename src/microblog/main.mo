@@ -12,6 +12,22 @@ actor {
         id: Principal; name: Text
     };
 
+    public type ParamRecord = {
+        time: Time.Time;
+        author: Principal;
+        commet: Text;
+        isValid: Bool;
+        credit: Int;
+    };
+
+    public type ReturnRecord = {
+        time: Time.Time;
+        author: Principal;
+        commet: Text;
+        isValid: Bool;
+        credit: Int;
+    };
+
     public type Microblog = actor {
         follow: shared(Principal) -> async ();
         unfollow: shared(Principal) -> async ();
@@ -22,11 +38,22 @@ actor {
         timeline: shared (Time.Time) -> async [Message];
         set_name: shared (Text) -> async ();
         get_name: shared query () -> async ?Text;
+        testInput: shared(ParamRecord) -> async ReturnRecord;
     };
 
     stable var authorName : ?Text = null;
     stable var postList = List.nil<Message>();
     stable var followList = List.nil<Principal>();
+
+    public shared func testInput(para: ParamRecord): async ReturnRecord {
+        return {
+            time = para.time;
+            author = para.author;
+            commet = para.commet;
+            isValid = para.isValid;
+            credit = para.credit;
+        };
+    };
 
     public shared (mes) func set_name(text:Text) : async () {
         
