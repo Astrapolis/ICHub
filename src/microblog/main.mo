@@ -40,6 +40,7 @@ actor {
         get_name: shared query () -> async ?Text;
         testInput: shared(ParamRecord) -> async ReturnRecord;
         testOpt: shared(?ParamRecord) -> async Nat;
+        testArray: shared([ParamRecord]) -> async Nat;
     };
 
     stable var authorName : ?Text = null;
@@ -65,6 +66,10 @@ actor {
                 return 1;
             }
         };
+    };
+
+    public shared func testArray(para: [ParamRecord]) : async Nat {
+        return para.size();
     };
 
 

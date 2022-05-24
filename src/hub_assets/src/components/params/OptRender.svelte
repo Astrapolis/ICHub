@@ -13,7 +13,7 @@
     export let savedValue = null;
 
     let notNullChecked = false;
-    let bufferedRecord = {};
+    let bufferedValue = {};
 
     const dispatch = createEventDispatcher();
 
@@ -21,26 +21,24 @@
         if (!notNullChecked) {
             dispatch("paramValueSet", { inputValue: null });
         } else {
-            dispatch("paramValueSet", { inputValue: bufferedRecord});
+            dispatch("paramValueSet", { inputValue: bufferedValue});
         }
     }
-
     
-
     onMount(async () => {
         console.log("ready to render opt", argIDL, savedValue);
         if (savedValue !== undefined) {
             // notNullChecked = savedValue !== null;
             if (savedValue !== null) {
                 notNullChecked = true;
-                bufferedRecord = savedValue;
+                bufferedValue = savedValue;
             } else {
                 notNullChecked = false;
-                bufferedRecord = {};
+                bufferedValue = {};
             }
         } else {
             notNullChecked = false;
-            bufferedRecord = {};
+            bufferedValue = {};
         }
     });
 

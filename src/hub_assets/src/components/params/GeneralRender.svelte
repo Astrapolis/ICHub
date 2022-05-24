@@ -4,6 +4,7 @@
     import PrimitiveRender from "./PrimitiveRender.svelte";
     import RecordRender from "./RecordRender.svelte";
     import OptRender from "./OptRender.svelte";
+    import VecRender from "./VecRender.svelte";
     import { getGeneralTypeRender } from "../../utils/paramRenderUtils";
     import * as CONSTANT from "../../constant";
 
@@ -17,7 +18,7 @@
     onMount(async () => {
         console.log("general render with savedValue ===>", savedValue, argIDL);
         renderType = argIDL.accept(getGeneralTypeRender(), null);
-        console.log('render type', renderType);
+        console.log("render type", renderType);
     });
 
     function onParameterValueChanged(event) {
@@ -35,13 +36,19 @@
     {:else if renderType === CONSTANT.RENDER_RECORD}
         <RecordRender
             {argIDL}
-            savedValue = {!!savedValue ? savedValue : {}}
+            savedValue={!!savedValue ? savedValue : {}}
             on:paramValueSet={onParameterValueChanged}
         />
     {:else if renderType === CONSTANT.RENDER_OPT}
         <OptRender
             {argIDL}
-            savedValue = {!!savedValue ? savedValue : null}
+            savedValue={!!savedValue ? savedValue : null}
+            on:paramValueSet={onParameterValueChanged}
+        />
+    {:else if renderType === CONSTANT.RENDER_VEC}
+        <VecRender
+            {argIDL}
+            {savedValue}
             on:paramValueSet={onParameterValueChanged}
         />
     {:else}

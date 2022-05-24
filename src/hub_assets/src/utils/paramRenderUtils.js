@@ -166,7 +166,16 @@ export function GeneralValueParser() {
     };
 
     this.visitVec = (t, ty, d) => {
-        return this.visitConstruct(t, d);
+        // return this.visitConstruct(t, d);
+        if (Object.prototype.toString.call(d) === '[object Array]') {
+            let v = [];
+            d.forEach((ele, index) => {
+                v[index] =ty.accept(new GeneralValueParser(), ele);
+            });
+            return v;
+        } else {
+            throw new Error("value is not array");
+        }
     };
 
     this.visitOpt = (t, ty, d) => {
