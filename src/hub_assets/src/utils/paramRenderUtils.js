@@ -170,17 +170,23 @@ export function GeneralValueParser() {
     };
 
     this.visitOpt = (t, ty, d) => {
-        return this.visitConstruct(t, d);
+        
+        let v = []; // null of opt rep
+        if (d === null) {
+            return v;
+        } else {
+            
+            let value = ty.accept(new GeneralValueParser(), d);
+            return [value];
+        }
+        // return this.visitConstruct(t, d);
     };
 
     this.visitRecord = (t, fields, d) => {
-        console.log('checking record', t, fields, d);
         const v = {};
         fields.forEach(([key, _], i) => {
-
             const value = _.accept(new GeneralValueParser(), d[key]);
             v[key] = value;
-
         });
         return v;
     };

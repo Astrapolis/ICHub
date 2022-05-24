@@ -39,6 +39,7 @@ actor {
         set_name: shared (Text) -> async ();
         get_name: shared query () -> async ?Text;
         testInput: shared(ParamRecord) -> async ReturnRecord;
+        testOpt: shared(?ParamRecord) -> async Nat;
     };
 
     stable var authorName : ?Text = null;
@@ -54,6 +55,18 @@ actor {
             credit = para.credit;
         };
     };
+
+    public shared func testOpt(para: ?ParamRecord) : async Nat {
+        switch(para) {
+            case null {
+                return 0;
+            };
+            case (?para) {
+                return 1;
+            }
+        };
+    };
+
 
     public shared (mes) func set_name(text:Text) : async () {
         

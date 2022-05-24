@@ -7,8 +7,6 @@
 
     import GeneralRender from "./GeneralRender.svelte";
 
-    import * as CONSTANT from "../../constant";
-
     export let argIDL = null;
     export let savedValue = null;
 

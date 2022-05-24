@@ -243,7 +243,7 @@
     }
 
     async function onParameterValueChanged(event) {
-        console.log("onParameterValueChanged file ===>", event);
+        console.log("onParameterValueChanged  ===>", event.detail.inputValue);
         bufferedCaseMethodParams[event.detail.paramIndex] =
             event.detail.inputValue;
         let caseCanisterActor = await getCanisterActor(
@@ -261,10 +261,13 @@
                     );
                 });
             } catch (err) {
+                console.log("parse error", err);
                 valueValid = false;
             }
             if (valueValid) {
                 paramValueSaveDisabled = false;
+            } else {
+                paramValueSaveDisabled = true;
             }
         }
     }
@@ -462,7 +465,11 @@
                             />
                             <!-- {/each} -->
                             {#if !caseParamValueSaving}
-                                <Button variant="raised" type="submit" disabled={paramValueSaveDisabled}>
+                                <Button
+                                    variant="raised"
+                                    type="submit"
+                                    disabled={paramValueSaveDisabled}
+                                >
                                     <Label>Save</Label>
                                 </Button>
                             {:else}

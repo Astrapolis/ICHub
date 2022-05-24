@@ -3,6 +3,7 @@
     import { createEventDispatcher } from "svelte";
     import PrimitiveRender from "./PrimitiveRender.svelte";
     import RecordRender from "./RecordRender.svelte";
+    import OptRender from "./OptRender.svelte";
     import { getGeneralTypeRender } from "../../utils/paramRenderUtils";
     import * as CONSTANT from "../../constant";
 
@@ -35,6 +36,12 @@
         <RecordRender
             {argIDL}
             savedValue = {!!savedValue ? savedValue : {}}
+            on:paramValueSet={onParameterValueChanged}
+        />
+    {:else if renderType === CONSTANT.RENDER_OPT}
+        <OptRender
+            {argIDL}
+            savedValue = {!!savedValue ? savedValue : null}
             on:paramValueSet={onParameterValueChanged}
         />
     {:else}
