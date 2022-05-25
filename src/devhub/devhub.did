@@ -88,7 +88,7 @@ service devhub : {
   cache_ui_config : (nat16, text) -> (CallResult);
   cache_canister_config : (nat16, CanisterConfig) -> (CallResult);
   cache_canister_calls : (nat16, vec CanisterCall) -> (CallResult);
-  cache_test_case: (nat16, TestCaseView) -> (CallResult);
+  cache_test_case: (nat16, TestCaseView) -> (CacheTestResult);
   check_user_config_size: (nat16) -> (opt nat32);
   get_user_config : (nat16) -> (GetConfigResult) query;
   get_canister_calls: (nat16, opt principal, opt text, opt nat16 ) -> (GetCallResult) query;
