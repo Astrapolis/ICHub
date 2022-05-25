@@ -26,9 +26,9 @@ type TestCaseView = record {
 };
 
 type TestCaseFilter = variant {
-    tag : text,
-    test_case_id : nat16
-}
+    tag : text;
+    test_case_id : nat16;
+};
 
 type CanisterConfig = record {
   canister_id : principal;
@@ -84,7 +84,7 @@ service devhub : {
   cache_canister_config : (nat16, CanisterConfig) -> (CallResult);
   cache_canister_calls : (nat16, vec CanisterCall) -> (CallResult);
   cache_test_case: (nat16, TestCaseView) -> (CallResult);
-  check_user_config_size: (u16) -> (opt nat32);
+  check_user_config_size: (nat16) -> (opt nat32);
   get_user_config : (nat16) -> (GetConfigResult) query;
   get_canister_calls: (nat16, opt principal, opt text, opt nat16 ) -> (GetCallResult) query;
   get_test_cases: (nat16, opt TestCaseFilter, opt nat16 ) -> (GetTestResult) query;
