@@ -198,14 +198,14 @@ impl UserConfig {
         self.ui_config = ui_config.clone();
     }
 
-    fn update_canister_config(&mut self, canister_config : &CanisterConfig){
+    fn cache_canister_config(&mut self, canister_config : CanisterConfig){
         for  config in &mut self.canister_configs {
             if config.canister_id == canister_config.canister_id {
-                *config = canister_config.clone();
+                *config = canister_config;
                 return ;
             }
         }
-        self.canister_configs.push(canister_config.clone());
+        self.canister_configs.push(canister_config);
     }
 
     fn insert_canister_calls(&mut self, canister_calls : Vec<CanisterCall>){
@@ -500,7 +500,7 @@ async fn cache_canister_config(user_config_index : u16, canister_config : Canist
         let mut config_state = config_state.borrow_mut();
         match config_state.is_authenticated(user_config_index, &caller){
             true => {
-                config_state.user_configs[user_config_index as usize].update_canister_config(&canister_config);
+                config_state.user_configs[user_config_index as usize].cache_canister_config(canister_config);
                 CallResult::Authenticated(String::from("canister config is updated"))
             }
             false => {
