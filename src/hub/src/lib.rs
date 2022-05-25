@@ -5,6 +5,7 @@ use std::collections::{HashMap};
 use std::string::String;
 use ic_cdk_macros;
 use ic_cdk::api;
+use ic_cdk::api::stable::{stable_bytes, StableWriter};
 mod management;
 
 thread_local! {
@@ -100,6 +101,12 @@ pub struct Registry {
     user_registry : HashMap<Principal, Vec<UserConfigIndex>>,
     //map<canister_id, user_state_meta>
     canister_registry: Vec<CanisterState>
+}
+
+impl Default for Registry {
+    fn default() -> Self {
+        Self { user_registry: HashMap::new(), canister_registry: Vec::new() }
+    }
 }
 
 impl Registry{
@@ -301,4 +308,29 @@ candid::export_service!();
 #[candid_method(query, rename = "__get_candid_interface_tmp_hack")]
 fn __get_candid_interface_tmp_hack() -> String {
     __export_service()
+}
+
+#[ic_cdk_macros::pre_upgrade]
+fn pre_upgrade() {
+    REGISTRY.with(|s| {
+        let state = s.take();
+        let bytes = bincode::serialize(&state).unwrap();
+        match StableWriter::default().write(bytes.as_slice()) {
+            Ok(size) => {
+                format!("after pre_upgrade stable_write size{}", size);
+            }
+            Err(_) => {
+                format!("{}", "stable_write error");
+            }
+        }
+    })
+}
+
+#[ic_cdk_macros::post_upgrade]
+fn post_upgrade() {
+    REGISTRY.with(|s| {
+        let bytes = stable_bytes();
+        let restore_state = bincode::deserialize(&bytes).unwrap();
+        s.replace(restore_state);
+    })
 }

@@ -14,6 +14,11 @@
       "package": "hub",
       "type": "rust"
     },
+    "utility": {
+      "candid": "src/utility/utility.did",
+      "package": "utility",
+      "type": "rust"
+    },    
     "internet_identity": {
       "type": "custom",
       "candid": "src/internet_identity/internet_identity.did",

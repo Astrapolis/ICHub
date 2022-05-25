@@ -5,7 +5,6 @@ use std::collections::VecDeque;
 use std::string::String;
 use ic_cdk_macros;
 use ic_cdk::api;
-use std::mem::size_of_val;
 use ic_cdk::api::stable::{stable_bytes, StableWriter};
 
 thread_local! {
@@ -103,10 +102,19 @@ struct TestCase {
 
 #[derive(CandidType, Deserialize, Serialize, Debug, Clone)]
 pub struct TestCaseView {
+    test_case_id : Option<u16>,
     tag: String,
     config: String,
     time_at: u64,
     canister_calls: Vec<CanisterCall>
+}
+
+#[derive(CandidType, Deserialize, Serialize, Debug, Clone)]
+pub enum TestCaseFilter {
+    #[serde(rename = "tag")]
+    Tag(String),
+    #[serde(rename = "test_case_id")]
+    TestCaseId(u16)
 }
 
 #[derive(CandidType, Debug, Deserialize, Clone, Serialize)]
@@ -178,6 +186,10 @@ impl UserConfig {
         }
     }
 
+    fn check_ser_size(&self) -> u32{
+        bincode::serialize(&self).unwrap().len() as u32
+    }
+
     fn add_user(&mut self, user: Principal) {
         self.users.push(user);
     }    
@@ -211,12 +223,34 @@ impl UserConfig {
         }
     }
     
-    fn insert_test_case(&mut self, test_case: TestCaseView) {
-        self.test_cases.push(TestCase { 
-            tag: test_case.tag, config: test_case.config, 
-            time_at: test_case.time_at, 
-            canister_call_ids: (self.last_call_id..self.last_call_id+test_case.canister_calls.len() as u32) });
-        self.insert_canister_calls(test_case.canister_calls);            
+    fn cache_test_case(&mut self, test_case: TestCaseView) -> Result<u16, String> {
+        match test_case.test_case_id {
+            None => {
+                self.test_cases.push(TestCase { 
+                    tag: test_case.tag, config: test_case.config, 
+                    time_at: test_case.time_at, 
+                    canister_call_ids: (self.last_call_id..self.last_call_id+test_case.canister_calls.len() as u32) });
+                self.insert_canister_calls(test_case.canister_calls);            
+                Ok((self.test_cases.len()-1) as u16)
+            }
+            Some(test_case_id) => {
+                match self.test_cases.get_mut(test_case_id as usize) {
+                    None => {Err(format!("test_case_id : {} not found", test_case_id))}
+                    Some(existing_test_case) => {
+                        match existing_test_case.tag == test_case.tag {
+                            true => {
+                                existing_test_case.config = test_case.config; 
+                                existing_test_case.time_at = test_case.time_at;
+                                existing_test_case.canister_call_ids = self.last_call_id..self.last_call_id+test_case.canister_calls.len() as u32;
+                                self.insert_canister_calls(test_case.canister_calls);            
+                                Ok(test_case_id as u16)
+                            }
+                            false => {Err(format!("inconsistent test_case tag : {} vs {}", existing_test_case.tag, test_case.tag))}
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fn get_user_config_private(&self) -> UserConfigViewPrivate {
@@ -227,7 +261,7 @@ impl UserConfig {
             canister_configs: self.get_canisters_configs(true, false),
             canister_calls: self.get_canister_calls(None, None, Some(100)),
             test_cases: self.get_test_cases(None, Some(10)),
-            mem_size: size_of_val(&*self) as u32
+            mem_size: self.check_ser_size()
         }
     }
 
@@ -254,25 +288,21 @@ impl UserConfig {
     {
         let mut related_calls = Vec::new();
         for call in self.canister_calls.iter() {
-            match limit != None && related_calls.len() as u16 == limit.unwrap() {
-             true => {return related_calls}
-             false => {
-                 match canister_id {
-                     Some(c_id) => {
-                         if c_id == call.canister_id {
-                                 match function_name.clone() {
-                                     Some(f_name) => {
-                                         if f_name == call.function_name {
-                                            related_calls.push(call.clone())
-                                         }
-                                     }
-                                     None => related_calls.push(call.clone())
-                                 }
-                         }
-                        }
-                     None => {related_calls.push(call.clone())}
-                 }
-             }
+            if Some(related_calls.len() as u16) == limit {return related_calls}
+            match canister_id {
+                Some(c_id) => {
+                    if c_id == call.canister_id {
+                            match function_name.clone() {
+                                Some(f_name) => {
+                                    if f_name == call.function_name {
+                                       related_calls.push(call.clone())
+                                    }
+                                }
+                                None => related_calls.push(call.clone())
+                            }
+                    }
+                   }
+                None => {related_calls.push(call.clone())}
             }
         }
         related_calls
@@ -286,32 +316,46 @@ impl UserConfig {
             (self.last_call_id - r.end ) as usize..(self.last_call_id - r.start ) as usize)
             .rev().cloned().collect()
     }
+
+    fn build_view_by_test_case(&self, test_case_id: u16, test_case:  &TestCase) -> TestCaseView {
+        TestCaseView { 
+            test_case_id: Some(test_case_id as u16),
+            tag: test_case.tag.clone(), 
+            config: test_case.config.clone(), 
+            time_at: test_case.time_at.clone(), 
+            canister_calls : self.get_canister_calls_by_range(&test_case.canister_call_ids)}
+    }    
     
-    fn get_test_cases(&self, tag: Option<String>, limit: Option<u16>) -> Vec<TestCaseView> {
+    fn get_test_cases(&self, filter_by: Option<TestCaseFilter>, limit: Option<u16>) -> Vec<TestCaseView> {
         let mut related_test_cases : Vec<TestCaseView> = Vec::new();
-        for test_case in self.test_cases.iter().rev() {
-            match limit != None && related_test_cases.len() as u16 == limit.unwrap() {
-                true => {return related_test_cases}
-                false => {
-                    match tag.clone() {
-                        Some(t) => {
-                            if t == test_case.tag {
-                                related_test_cases.push(
-                                    TestCaseView { tag: test_case.tag.clone(), 
-                                        config: test_case.config.clone(), 
-                                        time_at: test_case.time_at.clone(), 
-                                        canister_calls : self.get_canister_calls_by_range(&test_case.canister_call_ids)})                                
+        let test_cases_length = self.test_cases.len();
+        match filter_by {
+            None => {
+                for (idx, test_case) in self.test_cases.iter().rev().enumerate() {
+                    if Some(related_test_cases.len() as u16) == limit { return related_test_cases }
+                    let test_case_id = (test_cases_length - idx - 1) as u16 ; 
+                    related_test_cases.push(self.build_view_by_test_case(test_case_id, test_case))
+                }
+            }
+            Some(filter) => {
+                match filter {
+                    TestCaseFilter::Tag(tag) => {
+                        for (idx, test_case) in self.test_cases.iter().rev().enumerate() {
+                            if Some(related_test_cases.len() as u16) == limit { return related_test_cases }                            
+                            if tag == test_case.tag {
+                                let test_case_id = (test_cases_length - idx - 1) as u16;
+                                related_test_cases.push(self.build_view_by_test_case(test_case_id as u16, test_case));
                             }
-                           }
-                        None => {related_test_cases.push(
-                            TestCaseView { tag: test_case.tag.clone(), 
-                                config: test_case.config.clone(), 
-                                time_at: test_case.time_at.clone(), 
-                                canister_calls : self.get_canister_calls_by_range(&test_case.canister_call_ids)})
+                        }                        
+                    }
+                    TestCaseFilter::TestCaseId(test_case_id) => {
+                        match self.test_cases.get(test_case_id as usize) {
+                            None => {return Vec::new()}
+                            Some(test_case) => {return vec![self.build_view_by_test_case(test_case_id as u16, test_case)]}
                         }
                     }
                 }
-               }
+            }
         }
         related_test_cases
     }
@@ -488,14 +532,14 @@ async fn cache_canister_calls(user_config_index: u16, canister_calls : Vec<Canis
 
 #[ic_cdk_macros::update(name = "cache_test_case")]
 #[candid_method(update, rename = "cache_test_case")]
-async fn cache_test_case(user_config_index: u16, test_case : TestCaseView)-> CallResult<String, String>{
+async fn cache_test_case(user_config_index: u16, test_case : TestCaseView)-> CallResult<Result<u16, String>, String>{
     STATE.with(|config_state| {
         let caller = api::caller();
         let mut config_state = config_state.borrow_mut();
         match config_state.is_authenticated(user_config_index, &caller){
             true => {
-                config_state.user_configs[user_config_index as usize].insert_test_case(test_case);
-                CallResult::Authenticated(String::from("test case is cached"))
+                let test_case_id = config_state.user_configs[user_config_index as usize].cache_test_case(test_case);
+                CallResult::Authenticated(test_case_id)
             }
             false => {
                 CallResult::UnAuthenticated(String::from("cache_test_case requires authentication"))
@@ -505,6 +549,40 @@ async fn cache_test_case(user_config_index: u16, test_case : TestCaseView)-> Cal
     )        
 }
 
+#[ic_cdk_macros::query(name = "check_user_config_size")]
+#[candid_method(query, rename = "check_user_config_size")]
+fn check_user_config_size(user_config_index: u16) -> Option<u32>{
+    STATE.with(|config_state| {
+        let config_state = config_state.borrow();
+        match config_state.user_configs.get(user_config_index as usize){
+            None => {None}
+            Some(config) => {Some(config.check_ser_size())}
+        }
+    }        
+    )
+}
+
+// #[ic_cdk_macros::query(name = "migrate_user_config")]
+// #[candid_method(query, rename = "migrate_user_config")]
+// async fn migrate_user_config(user_config_index: u16)-> Vec<u8>{
+//     STATE.with(|config_state| {
+//         let config_state = config_state.borrow();
+//         bincode::serialize(&config_state.user_configs[user_config_index as usize]).unwrap()
+//     }        
+//     )        
+// }
+
+// #[ic_cdk_macros::update(name = "set_user_config")]
+// #[candid_method(update, rename = "set_user_config")]
+// async fn set_user_config(user_config_bin : Vec<u8>)-> UserConfigViewPrivate{
+//     STATE.with(|config_state| {
+//         let mut config_state = config_state.borrow_mut();
+//         let new_user_config : UserConfig = bincode::deserialize(&user_config_bin).unwrap();
+//         config_state.add_user_config(new_user_config);
+//         config_state.user_configs[config_state.user_configs.len()-1].get_user_config_private()
+//     }        
+//     )        
+// }
 
 #[ic_cdk_macros::query(name = "get_user_config")]
 #[candid_method(query, rename = "get_user_config")]
@@ -547,7 +625,7 @@ fn get_canister_calls(user_config_index: u16, canister_id: Option<Principal>, fu
 
 #[ic_cdk_macros::query(name = "get_test_cases")]
 #[candid_method(query, rename = "get_test_cases")]
-fn get_test_cases(user_config_index: u16, tag: Option<String>, limit: Option<u16>) 
+fn get_test_cases(user_config_index: u16, filter_by: Option<TestCaseFilter>, limit: Option<u16>) 
                     -> CallResult<Vec<TestCaseView>, String>
 {
     STATE.with(|config_state| {
@@ -556,7 +634,7 @@ fn get_test_cases(user_config_index: u16, tag: Option<String>, limit: Option<u16
         match config_state.is_authenticated(user_config_index, &caller){
             true => {
                 CallResult::Authenticated(config_state.user_configs[user_config_index as usize]
-                                                      .get_test_cases(tag, limit))
+                    .get_test_cases(filter_by, limit))
             }
             false => {
                 CallResult::UnAuthenticated(String::from("get_test_cases requires authentication"))
