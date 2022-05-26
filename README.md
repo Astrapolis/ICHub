@@ -1,18 +1,19 @@
-# devhub
+# hub
+hub is the ultimate on-chain suites to manage and test canisters.
 
-Welcome to your new devhub project and to the internet computer development community. By default, creating a new project adds this README and some template files to your project directory. You can edit these template files to customize your project and to include your own code to speed up the development cycle.
+## a user devhub can be created by 
+- `register_new_canister` : which creates a dedicated canister
+- `add_user_to_existing_canister`: which creates a user devhub on an existing canister
 
-To get started, you might want to explore the project directory structure and the default configuration file. Working with this project in your development environment will not affect any production deployment or identity tokens.
+## add a user to existing devhub
+- `add_user_to_existing_user_config`: invite a team member to existing devhub
 
-To learn more before you start working with devhub, see the following documentation available online:
-
-- [Quick Start](https://smartcontracts.org/docs/quickstart/quickstart-intro.html)
-- [SDK Developer Tools](https://smartcontracts.org/docs/developers-guide/sdk-guide.html)
-- [Rust Canister Devlopment Guide](https://smartcontracts.org/docs/rust-guide/rust-intro.html)
-- [ic-cdk](https://docs.rs/ic-cdk)
-- [ic-cdk-macros](https://docs.rs/ic-cdk-macros)
-- [Candid Introduction](https://smartcontracts.org/docs/candid-guide/candid-intro.html)
-- [JavaScript API Reference](https://erxue-5aaaa-aaaab-qaagq-cai.raw.ic0.app)
+## once a devhub is created, the devhub can be accessed through
+- `get_user_configs_by_user -> UserConfigIndexView {canister_id : Principal,config_index: u16}` : which queries the devhubs owned by user
+- `get_user_config(user_config_index: u16) -> CallResult<UserConfigViewPrivate, UserConfigViewPublic>`: with `canister_id` and `user_config_index`, we can query the devhub created by user
+- `cache_canister_config`: follows a new canister, or modify the followed canister
+- `cache_test_case -> Result<u16, String>`: create a new testcase, or modify the existing testcase, returns the test_case_id
+- `get_test_cases`: query the testcases by `tag` or `test_case_id`
 
 ```bash
 cd devhub/
@@ -33,3 +34,4 @@ dfx -qqq start --clean
 ```
 
 Once the job completes, your application will be available at `http://localhost:8000?canisterId={asset_canister_id}`.
+
