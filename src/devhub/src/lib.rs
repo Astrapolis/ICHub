@@ -19,11 +19,18 @@ pub struct CanisterState {
     state_meta : StateMeta,
 }
 
-#[derive(Deserialize, Serialize, Debug, CandidType)]
+#[derive(Deserialize, Serialize, Debug, CandidType, Clone)]
 pub struct StateMeta {
     is_public : bool,
     user_configs_limit : u16,
-    calls_limit: u32
+    calls_limit: u32,
+}
+
+#[derive(CandidType)]
+pub struct CanisterStats {
+    state_meta : StateMeta,
+    user_config_stats: Vec<UserStats>,
+    agg_stats: UserStats,
 }
 
 impl CanisterState {
@@ -58,6 +65,29 @@ impl CanisterState {
 
     fn add_user_config(&mut self, user_config : UserConfig) {
         self.user_configs.push(user_config)
+    }
+
+    fn get_canister_stats(&self) -> CanisterStats { 
+        let mut user_config_stats : Vec<UserStats> = Vec::new();
+        let mut users_count = 0;
+        let mut is_public_count = 0;
+        let mut canister_configs_count = 0;
+        let mut canister_calls_count = 0;
+        let mut test_cases_count = 0;
+        for user_config in &self.user_configs {
+            let user_stats = user_config.get_user_stats();
+            user_config_stats.push(user_stats.clone());
+            users_count += user_stats.users_count;
+            is_public_count += user_stats.is_public_count;
+            canister_configs_count += user_stats.canister_configs_count;
+            canister_calls_count += user_stats.canister_calls_count;
+            test_cases_count += user_stats.test_cases_count;
+        }
+        CanisterStats{
+            state_meta: self.state_meta.clone(),
+            user_config_stats,
+            agg_stats: UserStats{users_count, is_public_count, canister_configs_count, canister_calls_count, test_cases_count}
+        }
     }
 }
 
@@ -359,6 +389,25 @@ impl UserConfig {
         }
         related_test_cases
     }
+
+    fn get_user_stats(&self) -> UserStats{
+        UserStats {
+            users_count: self.users.len() as u16,
+            is_public_count: 1,
+            canister_configs_count: self.canister_configs.len() as u8,
+            canister_calls_count: self.canister_calls.len() as u32,
+            test_cases_count: self.test_cases.len() as u16
+        }
+    }
+}
+
+#[derive(CandidType, Clone)]
+pub struct UserStats{
+    users_count: u16,
+    is_public_count: u16,
+    canister_configs_count: u8,
+    canister_calls_count: u32,
+    test_cases_count: u16,
 }
 
 #[ic_cdk_macros::init]
@@ -640,6 +689,17 @@ fn get_test_cases(user_config_index: u16, filter_by: Option<TestCaseFilter>, lim
                 CallResult::UnAuthenticated(String::from("get_test_cases requires authentication"))
             }
         }   
+    }        
+    )       
+}
+
+#[ic_cdk_macros::query(name = "get_canister_stats")]
+#[candid_method(query, rename = "get_canister_stats")]
+fn get_canister_stats() -> CanisterStats
+{
+    STATE.with(|config_state| {
+        let config_state = config_state.borrow();
+        config_state.get_canister_stats()  
     }        
     )       
 }

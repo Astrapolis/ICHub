@@ -4,6 +4,20 @@ type StateMeta = record {
     calls_limit: nat32;
 };
 
+type UserStats = record {
+    users_count: nat16;
+    is_public_count: nat16;
+    canister_configs_count: nat8;
+    canister_calls_count: nat32;
+    test_cases_count: nat16;
+};
+
+type CanisterStats = record {
+    state_meta : StateMeta;
+    user_config_stats: vec UserStats;
+    agg_stats: UserStats;
+};
+
 type CanisterCallEvent = record {
     time_at: nat64;
     caller: principal;
@@ -90,6 +104,7 @@ service devhub : {
   cache_canister_calls : (nat16, vec CanisterCall) -> (CallResult);
   cache_test_case: (nat16, TestCaseView) -> (CacheTestResult);
   check_user_config_size: (nat16) -> (opt nat32);
+  get_canister_stats: () -> (CanisterStats) query;
   get_user_config : (nat16) -> (GetConfigResult) query;
   get_canister_calls: (nat16, opt principal, opt text, opt nat16 ) -> (GetCallResult) query;
   get_test_cases: (nat16, opt TestCaseFilter, opt nat16 ) -> (GetTestResult) query;
