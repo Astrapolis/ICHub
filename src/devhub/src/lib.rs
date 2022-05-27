@@ -395,7 +395,7 @@ impl UserConfig {
             users_count: self.users.len() as u16,
             is_public_count: 1,
             canister_configs_count: self.canister_configs.len() as u8,
-            canister_calls_count: self.canister_calls.len() as u32,
+            canister_calls_count: self.last_call_id - 1,
             test_cases_count: self.test_cases.len() as u16
         }
     }
