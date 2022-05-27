@@ -316,14 +316,18 @@ impl UserConfig {
         }
     }
 
-    fn get_user_config_public(&self) -> UserConfigViewPublic {
-        UserConfigViewPublic{
-            meta_data: self.meta_data.clone(),
-            ui_config: self.ui_config.clone(),
-            canister_configs: self.get_canisters_configs(true,true),
-            test_cases: self.get_test_cases(None, Some(10)),
-            stats: self.get_user_stats(),
+    fn get_user_config_public(&self) -> Option<UserConfigViewPublic> {
+        match self.meta_data.is_public {
+            true => {Some(UserConfigViewPublic{
+                meta_data: self.meta_data.clone(),
+                ui_config: self.ui_config.clone(),
+                canister_configs: self.get_canisters_configs(true,true),
+                test_cases: self.get_test_cases(None, Some(10)),
+                stats: self.get_user_stats(),
+            })}
+            false => {None}
         }
+
     }
 
     fn get_canisters_configs(&self, is_active: bool, is_public: bool) -> Vec<CanisterConfig>
@@ -658,7 +662,7 @@ fn check_user_config_size(user_config_index: u16) -> Option<u32>{
 
 #[ic_cdk_macros::query(name = "get_user_config")]
 #[candid_method(query, rename = "get_user_config")]
-fn get_user_config(user_config_index: u16) -> CallResult<UserConfigViewPrivate, UserConfigViewPublic>{
+fn get_user_config(user_config_index: u16) -> CallResult<UserConfigViewPrivate, Option<UserConfigViewPublic>>{
     STATE.with(|config_state| {
         let caller = api::caller();        
         let config_state = config_state.borrow();

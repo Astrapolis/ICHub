@@ -85,7 +85,7 @@ type CallResult = variant {
 
 type GetConfigResult = variant {
   Authenticated : UserConfigViewPrivate;
-  UnAuthenticated: UserConfigViewPublic;
+  UnAuthenticated: opt UserConfigViewPublic;
 };
 
 type GetCallResult = variant {
