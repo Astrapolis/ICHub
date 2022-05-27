@@ -45,7 +45,7 @@ impl CanisterState {
         match self.user_configs.get(user_config_index as usize) {
             None => {false}
             Some(config) => {
-                if config.users.contains(user) {
+                if config.meta_data.users.contains(user) {
                     true
                 } else {
                     false
@@ -56,11 +56,11 @@ impl CanisterState {
 
     fn is_root_user(&self, user: &Principal) -> bool {
         // check if user is in root user config
-        self.user_configs[0].users.contains(user)
+        self.user_configs[0].meta_data.users.contains(user)
     }
     
     fn check_num_configs_by_user(& self, user: &Principal) -> usize {
-        self.user_configs.iter().filter(|&c| c.users[0] == *user).count()
+        self.user_configs.iter().filter(|&c| c.meta_data.users[0] == *user).count()
     }
 
     fn add_user_config(&mut self, user_config : UserConfig) {
@@ -157,12 +157,29 @@ struct CanisterConfig {
     meta_data: Vec<String>
 }
 
-#[derive(Serialize, Debug, Deserialize)]
-pub struct UserConfig {
+#[derive(Serialize, Debug, Deserialize, Clone, CandidType)]
+pub struct UserConfigMeta {
     users: Vec<Principal>,
     calls_limit: u32,
-    ui_config: String,
+    is_public: bool,
     is_active: bool,
+}
+
+impl Default for UserConfigMeta {
+    fn default() -> Self {
+        Self {
+            users: vec![Principal::anonymous()],
+            calls_limit: u32::MAX,
+            is_public: true,
+            is_active: true,
+        }
+    }
+}
+
+#[derive(Serialize, Debug, Deserialize)]
+pub struct UserConfig {
+    meta_data: UserConfigMeta,
+    ui_config: String,
     canister_configs: Vec<CanisterConfig>,
     canister_calls: VecDeque<CanisterCall>,
     last_call_id: u32,
@@ -171,29 +188,29 @@ pub struct UserConfig {
 
 #[derive(CandidType)]
 pub struct UserConfigViewPrivate {
-    users:  Vec<Principal>,
+    meta_data: UserConfigMeta,
     ui_config: String,
-    calls_limit: u32,
     canister_configs: Vec<CanisterConfig>,
     canister_calls: Vec<CanisterCall>,
     test_cases: Vec<TestCaseView>,
-    mem_size : u32
+    mem_size : u32,
+    stats: UserStats,
 }
 
 #[derive(CandidType)]
 pub struct UserConfigViewPublic {
-    user:  Vec<Principal>,
+    meta_data:  UserConfigMeta,
     ui_config: String,
     canister_configs: Vec<CanisterConfig>,
+    test_cases: Vec<TestCaseView>,
+    stats: UserStats,
 }
 
 impl Default for UserConfig {
     fn default() -> Self{
         Self {
-            users : vec![Principal::anonymous()],
+            meta_data : UserConfigMeta::default(),
             ui_config : String::new(),
-            is_active: true,
-            calls_limit: u32::MAX,
             canister_configs: Vec::new(),
             canister_calls: VecDeque::new(),
             last_call_id: 0,
@@ -204,11 +221,15 @@ impl Default for UserConfig {
 
 impl UserConfig {
     fn new(user : Principal, calls_limit : u32, ui_config : String) -> Self{
-        Self {
-            users : vec![user],
-            ui_config,
+        let meta_data = UserConfigMeta {
+            users: vec![user],
+            calls_limit: calls_limit,
+            is_public: false,
             is_active: true,
-            calls_limit,
+        };
+        Self {
+            meta_data,
+            ui_config,
             canister_configs: Vec::new(),
             canister_calls: VecDeque::new(),
             last_call_id: 0,
@@ -221,7 +242,7 @@ impl UserConfig {
     }
 
     fn add_user(&mut self, user: Principal) {
-        self.users.push(user);
+        self.meta_data.users.push(user);
     }    
 
     fn update_ui_config(&mut self, ui_config : &String){
@@ -241,7 +262,7 @@ impl UserConfig {
     fn insert_canister_calls(&mut self, canister_calls : Vec<CanisterCall>){
         self.last_call_id += canister_calls.len() as u32;
         for canister_call in canister_calls {
-            match self.canister_calls.len() as u32 == self.calls_limit {
+            match self.canister_calls.len() as u32 == self.meta_data.calls_limit {
                 true => {
                     self.canister_calls.pop_back();
                     self.canister_calls.push_front(canister_call.clone());
@@ -285,21 +306,23 @@ impl UserConfig {
 
     fn get_user_config_private(&self) -> UserConfigViewPrivate {
         UserConfigViewPrivate{
-            users: self.users.clone(),
+            meta_data: self.meta_data.clone(),
             ui_config: self.ui_config.clone(),
-            calls_limit: self.calls_limit,
             canister_configs: self.get_canisters_configs(true, false),
             canister_calls: self.get_canister_calls(None, None, Some(100)),
             test_cases: self.get_test_cases(None, Some(10)),
-            mem_size: self.check_ser_size()
+            mem_size: self.check_ser_size(),
+            stats: self.get_user_stats(),
         }
     }
 
     fn get_user_config_public(&self) -> UserConfigViewPublic {
         UserConfigViewPublic{
-            user: self.users.clone(),
+            meta_data: self.meta_data.clone(),
             ui_config: self.ui_config.clone(),
-            canister_configs: self.get_canisters_configs(true,true)
+            canister_configs: self.get_canisters_configs(true,true),
+            test_cases: self.get_test_cases(None, Some(10)),
+            stats: self.get_user_stats(),
         }
     }
 
@@ -392,7 +415,7 @@ impl UserConfig {
 
     fn get_user_stats(&self) -> UserStats{
         UserStats {
-            users_count: self.users.len() as u16,
+            users_count: self.meta_data.users.len() as u16,
             is_public_count: 1,
             canister_configs_count: self.canister_configs.len() as u8,
             canister_calls_count: self.last_call_id - 1,

@@ -53,20 +53,29 @@ type CanisterConfig = record {
   meta_data: vec text;
 };
 
+type UserConfigMeta = record {
+    users: vec principal;
+    calls_limit: u32;
+    is_public: bool;
+    is_active: bool;
+};
+
 type UserConfigViewPrivate = record {
-  users : vec principal;
+  meta_data : UserConfigMeta;
   ui_config : text;
-  calls_limit: nat32;
   canister_configs : vec CanisterConfig;
   canister_calls : vec CanisterCall;
   test_cases : vec TestCaseView;
   mem_size : nat32;
+  stats: UserStats;
 };
 
 type UserConfigViewPublic = record {
-  users : vec principal;
+  meta_data : UserConfigMeta;
   ui_config : text;
   canister_configs : vec CanisterConfig;
+  test_cases : vec TestCaseView;
+  stats: UserStats;
 };
 
 type CallResult = variant {
