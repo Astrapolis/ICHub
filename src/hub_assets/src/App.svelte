@@ -4,6 +4,8 @@
     createActor as hubCreateActor,
     canisterId as hubCanisterId,
   } from "../../declarations/hub";
+  import { Navigate, Route, Router } from "svelte-router-spa";
+  import { routes } from "./route/routes";
 
   import TopAppBar, { Row, Section, Title } from "@smui/top-app-bar";
   import IconButton from "@smui/icon-button";
@@ -22,6 +24,7 @@
   import Fab from "@smui/fab";
   import { Label } from "@smui/common";
 
+
   import { Principal } from "@dfinity/principal";
   import { AuthClient } from "@dfinity/auth-client";
   import localCanisterJson from "../../../.dfx/local/canister_ids.json";
@@ -38,6 +41,7 @@
     DEFAULT_UI_CONFIG,
     DEFAULT_CALL_LIMITS,
     DEFAULT_USER_CONFIG_LIMIT,
+    HUB_USER_CONTEXT_KEY
   } from "./constant";
 
   const TAB_HUB = "Hub";
@@ -62,6 +66,11 @@
   let devhubsOfCurrentIdentity = [];
   let profileOpen = false;
   // let inTestMode = false;
+
+  
+
+  // setContext(HUB_USER_CONTEXT_KEY, {});
+  console.log('App init ====>');
 
   function setLoginStatus() {
     identity = authClient.getIdentity();
@@ -140,31 +149,32 @@
   }
 
   onMount(async () => {
+    console.log('import meta', import.meta);
     console.log("NODE_ENV isLocal ===> ", isLocalEnv());
-    // const agent = new HttpAgent();
-    if (isLocalEnv()) {
-      officalHubCanisterId = localCanisterJson.hub.local;
-      HUB_OFFICIAL_CONFIG.canister_id = Principal.fromText(
-        localCanisterJson.hub.local
-      );
-      HUB_OFFICIAL_CONFIG.meta_data[0].controller = Principal.fromText(
-        "2al2t-2jbuy-tn5re-ay3mw-aimky-hqdgv-3rjgx-eepq2-yjkeb-bvxrl-hae"
-      );
-    }
-    authClient = await AuthClient.create({
-      idleOptions: {
-        idleTimeout: 1000 * 60 * 30, // set to 30 minutes
-      },
-    });
-    let authenticated = await authClient.isAuthenticated();
-    if (authenticated) {
-      setLoginStatus();
-      await getUserRegisterStatus();
-    }
+    // // const agent = new HttpAgent();
+    // if (isLocalEnv()) {
+    //   officalHubCanisterId = localCanisterJson.hub.local;
+    //   HUB_OFFICIAL_CONFIG.canister_id = Principal.fromText(
+    //     localCanisterJson.hub.local
+    //   );
+    //   HUB_OFFICIAL_CONFIG.meta_data[0].controller = Principal.fromText(
+    //     "2al2t-2jbuy-tn5re-ay3mw-aimky-hqdgv-3rjgx-eepq2-yjkeb-bvxrl-hae"
+    //   );
+    // }
+    // authClient = await AuthClient.create({
+    //   idleOptions: {
+    //     idleTimeout: 1000 * 60 * 30, // set to 30 minutes
+    //   },
+    // });
+    // let authenticated = await authClient.isAuthenticated();
+    // if (authenticated) {
+    //   setLoginStatus();
+    //   await getUserRegisterStatus();
+    // }
   });
 </script>
 
-<main class="site-layout-container">
+<!-- <main class="site-layout-container">
   <Dialog bind:open={profileOpen}>
     <DHeader>
       <DTitle>My Profile</DTitle>
@@ -184,19 +194,19 @@
     </Actions>
   </Dialog>
   <TopAppBar color="primary" variant="static">
-    <!-- <div class="top-app-bar-container flexor"> -->
+    
     <Row>
       <Section>
         <IconButton class="material-icons">menu</IconButton>
       </Section>
       {#if login}
         {#if userType === USER_TYPE_REGISTERED}
-          <!-- <div class="top-tab-container"> -->
+         
           <Section>
             <TabBar {tabs} let:tab bind:active={activeTab}>
-              <!-- Note: the `tab` property is required! -->
+              
               <Tab {tab}>
-                <!-- <Label>{tab}</Label> -->
+                
                 <Button
                   variant="raised"
                   color={activeTab === tab ? "primary" : "secondary"}
@@ -206,7 +216,7 @@
               </Tab>
             </TabBar>
           </Section>
-          <!-- </div> -->
+          
         {/if}
         <Section align="end">
           <IconButton
@@ -285,6 +295,11 @@
       </div>
     {/if}
   </div>
+</main> 
+-->
+
+<main class="site-layout-container">
+  <Router {routes} />
 </main>
 
 <style>

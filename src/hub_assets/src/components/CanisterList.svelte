@@ -1,27 +1,34 @@
 <script>
     import { onMount } from "svelte";
+    import { Navigate, navigateTo } from "svelte-router-spa";
     import { Principal } from "@dfinity/principal";
     import DataTable, { Head, Body, Row, Cell } from "@smui/data-table";
     import LinearProgress from "@smui/linear-progress";
     import IconButton from "@smui/icon-button";
-    import Button, { Label } from "@smui/button";
+    import Button from "@smui/button";
+    import { Icon, Label } from "@smui/common";
     import Paper, { Title, Content } from "@smui/paper";
     import { getCanisterUIConfigFieldValue } from "../utils/devhubUtils";
     import PaperTitle from "./PaperTitle.svelte";
 
     export let canisterCfgList = [];
-    export let devhubActor = null;
 
     // let listLoaded = false;
 </script>
 
 <Paper color="primary" variant="outlined">
-    <Title>
-        <PaperTitle title="My Followed List" />
-    </Title>
     <Content>
-        <!-- <Paper color="secondary">
-            <Content> -->
+        <div>
+            <Button
+                variant="raised"
+                on:click={() => {
+                    navigateTo("/devhub/admin/follows/new");
+                }}
+            >
+                <Icon class="material-icons">add</Icon>
+                <Label>Follow A New Canister</Label>
+            </Button>
+        </div>
         <DataTable table$aria-label="Canister list" style="width: 100%;">
             <Head>
                 <Row>
@@ -45,9 +52,7 @@
                                 "tag"
                             )}</Cell
                         >
-                        <Cell>
-                            ...
-                        </Cell>
+                        <Cell>...</Cell>
                         <Cell
                             ><IconButton
                                 class="material-icons"
@@ -72,15 +77,6 @@
                     </Row>
                 {/each}
             </Body>
-
-            <!-- <LinearProgress
-                indeterminate
-                bind:closed={listLoading}
-                aria-label="Data is being loaded..."
-                slot="progress"
-            /> -->
         </DataTable>
-        <!-- </Content>
-        </Paper> -->
     </Content>
 </Paper>
