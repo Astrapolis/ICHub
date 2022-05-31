@@ -27,7 +27,7 @@ pub struct StateMeta {
 }
 
 #[derive(CandidType)]
-pub struct CanisterStats {
+pub struct CanisterStateStats {
     state_meta : StateMeta,
     user_config_stats: Vec<UserStats>,
     agg_stats: UserStats,
@@ -40,19 +40,47 @@ impl CanisterState {
         self.state_meta = state_meta;
     }
 
-    fn is_authenticated(&self, user_config_index: u16, user: &Principal) -> bool {
-        // The anonymous principal is not allowed to interact with canister.
+    // fn is_authenticated(&self, user_config_index: u16, user: &Principal) -> bool {
+    //     // The anonymous principal is not allowed to interact with canister.
+    //     match self.user_configs.get(user_config_index as usize) {
+    //         None => {false}
+    //         Some(config) => {
+    //             if config.meta_data.users.contains(user) {
+    //                 true
+    //             } else {
+    //                 false
+    //             }
+    //         }
+    //     }
+    // }
+
+    fn get_user_config(&self, user_config_index : u16, user : &Principal) -> Result<&UserConfig, String> {
         match self.user_configs.get(user_config_index as usize) {
-            None => {false}
-            Some(config) => {
-                if config.meta_data.users.contains(user) {
-                    true
-                } else {
-                    false
+            None => {Err(String::from("user config does not exist"))}
+            Some(user_config) => {
+                let meta_data = &user_config.meta_data;
+                match meta_data.users.contains(user) {
+                    true => {Ok(user_config)}
+                    false => {match meta_data.is_public {
+                        true => {Ok(user_config)}
+                        false => {Err(String::from("user config is private"))}
+                    }}
                 }
             }
         }
     }
+
+    fn get_user_config_mut(&mut self, user_config_index : u16, user : &Principal) -> Result<&mut UserConfig, String> {
+        match self.user_configs.get_mut(user_config_index as usize) {
+            None => {Err(String::from("user config does not exist"))}
+            Some(user_config) => {
+                match user_config.meta_data.users.contains(user){
+                    true => {Ok(user_config)}
+                    false => {Err(String::from("users are not authenticated to write"))}
+                }
+            }
+        }
+    }    
 
     fn is_root_user(&self, user: &Principal) -> bool {
         // check if user is in root user config
@@ -67,7 +95,7 @@ impl CanisterState {
         self.user_configs.push(user_config)
     }
 
-    fn get_canister_stats(&self) -> CanisterStats { 
+    fn get_canister_state_stats(&self) -> CanisterStateStats { 
         let mut user_config_stats : Vec<UserStats> = Vec::new();
         let mut users_count = 0;
         let mut is_public_count = 0;
@@ -75,7 +103,7 @@ impl CanisterState {
         let mut canister_calls_count = 0;
         let mut test_cases_count = 0;
         for user_config in &self.user_configs {
-            let user_stats = user_config.get_user_stats();
+            let user_stats = user_config.get_user_stats(false);
             user_config_stats.push(user_stats.clone());
             users_count += user_stats.users_count;
             is_public_count += user_stats.is_public_count;
@@ -83,10 +111,10 @@ impl CanisterState {
             canister_calls_count += user_stats.canister_calls_count;
             test_cases_count += user_stats.test_cases_count;
         }
-        CanisterStats{
+        CanisterStateStats{
             state_meta: self.state_meta.clone(),
             user_config_stats,
-            agg_stats: UserStats{users_count, is_public_count, canister_configs_count, canister_calls_count, test_cases_count}
+            agg_stats: UserStats{users_count, is_public_count, canister_configs_count, canister_calls_count, test_cases_count, mem_size : None}
         }
     }
 }
@@ -152,7 +180,6 @@ struct CanisterConfig {
     canister_id: Principal,
     time_updated: u64,
     is_active: bool,
-    is_public: bool,
     config: String,
     meta_data: Vec<String>
 }
@@ -187,13 +214,12 @@ pub struct UserConfig {
 }
 
 #[derive(CandidType)]
-pub struct UserConfigViewPrivate {
+pub struct UserConfigView {
     meta_data: UserConfigMeta,
     ui_config: String,
     canister_configs: Vec<CanisterConfig>,
     canister_calls: Vec<CanisterCall>,
     test_cases: Vec<TestCaseView>,
-    mem_size : u32,
     stats: UserStats,
 }
 
@@ -304,45 +330,22 @@ impl UserConfig {
         }
     }
 
-    fn get_user_config_private(&self) -> UserConfigViewPrivate {
-        UserConfigViewPrivate{
+    fn build_user_config_view(&self) -> UserConfigView {
+        UserConfigView{
             meta_data: self.meta_data.clone(),
             ui_config: self.ui_config.clone(),
-            canister_configs: self.get_canisters_configs(true, false),
+            canister_configs: self.get_canisters_configs(true),
             canister_calls: self.get_canister_calls(None, None, Some(100)),
             test_cases: self.get_test_cases(None, Some(10)),
-            mem_size: self.check_ser_size(),
-            stats: self.get_user_stats(),
+            stats: self.get_user_stats(true),
         }
     }
 
-    fn get_user_config_public(&self) -> Option<UserConfigViewPublic> {
-        match self.meta_data.is_public {
-            true => {Some(UserConfigViewPublic{
-                meta_data: self.meta_data.clone(),
-                ui_config: self.ui_config.clone(),
-                canister_configs: self.get_canisters_configs(true,true),
-                test_cases: self.get_test_cases(None, Some(10)),
-                stats: self.get_user_stats(),
-            })}
-            false => {None}
-        }
-
-    }
-
-    fn get_canisters_configs(&self, is_active: bool, is_public: bool) -> Vec<CanisterConfig>
-    {
-        if is_public {
-            self.canister_configs.iter().filter(|config| 
-                config.is_active == is_active && config.is_public == is_public).cloned().collect()
-        } else {
-            self.canister_configs.iter().filter(|config| 
-                config.is_active == is_active).cloned().collect()            
-        }
+    fn get_canisters_configs(&self, is_active: bool) -> Vec<CanisterConfig>{
+        self.canister_configs.iter().filter(|config| config.is_active == is_active).cloned().collect()            
     }     
 
-    fn get_canister_calls(&self, canister_id: Option<Principal>, function_name: Option<String>, limit: Option<u16>) -> Vec<CanisterCall>
-    {
+    fn get_canister_calls(&self, canister_id: Option<Principal>, function_name: Option<String>, limit: Option<u16>) -> Vec<CanisterCall> {
         let mut related_calls = Vec::new();
         for call in self.canister_calls.iter() {
             if Some(related_calls.len() as u16) == limit {return related_calls}
@@ -417,13 +420,14 @@ impl UserConfig {
         related_test_cases
     }
 
-    fn get_user_stats(&self) -> UserStats{
+    fn get_user_stats(&self, include_mem_size: bool) -> UserStats{
         UserStats {
             users_count: self.meta_data.users.len() as u16,
             is_public_count: 1,
             canister_configs_count: self.canister_configs.len() as u8,
             canister_calls_count: self.last_call_id - 1,
-            test_cases_count: self.test_cases.len() as u16
+            test_cases_count: self.test_cases.len() as u16,
+            mem_size: if include_mem_size {Some(self.check_ser_size())} else {None}
         }
     }
 }
@@ -435,6 +439,7 @@ pub struct UserStats{
     canister_configs_count: u8,
     canister_calls_count: u32,
     test_cases_count: u16,
+    mem_size: Option<u32>,
 }
 
 #[ic_cdk_macros::init]
@@ -476,8 +481,8 @@ async fn add_user_to_existing_user_config(user_config_index : u16, new_user : Pr
     let caller = api::caller();
     let (is_authenticated, registry_canister_id ) = 
     STATE.with(|config_state|{
-        let config_state = config_state.borrow();
-        (config_state.is_authenticated(user_config_index, &caller), config_state.registry_canister_id)});
+        let mut config_state = config_state.borrow_mut();
+        (config_state.get_user_config_mut(user_config_index, &caller).is_ok(), config_state.registry_canister_id)});
     match is_authenticated {
         true => {
             let call_result: Result<(CallResult<String, String>,), _> = 
@@ -549,19 +554,38 @@ async fn add_user_config(ui_config : String) -> CallResult<String, String>{
     }
 }
 
+#[ic_cdk_macros::update(name = "set_user_config_public")]
+#[candid_method(update, rename = "set_user_config_public")]
+async fn set_user_config_public(user_config_index : u16, is_public : bool) -> CallResult<String, String>{
+    STATE.with(|config_state| {
+        let caller = api::caller();
+        let mut config_state = config_state.borrow_mut();
+        match config_state.get_user_config_mut(user_config_index, &caller){
+            Ok(user_config) => {
+                user_config.meta_data.is_public = is_public;
+                CallResult::Authenticated(format!("ui config is_public : {}", is_public))
+            }
+            Err(msg) => {
+                CallResult::UnAuthenticated(msg)
+            }
+        }
+    }        
+    )
+}
+
 #[ic_cdk_macros::update(name = "cache_ui_config")]
 #[candid_method(update, rename = "cache_ui_config")]
 async fn cache_ui_config(user_config_index : u16, ui_config : String) -> CallResult<String, String>{
     STATE.with(|config_state| {
         let caller = api::caller();
         let mut config_state = config_state.borrow_mut();
-        match config_state.is_authenticated(user_config_index, &caller){
-            true => {
-                config_state.user_configs[user_config_index as usize].update_ui_config(&ui_config);
+        match config_state.get_user_config_mut(user_config_index, &caller){
+            Ok(user_config) => {
+                user_config.update_ui_config(&ui_config);
                 CallResult::Authenticated(String::from("ui config is updated"))
             }
-            false => {
-                CallResult::UnAuthenticated(String::from("cache_ui_config requires authentication"))
+            Err(msg) => {
+                CallResult::UnAuthenticated(msg)
             }
         }
     }        
@@ -574,13 +598,13 @@ async fn cache_canister_config(user_config_index : u16, canister_config : Canist
     STATE.with(|config_state| {
         let caller = api::caller();
         let mut config_state = config_state.borrow_mut();
-        match config_state.is_authenticated(user_config_index, &caller){
-            true => {
-                config_state.user_configs[user_config_index as usize].cache_canister_config(canister_config);
+        match config_state.get_user_config_mut(user_config_index, &caller){
+            Ok(user_config) => {
+                user_config.cache_canister_config(canister_config);
                 CallResult::Authenticated(String::from("canister config is updated"))
             }
-            false => {
-                CallResult::UnAuthenticated(String::from("cache_canister_config requires authentication"))
+            Err(msg) => {
+                CallResult::UnAuthenticated(String::from(msg))
             }
         }
     }        
@@ -593,13 +617,13 @@ async fn cache_canister_calls(user_config_index: u16, canister_calls : Vec<Canis
     STATE.with(|config_state| {
         let caller = api::caller();
         let mut config_state = config_state.borrow_mut();
-        match config_state.is_authenticated(user_config_index, &caller){
-            true => {
-                config_state.user_configs[user_config_index as usize].insert_canister_calls(canister_calls);
+        match config_state.get_user_config_mut(user_config_index, &caller){
+            Ok(user_config) => {
+                user_config.insert_canister_calls(canister_calls);
                 CallResult::Authenticated(String::from("canister calls are updated"))
             }
-            false => {
-                CallResult::UnAuthenticated(String::from("cache_canister_calls requires authentication"))
+            Err(msg) => {
+                CallResult::UnAuthenticated(String::from(msg))
             }
         }
     }        
@@ -612,30 +636,17 @@ async fn cache_test_case(user_config_index: u16, test_case : TestCaseView)-> Cal
     STATE.with(|config_state| {
         let caller = api::caller();
         let mut config_state = config_state.borrow_mut();
-        match config_state.is_authenticated(user_config_index, &caller){
-            true => {
-                let test_case_id = config_state.user_configs[user_config_index as usize].cache_test_case(test_case);
+        match config_state.get_user_config_mut(user_config_index, &caller){
+            Ok(user_config) => {
+                let test_case_id = user_config.cache_test_case(test_case);
                 CallResult::Authenticated(test_case_id)
             }
-            false => {
-                CallResult::UnAuthenticated(String::from("cache_test_case requires authentication"))
+            Err(msg) => {
+                CallResult::UnAuthenticated(String::from(msg))
             }
         }
     }        
     )        
-}
-
-#[ic_cdk_macros::query(name = "check_user_config_size")]
-#[candid_method(query, rename = "check_user_config_size")]
-fn check_user_config_size(user_config_index: u16) -> Option<u32>{
-    STATE.with(|config_state| {
-        let config_state = config_state.borrow();
-        match config_state.user_configs.get(user_config_index as usize){
-            None => {None}
-            Some(config) => {Some(config.check_ser_size())}
-        }
-    }        
-    )
 }
 
 // #[ic_cdk_macros::query(name = "migrate_user_config")]
@@ -650,7 +661,7 @@ fn check_user_config_size(user_config_index: u16) -> Option<u32>{
 
 // #[ic_cdk_macros::update(name = "set_user_config")]
 // #[candid_method(update, rename = "set_user_config")]
-// async fn set_user_config(user_config_bin : Vec<u8>)-> UserConfigViewPrivate{
+// async fn set_user_config(user_config_bin : Vec<u8>)-> UserConfigView{
 //     STATE.with(|config_state| {
 //         let mut config_state = config_state.borrow_mut();
 //         let new_user_config : UserConfig = bincode::deserialize(&user_config_bin).unwrap();
@@ -662,16 +673,16 @@ fn check_user_config_size(user_config_index: u16) -> Option<u32>{
 
 #[ic_cdk_macros::query(name = "get_user_config")]
 #[candid_method(query, rename = "get_user_config")]
-fn get_user_config(user_config_index: u16) -> CallResult<UserConfigViewPrivate, Option<UserConfigViewPublic>>{
+fn get_user_config(user_config_index: u16) -> CallResult<UserConfigView, String>{
     STATE.with(|config_state| {
         let caller = api::caller();        
         let config_state = config_state.borrow();
-        match config_state.is_authenticated(user_config_index, &caller){
-            true => {
-                CallResult::Authenticated(config_state.user_configs[user_config_index as usize].get_user_config_private())
+        match config_state.get_user_config(user_config_index, &caller){
+            Ok(user_config) => {
+                CallResult::Authenticated(user_config.build_user_config_view())
             }
-            false => {
-                CallResult::UnAuthenticated(config_state.user_configs[user_config_index as usize].get_user_config_public())
+            Err(msg) => {
+                CallResult::UnAuthenticated(msg)
             }
         }   
     }        
@@ -686,13 +697,12 @@ fn get_canister_calls(user_config_index: u16, canister_id: Option<Principal>, fu
     STATE.with(|config_state| {
         let caller = api::caller();        
         let config_state = config_state.borrow();
-        match config_state.is_authenticated(user_config_index, &caller){
-            true => {
-                CallResult::Authenticated(config_state.user_configs[user_config_index as usize]
-                                                      .get_canister_calls(canister_id, function_name, limit))
+        match config_state.get_user_config(user_config_index, &caller){
+            Ok(user_config) => {
+                CallResult::Authenticated(user_config.get_canister_calls(canister_id, function_name, limit))
             }
-            false => {
-                CallResult::UnAuthenticated(String::from("get_canister_calls requires authentication"))
+            Err(msg) => {
+                CallResult::UnAuthenticated(msg)
             }
         }   
     }        
@@ -707,26 +717,38 @@ fn get_test_cases(user_config_index: u16, filter_by: Option<TestCaseFilter>, lim
     STATE.with(|config_state| {
         let caller = api::caller();        
         let config_state = config_state.borrow();
-        match config_state.is_authenticated(user_config_index, &caller){
-            true => {
-                CallResult::Authenticated(config_state.user_configs[user_config_index as usize]
-                    .get_test_cases(filter_by, limit))
+        match config_state.get_user_config(user_config_index, &caller){
+            Ok(user_config) => {
+                CallResult::Authenticated(user_config.get_test_cases(filter_by, limit))
             }
-            false => {
-                CallResult::UnAuthenticated(String::from("get_test_cases requires authentication"))
+            Err(msg) => {
+                CallResult::UnAuthenticated(msg)
             }
         }   
     }        
     )       
 }
 
-#[ic_cdk_macros::query(name = "get_canister_stats")]
-#[candid_method(query, rename = "get_canister_stats")]
-fn get_canister_stats() -> CanisterStats
+#[ic_cdk_macros::query(name = "check_user_config_size")]
+#[candid_method(query, rename = "check_user_config_size")]
+fn get_user_config_stats(user_config_index: u16) -> Option<UserStats>{
+    STATE.with(|config_state| {
+        let config_state = config_state.borrow();
+        match config_state.user_configs.get(user_config_index as usize){
+            None => {None}
+            Some(user_config) => {Some(user_config.get_user_stats(true))}
+        }
+    }        
+    )
+}
+
+#[ic_cdk_macros::query(name = "get_canister_state_stats")]
+#[candid_method(query, rename = "get_canister_state_stats")]
+fn get_canister_state_stats() -> CanisterStateStats
 {
     STATE.with(|config_state| {
         let config_state = config_state.borrow();
-        config_state.get_canister_stats()  
+        config_state.get_canister_state_stats()  
     }        
     )       
 }
