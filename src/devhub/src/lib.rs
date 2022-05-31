@@ -103,7 +103,7 @@ impl CanisterState {
         let mut canister_calls_count = 0;
         let mut test_cases_count = 0;
         for user_config in &self.user_configs {
-            let user_stats = user_config.get_user_stats(false);
+            let user_stats = user_config.get_user_config_stats(false);
             user_config_stats.push(user_stats.clone());
             users_count += user_stats.users_count;
             is_public_count += user_stats.is_public_count;
@@ -328,7 +328,7 @@ impl UserConfig {
             canister_configs: self.get_canisters_configs(true),
             canister_calls: self.get_canister_calls(None, None, Some(100)),
             test_cases: self.get_test_cases(None, Some(10)),
-            stats: self.get_user_stats(true),
+            stats: self.get_user_config_stats(true),
         }
     }
 
@@ -411,7 +411,7 @@ impl UserConfig {
         related_test_cases
     }
 
-    fn get_user_stats(&self, include_mem_size: bool) -> UserStats{
+    fn get_user_config_stats(&self, include_mem_size: bool) -> UserStats{
         UserStats {
             users_count: self.meta_data.users.len() as u16,
             is_public_count: 1,
@@ -720,14 +720,14 @@ fn get_test_cases(user_config_index: u16, filter_by: Option<TestCaseFilter>, lim
     )       
 }
 
-#[ic_cdk_macros::query(name = "check_user_config_size")]
-#[candid_method(query, rename = "check_user_config_size")]
+#[ic_cdk_macros::query(name = "get_user_config_stats")]
+#[candid_method(query, rename = "get_user_config_stats")]
 fn get_user_config_stats(user_config_index: u16) -> Option<UserStats>{
     STATE.with(|config_state| {
         let config_state = config_state.borrow();
         match config_state.user_configs.get(user_config_index as usize){
             None => {None}
-            Some(user_config) => {Some(user_config.get_user_stats(true))}
+            Some(user_config) => {Some(user_config.get_user_config_stats(true))}
         }
     }        
     )
