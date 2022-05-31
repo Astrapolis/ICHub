@@ -223,15 +223,6 @@ pub struct UserConfigView {
     stats: UserStats,
 }
 
-#[derive(CandidType)]
-pub struct UserConfigViewPublic {
-    meta_data:  UserConfigMeta,
-    ui_config: String,
-    canister_configs: Vec<CanisterConfig>,
-    test_cases: Vec<TestCaseView>,
-    stats: UserStats,
-}
-
 impl Default for UserConfig {
     fn default() -> Self{
         Self {
