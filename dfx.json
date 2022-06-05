@@ -35,10 +35,10 @@
         "hub"
       ],
       "frontend": {
-        "entrypoint": "src/hub_assets/public/index.html"
+        "entrypoint": "src/hub_assets/index.html"
       },
       "source": [
-        "src/hub_assets/public"
+        "dist/hub_assets"
       ],
       "type": "assets"
     }

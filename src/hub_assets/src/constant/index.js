@@ -72,3 +72,5 @@ export const RENDER_SERVICE = "visitService";
 
 export const VALUE_PARSER_PRIMITIVE = "PrimitiveValueParser";
 export const VALUE_PARSER_RECORD = "RecordValueParser";
+
+export const HUB_USER_CONTEXT_KEY = "ichub_user_profile_key";

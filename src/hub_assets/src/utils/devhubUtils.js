@@ -21,10 +21,10 @@ export function isCanisterInFollowList(userConfig, canisterIdString) {
 }
 
 export function extractCanisterCfgList(userConfig) {
-    if (!userConfig || (!userConfig.Authenticated && !userConfig.UnAuthenticated)) {
+    if (!userConfig || !userConfig.Authenticated ) {
         return [];
     }
-    let list = userConfig.Authenticated ? userConfig.Authenticated.canister_configs : userConfig.UnAuthenticated.canister_configs;
+    let list = userConfig.Authenticated.canister_configs ;
     list.forEach(entry => entry.config = JSON.parse(entry.config));
 
     return list;
@@ -53,4 +53,8 @@ export function convertBignumberToDate(bn) {
     let big = new BigNumber(bn).dividedBy(1000000).toFixed(0);
     let d = new Date(parseInt(big));
     return d;
+}
+
+export function getUserActiveConfigIndex(user) {
+    return user.devhubs[0].config_index;
 }

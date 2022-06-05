@@ -1,16 +1,6 @@
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { IDL } from "@dfinity/candid";
 
-export function is_local(agent) {
-    // @ts-ignore
-    const hostname = agent._host.hostname;
-    return hostname === '127.0.0.1' || hostname.endsWith('localhost');
-}
-
-// const agent = new HttpAgent();
-// if (is_local(agent)) {
-//     agent.fetchRootKey();
-// }
 
 export function isLocalEnv() {
     return process.env.NODE_ENV !== "production";
@@ -61,48 +51,7 @@ async function getRemoteDidJs(canisterId, agent) {
     return didToJs(candid_source, canisterId, agent);
 }
 
-// function getProfilerActor(canisterId) {
-//     const profiler_interface = ({ IDL }) => IDL.Service({
-//         __get_profiling: IDL.Func([], [IDL.Vec(IDL.Tuple(IDL.Int32, IDL.Int64))], ['query']),
-//         __get_names: IDL.Func([], [IDL.Vec(IDL.Nat8)], ['query']),
-//         __get_cycles: IDL.Func([], [IDL.Int64], ['query']),
-//     });
-//     return Actor.createActor(profiler_interface, { agent, canisterId });
-// }
 
-// const names = {};
-
-// export async function getCycles(canisterId) {
-//     try {
-//         const actor = getProfilerActor(canisterId);
-//         const cycles = await actor.__get_cycles();
-//         return cycles;
-//     } catch (err) {
-//         return undefined;
-//     }
-// }
-
-// export async function getNames(canisterId) {
-//     try {
-//         const actor = getProfilerActor(canisterId);
-//         const blob = await actor.__get_names();
-//         const decoded = IDL.decode([IDL.Vec(IDL.Tuple(IDL.Nat16, IDL.Text))], Uint8Array.from(blob))[0];
-//         decoded.forEach(([id, name]) => names[id] = name);
-//     } catch (err) {
-//         return undefined;
-//     }
-// }
-
-// export async function getProfiling(canisterId) {
-//     try {
-//         const actor = getProfilerActor(canisterId);
-//         const info = await actor.__get_profiling();
-//         return info;
-//     } catch (err) {
-//         console.log(err);
-//         return undefined;
-//     }
-// }
 
 export async function getActorFromCanisterId(canisterId, agent) {
     if (!canisterId) {

@@ -1,0 +1,28 @@
+@import './app.less';
+
+#ichub_app {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.root-layout {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    background-color: #F8F8F8;
+    display: flex;
+    flex-direction: column;
+}
+.top-nav-container {
+    width: 100%;
+    .sz(60);
+    height: @sz;
+    background-color: white;
+}
+.root-content {
+    position: relative;
+    width: 100%;
+    flex: 1;
+    overflow: hidden;
+}

@@ -1,0 +1,70 @@
+@import '../../app.less';
+
+.prefollow-container {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.toolbar-container {
+    & {
+        .sz(40);
+        height: @sz;
+    }
+
+    & {
+        .sz(24);
+        margin-top: @sz;
+    }
+
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.back-button {
+    .sz(20);
+    margin-left: @sz;
+}
+
+.back-button-icon {
+    color: @primary-color;
+}
+
+.canisterId-container {
+    & {
+        .sz(20);
+        margin-left: @sz;
+    }
+    & {
+        .rem(24);
+        font-size: @rem;
+    }
+    & {
+        .rem(32);
+        line-height: @rem;
+    }
+    color: #252525;
+}
+
+.follow-button {
+    & {
+        .sz(40);
+        margin-left: @sz;
+    }
+}
+
+.preview-container {
+    flex: 1;
+    width: 100%;
+}
+
+.preview-container iframe {
+    width: 100%;
+    height: 100%;
+    overflow: scroll;
+}
+
