@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
 
-import { Layout, Menu } from 'antd';
+import { Layout, Menu, message, Spin } from 'antd';
 import { DashboardOutlined, TableOutlined, AppstoreOutlined, AppstoreAddOutlined, HistoryOutlined } from '@ant-design/icons';
 import AdminDashboard from '../components/AdminDashboard';
 import AdminCase from '../components/AdminCase';
@@ -9,6 +9,7 @@ import AdminNewCase from '../components/AdminNewCase';
 import AdminCanisters from '../components/AdminCanisters';
 import AdminCaseHistory from '../components/AdminCaseHistory';
 import { useAuth } from '../auth';
+import { getUserActiveConfigIndex } from '../utils/devhubUtils';
 import "./styles/AdminLayout.less";
 
 const { Header, Footer, Sider, Content } = Layout;
@@ -16,25 +17,68 @@ const { Header, Footer, Sider, Content } = Layout;
 const DASHBOARD_KEY = "admin-dashboard";
 const NEWCASE_KEY = "admin-newcases";
 const CASE_KEY = "admin-case-";
+const CASES_KEY = "admin-cases";
 const CANISTER_KEY = "admin-canisters";
 const HISTORY_KEY = "admin-history";
 const AdminLayout = (props) => {
     const [activeRoute, setActiveRoute] = useState(NEWCASE_KEY);
-    // const [loading, setLoading] = useState(false);
+    const [menuList, setMenuList] = useState([]);
+    const [loading, setLoading] = useState(false);
+    const [caseList, setCaseList] = useState([]);
     const loc = useLocation();
     const nav = useNavigate();
     const { user } = useAuth();
+    let { caseid } = useParams();
 
-    const menuItems = [{ label: 'Dashboard', key: DASHBOARD_KEY, icon: <DashboardOutlined /> }, {
-        label: 'Cases', key: 'admin-cases', icon: <TableOutlined />, children: [{
-            label: 'New Case', key: NEWCASE_KEY, icon: <AppstoreAddOutlined />
-        }]
-    }, {
+    const dashboardMenu = {
+        label: 'Dashboard',
+        key: DASHBOARD_KEY,
+        icon: <DashboardOutlined />
+    };
+    const caseMenu = {
+        label: 'Cases', key: CASES_KEY, icon: <TableOutlined />
+    };
+    const canisterMenu = {
         label: 'Canisters', key: CANISTER_KEY, icon: <AppstoreOutlined />
-    }, {
+    };
+    const historyMenu = {
         label: 'History', key: HISTORY_KEY, icon: <HistoryOutlined />
-    }
-    ];
+    };
+
+    const fetchCaseList = async () => {
+        setLoading(true);
+        try {
+            let list = await user.devhubActor.get_test_cases(getUserActiveConfigIndex(user), [], []);
+            console.log('case list result', list);
+            if (list.Authenticated) {
+                let clist = list.Authenticated;
+                let subMenus = [];
+                clist.forEach(c => {
+                    c.config = JSON.parse(c.config);
+                    let subm = {
+                        label: c.config.name,
+                        key: CASE_KEY + c.test_case_id
+                    }
+                    subMenus.push(subm);
+                });
+                setCaseList([...clist]);
+
+
+                caseMenu.children = [...subMenus, {
+                    label: 'New Case', key: NEWCASE_KEY, icon: <AppstoreAddOutlined />
+                }];
+                setMenuList([dashboardMenu, caseMenu, canisterMenu, historyMenu]);
+            } else {
+                message.error(list.UnAuthenticated);
+            }
+
+        } catch (err) {
+            console.log('cases list failed', err);
+            message.error('fetch case list failed: ' + err);
+        }
+        setLoading(false);
+    };
+
 
     const onMenuSelectChange = (menu) => {
         console.log('selected menu', menu);
@@ -51,16 +95,37 @@ const AdminLayout = (props) => {
             nav('/devhub/admin/history');
         }
         if (menu.key.startsWith(CASE_KEY)) {
-            let caseid = menu.key.substring(CASE_KEY.length);
-            nav('/devhub/admin/cases/' + caseid);
+            let cid = menu.key.substring(CASE_KEY.length);
+            console.log('cid', cid);
+            nav('/devhub/admin/cases/' + cid, {
+                state: {
+                    caseid: cid
+                }
+            });
         }
 
     }
 
+    const onNewCase = (newCaseId, tag, caseName, timeAt) => {
+        console.log('onNewCase', newCaseId, tag, caseName, timeAt);
+        let newCase = {
+            test_case_id: newCaseId,
+            tag,
+            config: {
+                name: caseName
+            },
+            time_at: timeAt,
+            event: null
+        }
+        setCaseList([newCase, ...caseList]);
+        menuList[1].children = [{ label: caseName, key: CASE_KEY + newCaseId }, ...menuList[1].children];
+        setMenuList([...menuList]);
+    }
+
     useEffect(() => {
-        // if (!user) {
-        //     nav('/connect', { state: { from: loc } });
-        // }
+        if (user) {
+            fetchCaseList();
+        }
     }, []);
 
     useEffect(() => {
@@ -72,8 +137,8 @@ const AdminLayout = (props) => {
                 setActiveRoute(DASHBOARD_KEY);
             }
             if (loc.pathname.startsWith('/devhub/admin/cases')) {
-                let { caseid } = useParams();
-                setActiveRoute(CASE_KEY + caseid);
+                console.log('set active route to', (CASE_KEY + loc.state.caseid))
+                setActiveRoute(CASE_KEY + loc.state.caseid);
 
             }
             if (loc.pathname.startsWith('/devhub/admin/newcase')) {
@@ -90,23 +155,27 @@ const AdminLayout = (props) => {
             }
         }
     }, [loc])
-    return (<Layout>
+    return (<Layout className='admin-root-container'>
         {!user && <Navigate to="/connect" state={{ from: loc }} />}
         {user && <>
-            <Sider className='sider-container'>
-                <Menu items={menuItems} mode="inline" selectedKeys={[activeRoute]} onSelect={onMenuSelectChange} />
-            </Sider>
-            <Layout>
-                <Routes>
-                    <Route path='/' element={<Navigate replace to="dashboard" />} />
+            {loading && <Spin />}
+            {!loading && <>
+                <Sider className='sider-container'>
+                    <Menu items={menuList} mode="inline" defaultOpenKeys={[CASES_KEY]}
+                        selectedKeys={[activeRoute]} onSelect={onMenuSelectChange} />
+                </Sider>
+                <Layout>
+                    <Routes>
+                        <Route path='/' element={<Navigate replace to="dashboard" />} />
 
-                    <Route path='dashboard' element={<AdminDashboard />} />
-                    <Route path='cases/:caseid' element={<AdminCase />} />
-                    <Route path='newcase' element={<AdminNewCase />} />
-                    <Route path='canisters' element={<AdminCanisters />} />
-                    <Route path='history' element={<AdminCaseHistory />} />
-                </Routes>
-            </Layout>
+                        <Route path='dashboard' element={<AdminDashboard />} />
+                        <Route path='cases/:caseid' element={<AdminCase />} />
+                        <Route path='newcase' element={<AdminNewCase onNewCase={onNewCase} />} />
+                        <Route path='canisters' element={<AdminCanisters />} />
+                        <Route path='history' element={<AdminCaseHistory />} />
+                    </Routes>
+                </Layout>
+            </>}
         </>}
     </Layout>)
 }
