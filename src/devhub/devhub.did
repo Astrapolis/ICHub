@@ -22,18 +22,18 @@ type CanisterStateStats = record {
 type CanisterCallEvent = record {
     time_at: nat64;
     caller: principal;
-    params: text;
     result: blob;
 };
 
 type CanisterCall = record {
   canister_id : principal;
   function_name : text;
+  params: text;
   event: opt CanisterCallEvent;
 };
 
 type TestCaseView = record {
-    test_case_id : opt nat16;
+    case_run_id : opt nat16;
     tag: text;
     config: text;
     time_at: nat64;
@@ -42,7 +42,7 @@ type TestCaseView = record {
 
 type TestCaseFilter = variant {
     tag : text;
-    test_case_id : nat16;
+    case_run_id : nat16;
 };
 
 type CanisterConfig = record {
@@ -55,7 +55,7 @@ type CanisterConfig = record {
 
 type UserConfigMeta = record {
     users: vec principal;
-    calls_limit: u32;
+    calls_limit: nat32;
     is_public: bool;
     is_active: bool;
 };
