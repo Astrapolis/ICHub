@@ -139,7 +139,6 @@ pub enum CallResult<T, U> {
 pub struct CanisterCallEvent {
     time_at: u64,
     caller: Principal,
-    params: String,
     result: Vec<u8>,
 }
 
@@ -147,6 +146,7 @@ pub struct CanisterCallEvent {
 pub struct CanisterCall {
     canister_id: Principal,
     function_name: String,
+    params: String,
     event: Option<CanisterCallEvent>
 }
 
@@ -160,7 +160,7 @@ struct TestCase {
 
 #[derive(CandidType, Deserialize, Serialize, Debug, Clone)]
 pub struct TestCaseView {
-    test_case_id : Option<u16>,
+    case_run_id : Option<u16>,
     tag: String,
     config: String,
     time_at: u64,
@@ -171,7 +171,7 @@ pub struct TestCaseView {
 pub enum TestCaseFilter {
     #[serde(rename = "tag")]
     Tag(String),
-    #[serde(rename = "test_case_id")]
+    #[serde(rename = "case_run_id")]
     TestCaseId(u16)
 }
 
@@ -292,7 +292,7 @@ impl UserConfig {
     }
     
     fn cache_test_case(&mut self, test_case: TestCaseView) -> Result<u16, String> {
-        match test_case.test_case_id {
+        match test_case.case_run_id {
             None => {
                 self.test_cases.push(TestCase { 
                     tag: test_case.tag, config: test_case.config, 
@@ -301,9 +301,9 @@ impl UserConfig {
                 self.insert_canister_calls(test_case.canister_calls);            
                 Ok((self.test_cases.len()-1) as u16)
             }
-            Some(test_case_id) => {
-                match self.test_cases.get_mut(test_case_id as usize) {
-                    None => {Err(format!("test_case_id : {} not found", test_case_id))}
+            Some(case_run_id) => {
+                match self.test_cases.get_mut(case_run_id as usize) {
+                    None => {Err(format!("case_run_id : {} not found", case_run_id))}
                     Some(existing_test_case) => {
                         match existing_test_case.tag == test_case.tag {
                             true => {
@@ -311,7 +311,7 @@ impl UserConfig {
                                 existing_test_case.time_at = test_case.time_at;
                                 existing_test_case.canister_call_ids = self.last_call_id..self.last_call_id+test_case.canister_calls.len() as u32;
                                 self.insert_canister_calls(test_case.canister_calls);            
-                                Ok(test_case_id as u16)
+                                Ok(case_run_id as u16)
                             }
                             false => {Err(format!("inconsistent test_case tag : {} vs {}", existing_test_case.tag, test_case.tag))}
                         }
@@ -368,9 +368,9 @@ impl UserConfig {
             .rev().cloned().collect()
     }
 
-    fn build_view_by_test_case(&self, test_case_id: u16, test_case:  &TestCase) -> TestCaseView {
+    fn build_view_by_test_case(&self, case_run_id: u16, test_case:  &TestCase) -> TestCaseView {
         TestCaseView { 
-            test_case_id: Some(test_case_id as u16),
+            case_run_id: Some(case_run_id as u16),
             tag: test_case.tag.clone(), 
             config: test_case.config.clone(), 
             time_at: test_case.time_at.clone(), 
@@ -384,8 +384,8 @@ impl UserConfig {
             None => {
                 for (idx, test_case) in self.test_cases.iter().rev().enumerate() {
                     if Some(related_test_cases.len() as u16) == limit { return related_test_cases }
-                    let test_case_id = (test_cases_length - idx - 1) as u16 ; 
-                    related_test_cases.push(self.build_view_by_test_case(test_case_id, test_case))
+                    let case_run_id = (test_cases_length - idx - 1) as u16 ; 
+                    related_test_cases.push(self.build_view_by_test_case(case_run_id, test_case))
                 }
             }
             Some(filter) => {
@@ -394,15 +394,15 @@ impl UserConfig {
                         for (idx, test_case) in self.test_cases.iter().rev().enumerate() {
                             if Some(related_test_cases.len() as u16) == limit { return related_test_cases }                            
                             if tag == test_case.tag {
-                                let test_case_id = (test_cases_length - idx - 1) as u16;
-                                related_test_cases.push(self.build_view_by_test_case(test_case_id as u16, test_case));
+                                let case_run_id = (test_cases_length - idx - 1) as u16;
+                                related_test_cases.push(self.build_view_by_test_case(case_run_id as u16, test_case));
                             }
                         }                        
                     }
-                    TestCaseFilter::TestCaseId(test_case_id) => {
-                        match self.test_cases.get(test_case_id as usize) {
+                    TestCaseFilter::TestCaseId(case_run_id) => {
+                        match self.test_cases.get(case_run_id as usize) {
                             None => {return Vec::new()}
-                            Some(test_case) => {return vec![self.build_view_by_test_case(test_case_id as u16, test_case)]}
+                            Some(test_case) => {return vec![self.build_view_by_test_case(case_run_id as u16, test_case)]}
                         }
                     }
                 }
@@ -629,8 +629,8 @@ async fn cache_test_case(user_config_index: u16, test_case : TestCaseView)-> Cal
         let mut config_state = config_state.borrow_mut();
         match config_state.get_user_config_mut(user_config_index, &caller){
             Ok(user_config) => {
-                let test_case_id = user_config.cache_test_case(test_case);
-                CallResult::Authenticated(test_case_id)
+                let case_run_id = user_config.cache_test_case(test_case);
+                CallResult::Authenticated(case_run_id)
             }
             Err(msg) => {
                 CallResult::UnAuthenticated(String::from(msg))
