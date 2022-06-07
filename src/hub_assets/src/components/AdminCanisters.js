@@ -3,7 +3,7 @@ import { Principal } from "@dfinity/principal";
 import { message, Button, Table, Layout } from 'antd';
 import { DownloadOutlined } from '@ant-design/icons';
 import { useAuth } from '../auth';
-import { getUserActiveConfigIndex, extractCanisterCfgList } from '../utils/devhubUtils';
+import { getCanisterList } from '../utils/devhubUtils';
 
 const { Header, Content } = Layout;
 
@@ -12,56 +12,27 @@ const AdminCanisters = (props) => {
     const [listData, setListData] = useState([]);
     const { user } = useAuth();
 
-    const postData = (rawCanisterList) => {
-        let data = [];
-        rawCanisterList.forEach((entry, index) => {
-            let row = {
-                no: index + 1,
-                name: entry.config.name || "<unnamed>",
-                canisterId: entry.canister_id.toText(),
-                historyCalls: 0,
-                lastCallAt: 0
-            }
-            data.push(row);
-        });
-        console.log('canister list ===>', data);
-        setListData(data);
-    }
 
-    const getCanisterList = async () => {
+    const fetchCanisterList = async () => {
         setListLoading(true);
-        try {
-            let userConfig = await user.devhubActor.get_user_config(getUserActiveConfigIndex(user));
-            if (userConfig.UnAuthenticated) {
-                console.log('list failed', userConfig.UnAuthenticated);
-                message.error(userConfig.UnAuthenticated)
-            } else {
-                let canisterList = extractCanisterCfgList(userConfig);
-                postData(canisterList);
-            }
 
-            // TODO: extract call history summary data
-
-        } catch (err) {
-            console.log('get canister list failed', err)
-            message.error('get canister list failed ' + err);
-        }
+        let data = await getCanisterList(user);
+        setListData(data);
 
         setListLoading(false);
     }
 
     useEffect(() => {
-        getCanisterList();
+        fetchCanisterList();
     }, []);
 
     let columns = [{
         title: 'No',
-        dataIndex: 'no',
-        key: 'no'
+        render: (_,record,index) => <span>{index}</span>
     }, {
         title: 'Name',
         dataIndex: 'name',
-        key: 'name'
+        render: (_, record) => <span>{record.name ? record.name : "<unnamed>"}</span>
     }, {
         title: 'Canister',
         dataIndex: 'canisterId',

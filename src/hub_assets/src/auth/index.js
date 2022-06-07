@@ -178,7 +178,8 @@ class iiAuthObject {
                         identity: this.provider.client.getIdentity(),
                         hubActor,
                         devhubs: [...devhubsOfCurrentIdentity],
-                        devhubActor
+                        devhubActor,
+                        agent: devhubAgent
                     });
                 } else {
                     // new user and register for the user
@@ -193,7 +194,8 @@ class iiAuthObject {
                                 identity: this.provider.client.getIdentity(),
                                 hubActor,
                                 devhubs: [...devhubsOfCurrentIdentity],
-                                devhubActor
+                                devhubActor,
+                                agent: devhubAgent
                             });
                         } else {
                             signinResult(cb, false, "failed to register new user")

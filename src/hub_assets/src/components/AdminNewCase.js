@@ -16,7 +16,7 @@ const AdminNewCase = (props) => {
         const caseTag = uuidv4();
         let timeAt = convertTimestampToBigInt(new Date().getTime());
         let newCase = {
-            test_case_id: [],
+            case_run_id: [],
             tag: caseTag,
             config: JSON.stringify({
                 name: values.caseName
@@ -35,7 +35,7 @@ const AdminNewCase = (props) => {
                     if (props.onNewCase) {
                         props.onNewCase(caseId, caseTag, values.caseName, timeAt);
                     }
-                    nav('/devhub/admin/cases/' + caseId, { state: { caseid: caseId } });
+                    nav('/devhub/admin/cases/' + caseTag, { state: { caseid: caseTag } });
 
                 } else {
                     message.error(result.Authenticated.Err);

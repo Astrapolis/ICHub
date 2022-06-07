@@ -1,0 +1,96 @@
+@import '../../app.less';
+
+.addmethod-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.addmethod-topbar-container {
+    width: 100%;
+
+    & {
+        .sz(60);
+        height: @sz;
+    }
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    border-bottom: 1px solid #EEEEEE;
+}
+
+.addmethod-tabs-container {
+    width: 100%;
+    flex: 1;
+    overflow: auto;
+    background-color: #F6F7FB;
+}
+
+.addmethod-footer-container {
+    width: 100%;
+
+    & {
+        .sz(60);
+        height: @sz;
+    }
+
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.method-zone-container {
+    & {
+        .sz(5);
+        margin-left: @sz;
+    }
+    flex: 1;
+    height: 100%;
+    overflow: hidden;
+}
+
+.method-type-container {
+    & {
+        .rem(14);
+        font-size: @rem;
+    }
+
+    & {
+        .rem(18);
+        line-height: @rem;
+    }
+
+    font-style: italic;
+    color: @primary-color;
+}
+
+.method-list-container {
+    & {
+        .sz(10);
+        margin-top: @sz;
+    }
+
+    width: 100%;
+    overflow-x:auto;
+    overflow-y: hidden;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.add-method-button {
+    & {
+        .sz(16);
+        margin-left: @sz;
+    }
+}
+
+.method-footer-button {
+    & {
+        .sz(10);
+        margin-left: @sz;
+    }
+}

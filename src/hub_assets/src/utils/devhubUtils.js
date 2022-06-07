@@ -1,3 +1,4 @@
+import { message } from "antd";
 import { Principal } from "@dfinity/principal";
 import { BigNumber } from "bignumber.js";
 
@@ -21,10 +22,10 @@ export function isCanisterInFollowList(userConfig, canisterIdString) {
 }
 
 export function extractCanisterCfgList(userConfig) {
-    if (!userConfig || !userConfig.Authenticated ) {
+    if (!userConfig || !userConfig.Authenticated) {
         return [];
     }
-    let list = userConfig.Authenticated.canister_configs ;
+    let list = userConfig.Authenticated.canister_configs;
     list.forEach(entry => entry.config = JSON.parse(entry.config));
 
     return list;
@@ -57,4 +58,38 @@ export function convertBignumberToDate(bn) {
 
 export function getUserActiveConfigIndex(user) {
     return user.devhubs[0].config_index;
+}
+
+
+export const getCanisterList = async (user) => {
+
+    try {
+        let userConfig = await user.devhubActor.get_user_config(getUserActiveConfigIndex(user));
+        if (userConfig.UnAuthenticated) {
+            console.log('list failed', userConfig.UnAuthenticated);
+            message.error(userConfig.UnAuthenticated)
+            return [];
+        } else {
+            let canisterList = extractCanisterCfgList(userConfig);
+            let data = [];
+            canisterList.forEach((entry, index) => {
+                let row = {
+                    name: entry.config.name,
+                    canisterId: entry.canister_id.toText(),
+                    historyCalls: 0,
+                    lastCallAt: 0
+                }
+                data.push(row);
+            });
+            console.log('canister list ===>', data);
+            return data;
+        }
+
+        // TODO: extract call history summary data
+
+    } catch (err) {
+        console.log('get canister list failed', err)
+        message.error('get canister list failed ' + err);
+    }
+    return [];
 }

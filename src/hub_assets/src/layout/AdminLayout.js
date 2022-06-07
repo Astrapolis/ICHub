@@ -48,7 +48,7 @@ const AdminLayout = (props) => {
     const fetchCaseList = async () => {
         setLoading(true);
         try {
-            let list = await user.devhubActor.get_test_cases(getUserActiveConfigIndex(user), [], []);
+            let list = await user.devhubActor.get_test_cases(getUserActiveConfigIndex(user), [], [1]);
             console.log('case list result', list);
             if (list.Authenticated) {
                 let clist = list.Authenticated;
@@ -57,7 +57,7 @@ const AdminLayout = (props) => {
                     c.config = JSON.parse(c.config);
                     let subm = {
                         label: c.config.name,
-                        key: CASE_KEY + c.test_case_id
+                        key: CASE_KEY + c.tag
                     }
                     subMenus.push(subm);
                 });
@@ -118,8 +118,12 @@ const AdminLayout = (props) => {
             event: null
         }
         setCaseList([newCase, ...caseList]);
-        menuList[1].children = [{ label: caseName, key: CASE_KEY + newCaseId }, ...menuList[1].children];
+        menuList[1].children = [{ label: caseName, key: CASE_KEY + tag }, ...menuList[1].children];
         setMenuList([...menuList]);
+    }
+
+    const onCaseNameChanged = (caseId, caseName) => {
+
     }
 
     useEffect(() => {
@@ -169,7 +173,7 @@ const AdminLayout = (props) => {
                         <Route path='/' element={<Navigate replace to="dashboard" />} />
 
                         <Route path='dashboard' element={<AdminDashboard />} />
-                        <Route path='cases/:caseid' element={<AdminCase />} />
+                        <Route path='cases/:caseid' element={<AdminCase onCaseNameChanged={onCaseNameChanged} />} />
                         <Route path='newcase' element={<AdminNewCase onNewCase={onNewCase} />} />
                         <Route path='canisters' element={<AdminCanisters />} />
                         <Route path='history' element={<AdminCaseHistory />} />

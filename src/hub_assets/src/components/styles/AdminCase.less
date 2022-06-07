@@ -1,0 +1,63 @@
+@import '../../app.less';
+
+.case-toolbar {
+    justify-content: space-between;
+}
+
+.case-toolbar-operation-container {
+    & {
+        .sz(20);
+        margin-right: @sz;
+    }
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+
+.case-view-container {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.case-editor-container {
+    & {
+        .sz(10);
+        padding-right: @sz;
+    }
+    height: 100%;
+    overflow-y: auto;
+    & {
+        .sz(490);
+        width: @sz;
+    }
+    position: relative;
+}
+
+.case-history-container {
+    & {
+        .sz(10);
+        padding-left: @sz;
+    }
+    height: 100%;
+    overflow-y: auto;
+    & {
+        .sz(490);
+        width: @sz;
+    }
+    position: relative;
+}
+
+.addcall-drawer-content-container {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+
+}
