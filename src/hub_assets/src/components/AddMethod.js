@@ -1,9 +1,12 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Principal } from "@dfinity/principal";
+import { v4 as uuidv4 } from 'uuid';
 import { Actor } from "@dfinity/agent";
-import { message, Spin, Button } from 'antd';
+import { message, Spin, Button, Tabs } from 'antd';
 import { PlusOutlined } from "@ant-design/icons";
 import { useAuth } from '../auth';
+
+const { TabPane } = Tabs;
 
 import {
     getActorFromCanisterId,
@@ -20,7 +23,8 @@ const AddMethod = (props) => {
     const [queryMethods, setQueryMethods] = useState([]);
     const [updateMethods, setUpdateMethods] = useState([]);
     const [canisterActor, setCanisterActor] = useState(null);
-    const [allMethods, setAllMethods] = useState([]);
+    const [newMethods, setNewMethods] = useState([]);
+    const [activeMethod, setActiveMethod] = useState(null);
 
     const initMethods = async () => {
         setLoading(true);
@@ -48,12 +52,41 @@ const AddMethod = (props) => {
         setLoading(false);
     }
 
+    const onAddMethod = (method) => {
+        let methodCfg = {
+            canister_id: props.canister.canisterId,
+            function_name: method[0],
+            uuid: uuidv4(),
+            method
+        };
+    
+        setNewMethods([...newMethods, methodCfg]);
+        setActiveMethod(methodCfg);
+    }
+
     const renderQueryMethods = () => {
-        return queryMethods.map(method => <Button className='add-method-button' key={method[0]} icon={<PlusOutlined />}>{method[0]}</Button>);
+        return queryMethods.map(method => <Button className='add-method-button' key={method[0]} icon={<PlusOutlined />} onClick={() => {
+            onAddMethod(method);
+        }}>{method[0]}</Button>);
     }
 
     const renderUpdateMethods = () => {
-        return updateMethods.map(method => <Button className='add-method-button' key={method[0]} icon={<PlusOutlined />}>{method[0]}</Button>);
+        return updateMethods.map(method => <Button className='add-method-button' key={method[0]} icon={<PlusOutlined />} onClick={() => {
+            onAddMethod(method);
+        }}>{method[0]}</Button>);
+    }
+    const onTabEdit = (targetKey, acttion) => {
+        let index = newMethods.findIndex(ele => ele.uuid === targetKey);
+        let removes = newMethods.splice(index,1);
+        if (removes[0].uuid === activeMethod.uuid) {
+            if (newMethods.length > 0) {
+                setActiveMethod(newMethods[0]);
+            }
+        }
+        setNewMethods([...newMethods]);
+    }
+    const onTabChange = (activeKey) => {
+        setActiveMethod(newMethods.find(ele => ele.uuid === activeKey));
     }
     useEffect(() => {
         initMethods();
@@ -77,7 +110,15 @@ const AddMethod = (props) => {
                     </div>
                 </div>
             </div>
-            <div className='addmethod-tabs-container'></div>
+            <div className='addmethod-tabs-container'>
+                {newMethods.length > 0 && <Tabs activeKey={activeMethod.uuid} onEdit={onTabEdit} onChange={onTabChange} hideAdd>
+                    {
+                        newMethods.map(med => <TabPane tab={med.function_name} key={med.uuid} closable={true}>
+                            {med.method[1].display()}
+                        </TabPane>)
+                    }
+                </Tabs>}
+            </div>
             <div className='addmethod-footer-container'>
                 <Button className='method-footer-button' type="primary">Confirm</Button>
                 <Button className='method-footer-button'>Cancel</Button>

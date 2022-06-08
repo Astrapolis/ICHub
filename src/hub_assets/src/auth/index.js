@@ -8,6 +8,7 @@ import { idlFactory } from '../../../declarations/hub/hub.did.js';
 import { getActorFromCanisterId, isLocalEnv } from '../utils/actorUtils';
 import localCanisterJson from "../../../../.dfx/local/canister_ids.json";
 import * as CONSTANT from "../constant";
+import { ConsoleSqlOutlined } from "@ant-design/icons";
 
 const DEFAULT_CYCLE_FOR_NEW_DEVHUB = 1000000;
 const USER_TYPE_NEW = "new";
@@ -65,10 +66,12 @@ class localIIProvider {
     #identity = null;
     #principal = null;
     #client = null;
+    #isInited = false;
     constructor() {
         this.#identity = null;
         this.#principal = null;
         this.#client = null;
+        this.#isInited = false;
     }
     get principal() {
         return this.#principal
@@ -79,41 +82,54 @@ class localIIProvider {
     }
 
     async init() {
-
+        console.log('init 1');
+        if (this.#isInited) return true;
+        console.log('init 2');
         this.#client = await AuthClient.create({
             idleOptions: {
                 idleTimeout: 1000 * 60 * 30, // set to 30 minutes
             },
         });
-        const isConnected = await this.isConnected()
+        console.log('init 3');
+        const isConnected = await this.#client.isAuthenticated();
         // // TODO: fix?
         if (isConnected) {
             this.#identity = this.#client.getIdentity()
             this.#principal = this.#identity?.getPrincipal().toString()
         }
+        this.#isInited = true;
+        console.log('init 4');
         return true
 
 
     }
     async isConnected() {
+        // if (!this.#isInited) {
+        await this.init();
+        // }
         if (!this.#client) return false;
+
         return await this.#client.isAuthenticated()
     }
     async connect() {
         let iiCanisterId = localCanisterJson.internet_identity.local;
         if (!this.#client) return false;
-        await new Promise((resolve, reject) => {
-            this.#client.login({
-                identityProvider: `http://${iiCanisterId}.localhost:8000/`,
-                onSuccess: () => resolve(true),
-                onError: reject,
-            })
-        });
+        let alreadyConnect = await this.isConnected();
+        if (!alreadyConnect) {
+            await new Promise((resolve, reject) => {
+                this.#client.login({
+                    identityProvider: `http://${iiCanisterId}.localhost:8000/`,
+                    onSuccess: () => resolve(true),
+                    onError: reject,
+                })
+            });
+
+        }
         const identity = this.#client.getIdentity();
         const principal = identity.getPrincipal().toString();
-        // this.#identity = identity;
-        // this.#principal = principal;
-        return true
+        this.#identity = identity;
+        this.#principal = principal;
+        return true;
     }
 
     async disconnect() {
@@ -146,6 +162,11 @@ class iiAuthObject {
         this.isAuthenticated = false;
         this.providerInit = false;
         this.provider = isDev ? new localIIProvider() : new InternetIdentity.connector();
+    }
+
+    async isSignedIn() {
+        console.log('iiAuthObjecct isSignedIn');
+        return await this.provider.isConnected();
     }
 
     async signin(cb) {
@@ -264,10 +285,15 @@ export function useProvideAuth() {
         });
     };
 
+    const isSignedIn = async () => {
+        return await iiAuth.isSignedIn();
+    };
+
     return {
         user,
         signin,
-        signout
+        signout,
+        isSignedIn
     };
 }
 
@@ -283,17 +309,17 @@ export const ProvideAuth = ({ children }) => {
 
 export const AuthGuardedRoute = ({ children, ...rest }) => {
     console.log('AuthGuardedRoute  ======>', children, rest);
-    let {user} = useAuth();
+    let { user } = useAuth();
     let loc = useLocation();
-    
+
     return (
         <Route
             {...rest}
-            element={ 
+            element={
                 user ? (children) : <Navigate to={{
                     pathname: "/connect",
                     state: { from: location }
                 }} />
-            }/>
+            } />
     );
 }

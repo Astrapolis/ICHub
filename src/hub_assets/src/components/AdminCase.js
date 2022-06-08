@@ -192,6 +192,10 @@ const AdminCase = (props) => {
         setDrawerStep("methods");
     }
 
+    const onMethodsAdded = (newMethods) => {
+
+    }
+
     useEffect(() => {
         fetchCaseDetail();
     }, [])
@@ -272,7 +276,7 @@ const AdminCase = (props) => {
                     >
                         <div className='addcall-drawer-content-container'>
                             {drawerStep === "canister" && <SelectCanister onSelectCanister={onSelectCanister} canisterList={canisterList} />}
-                            {drawerStep === "methods" && <AddMethod  canister={activeCanister}/>}
+                            {drawerStep === "methods" && <AddMethod  canister={activeCanister} onMethodsAdded={onMethodsAdded}/>}
                         </div>
                     </Drawer>
                 </div>
