@@ -70,8 +70,9 @@
 
 .method-type-hint {
     font-style: italic;
-    .sz(16);
+    .sz(8);
     margin-left: @sz;
+    margin-right: @sz;
 }
 
 .method-list-container {
@@ -102,50 +103,9 @@
     }
 }
 
-.method-config-tab-content-container {
-    width: 100%;
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-
-    & {
-        .sz(20);
-        padding-left: @sz;
-        padding-right: @sz;
-    }
-}
-
 .method-tab-name-container {
     display: flex;
     flex-direction: row;
     align-items: center;
 }
 
-.method-spec-container {
-
-    // & {
-    //     .rem(16);
-    //     font-size: @rem;
-    // }
-    // & {
-    //     .rem(20);
-    //     font-size: @rem;
-    // }
-    & {
-        .sz(20);
-        height: @sz;
-    }
-
-    width: 100%;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    overflow-x: auto;
-    overflow-y: hidden;
-}
-
-.method-param-config-container {
-    width: 100%;
-    flex: 1;
-    overflow: auto;
-}

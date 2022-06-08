@@ -3,9 +3,10 @@ import { Principal } from "@dfinity/principal";
 import { v4 as uuidv4 } from 'uuid';
 import { Actor } from "@dfinity/agent";
 import { message, Spin, Button, Tabs, Typography, Form } from 'antd';
-import { PlusOutlined } from "@ant-design/icons";
+import { PlusOutlined, ExclamationOutlined, CheckOutlined } from "@ant-design/icons";
 import { useAuth } from '../auth';
 import GeneralTypeRender from './params/GeneralTypeRender';
+import EditMethodParamForm from './EditMethodParamForm';
 
 const { TabPane } = Tabs;
 const { Text } = Typography;
@@ -26,7 +27,9 @@ const AddMethod = (props) => {
     const [updateMethods, setUpdateMethods] = useState([]);
     const [canisterActor, setCanisterActor] = useState(null);
     const [newMethods, setNewMethods] = useState([]);
+    const [methodsReady, setMethodsReady] = useState([]);
     const [activeMethod, setActiveMethod] = useState(null);
+    const [editFormMapping, setEditFormMapping] = useState({});
 
     const initMethods = async () => {
         setLoading(true);
@@ -54,6 +57,11 @@ const AddMethod = (props) => {
         setLoading(false);
     }
 
+    const onNewForm= (index, form) => {
+        editFormMapping[index] = form;
+        setEditFormMapping({...editFormMapping});
+    }
+
     const onAddMethod = (method) => {
         let methodCfg = {
             canister_id: props.canister.canisterId,
@@ -63,6 +71,7 @@ const AddMethod = (props) => {
         };
 
         setNewMethods([...newMethods, methodCfg]);
+        setMethodsReady([...methodsReady, false]);
         setActiveMethod(methodCfg);
     }
 
@@ -78,15 +87,7 @@ const AddMethod = (props) => {
         }}>{method[0]}</Button>);
     }
 
-    const renderMethodParams = (method) => {
-        return method[1].argTypes.map((arg, index) => <GeneralTypeRender
-            mode="new"
-            argIDL={arg}
-            paramValue={null}
-            paramConfig={null}
-            path={`/${index}`}
-        />)
-    }
+    
     const renderTabName = (med) => {
         let methodType = 'query';
         if (!med.method[1].annotations.some(value => value === 'query')) {
@@ -95,6 +96,8 @@ const AddMethod = (props) => {
         return <div className='method-tab-name-container'>
             <div>{med.function_name}</div>
             <div className='method-type-hint'>{methodType}</div>
+            {med.ready && <CheckOutlined />}
+            {!med.ready && <ExclamationOutlined />}
         </div>
     }
     const onTabEdit = (targetKey, acttion) => {
@@ -106,12 +109,42 @@ const AddMethod = (props) => {
             }
         }
         setNewMethods([...newMethods]);
+        editFormMapping[index] = undefined;
+        delete editFormMapping[index];
+        setEditFormMapping({...editFormMapping});
     }
     const onTabChange = (activeKey) => {
         setActiveMethod(newMethods.find(ele => ele.uuid === activeKey));
     }
-    const onValueConfigured = (values) => {
+
+    
+
+    const onValueConfigured = (index, values) => {
         console.log('commit values', values);
+        let med = newMethods[index];
+        med.ready = true;
+        let nMethods = null;
+        if (index === 0) {
+            nMethods = [med, ...newMethods.slice(1)];
+        } else {
+            if (index === newMethods.lenght) {
+                nMethods = [...newMethods.slice(0, index), med];
+            } else {
+                nMethods = [...newMethods.slice(0, index), med, ...newMethods.slice(index + 1)];
+            }
+        }
+        setNewMethods(nMethods);
+
+    }
+
+    const onConfirm = () => {
+        console.log('confirm mapping', editFormMapping);
+        newMethods.forEach((m, index) => {
+            let form = editFormMapping[index];
+            if (form) {
+                console.log('form' + index + 'value --->',form.getFieldsValue(true));
+            }
+        })
     }
     useEffect(() => {
         initMethods();
@@ -140,34 +173,36 @@ const AddMethod = (props) => {
 
                 {newMethods.length > 0 && <Tabs type="editable-card" activeKey={activeMethod.uuid} onEdit={onTabEdit} onChange={onTabChange} hideAdd>
                     {
-                        newMethods.map(med => <TabPane tab={renderTabName(med)} key={med.uuid} closable={true}>
-                            <div className='method-config-tab-content-container'>
+                        newMethods.map((med, index) => <TabPane tab={renderTabName(med)} key={med.uuid} closable={true}>
+                            <EditMethodParamForm method={med} paramIndex={index} onNewForm={onNewForm}/>
+                            {/* <div className='method-config-tab-content-container'>
                                 <div className='method-spec-container'>
                                     <Text>Call spec:</Text>
                                     <Text type="secondary">{`${med.method[1].display()}`}</Text>
                                 </div>
                                 {med.method[1].argTypes.length > 0 &&
-                                <Form onFinish={onValueConfigured}>
-                                    <div className='method-param-config-container'>
-                                        {renderMethodParams(med.method)}
-                                    </div>
-                                    <Form.Item>
-                                        <Button className='method-footer-button' type="primary" htmlType="submit">Confirm</Button>
-                                        <Button className='method-footer-button'>Cancel</Button>
-                                    </Form.Item>
-                                </Form>}
+                                    <Form onFinish={(values) => {
+                                        onValueConfigured(index, values)
+                                    }}>
+                                        <div className='method-param-config-container'>
+                                            {renderMethodParams(med.method)}
+                                        </div>
+                                        <Form.Item>
+                                            <Button className='method-footer-button' type="primary" htmlType="submit" disabled={med.ready}>Save</Button>
+                                        </Form.Item>
+                                    </Form>}
                                 {med.method[1].argTypes.length === 0 && <Text type="success">No parameters</Text>}
-                            </div>
+                            </div> */}
                         </TabPane>)
                     }
                 </Tabs>}
-                {/* <div className='addmethod-footer-container'> */}
 
-
-                {/* </div> */}
 
             </div>
-
+            <div className='addmethod-footer-container'>
+                <Button className='method-footer-button' type="primary" onClick={onConfirm}>Confirm</Button>
+                <Button className='method-footer-button'>Cancel</Button>
+            </div>
         </>}
     </div>
 }
