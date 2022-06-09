@@ -1,6 +1,7 @@
 import { message } from "antd";
 import { Principal } from "@dfinity/principal";
 import { BigNumber } from "bignumber.js";
+import { getActorFromCanisterId } from "./actorUtils";
 
 export function isCanisterInFollowList(userConfig, canisterIdString) {
     if (!userConfig || (!userConfig.Authenticated && !userConfig.UnAuthenticated)) {
@@ -61,7 +62,7 @@ export function getUserActiveConfigIndex(user) {
 }
 
 
-export const getCanisterList = async (user) => {
+export const getCanisterList = async (user, needActor) => {
 
     try {
         let userConfig = await user.devhubActor.get_user_config(getUserActiveConfigIndex(user));
@@ -72,15 +73,35 @@ export const getCanisterList = async (user) => {
         } else {
             let canisterList = extractCanisterCfgList(userConfig);
             let data = [];
-            canisterList.forEach((entry, index) => {
+            // canisterList.forEach((entry, index) => {
+            //     let row = {
+            //         name: entry.config.name,
+            //         canisterId: entry.canister_id.toText(),
+            //         historyCalls: 0,
+            //         lastCallAt: 0
+            //     }
+            //     data.push(row);
+            // });
+            for (const [index, entry] of canisterList.entries()) {
                 let row = {
                     name: entry.config.name,
                     canisterId: entry.canister_id.toText(),
                     historyCalls: 0,
                     lastCallAt: 0
                 }
+                if (needActor) {
+                    try {
+                        let actor = await getActorFromCanisterId(row.canisterId, user.agent);
+                        if (actor) {
+                            row.actor = actor;
+                        }
+                    } catch (err) {
+                        console.log('get canister actor failed', err);
+                    }
+                }
+
                 data.push(row);
-            });
+            }
             console.log('canister list ===>', data);
             return data;
         }

@@ -9,6 +9,7 @@
         .sz(20);
         margin-right: @sz;
     }
+
     height: 100%;
     display: flex;
     flex-direction: row;
@@ -22,6 +23,7 @@
     flex-direction: row;
     align-items: center;
     justify-content: space-between;
+    overflow: hidden;
 }
 
 .case-editor-container {
@@ -29,12 +31,15 @@
         .sz(10);
         padding-right: @sz;
     }
+
     height: 100%;
-    overflow-y: auto;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
     & {
         .sz(490);
         width: @sz;
     }
+
     position: relative;
 }
 
@@ -43,12 +48,15 @@
         .sz(10);
         padding-left: @sz;
     }
+
     height: 100%;
     overflow-y: auto;
+
     & {
         .sz(490);
         width: @sz;
     }
+
     position: relative;
 }
 
@@ -59,5 +67,33 @@
     align-items: center;
     justify-content: center;
     overflow: hidden;
+}
 
+.caserow-expandable-container {
+    width: 100%;
+
+    & {
+        .sz(248);
+        max-height: @sz;
+    }
+
+    position: relative;
+    display: flex;
+    flex-direction: column;
+
+}
+
+.caserow-expandable-param-container {
+    width: 100%;
+    overflow: auto;
+    background-color: #F8F8F8;
+}
+
+.caserow-expandable-footer-container {
+    width: 100%;
+
+    & {
+        .sz(48);
+        max-height: @sz;
+    }
 }

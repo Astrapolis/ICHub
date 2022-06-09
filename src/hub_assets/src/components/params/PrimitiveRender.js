@@ -32,7 +32,7 @@ const PrimitiveRender = (props) => {
             }
         }]}
     >
-        {mode === 'new' && <Input className='primitive-input' />}
+        <Input className='primitive-input' readOnly={mode === 'read'} />
     </Form.Item>
 
 

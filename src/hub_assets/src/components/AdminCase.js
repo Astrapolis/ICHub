@@ -1,15 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Principal } from "@dfinity/principal";
-import { Button, Form, Input, message, Spin, Table, Tooltip, Drawer } from 'antd';
-import { EditOutlined, CheckOutlined, CloseOutlined } from "@ant-design/icons";
+import { Button, Form, Input, message, Spin, Table, Tooltip, Drawer, Typography, Popconfirm } from 'antd';
+import { EditOutlined, CheckOutlined, CloseOutlined, DeleteOutlined } from "@ant-design/icons";
 import { v4 as uuidv4 } from 'uuid';
-import { getUserActiveConfigIndex, getCanisterList } from '../utils/devhubUtils';
+import { getUserActiveConfigIndex, getCanisterList, convertTimestampToBigInt } from '../utils/devhubUtils';
+import { getFieldFromActor } from '../utils/actorUtils';
 import { useAuth } from '../auth';
 import SelectCanister from './SelectCanister';
 import AddMethod from './AddMethod';
+import GeneralTypeRender from './params/GeneralTypeRender';
 import "./styles/AdminCase.less";
 
+const { Text } = Typography;
 
 const AdminCase = (props) => {
     let { caseid } = useParams();
@@ -23,27 +26,30 @@ const AdminCase = (props) => {
     const [showAddCallDrawer, setShowAddCallDrawer] = useState(false);
     const [drawerStep, setDrawerStep] = useState("canister");
     const [activeCanister, setActiveCanister] = useState(null);
+
     const [titleEditForm] = Form.useForm();
 
     const { user } = useAuth();
 
     const caseCallColumns = [{
         title: '',
-        render: (_, record, index) => <span>{index}</span>
+        width: 30,
+        render: (_, record, index) => <span>{index + 1}</span>
     }, {
         title: 'Canister',
-        dataIndex: 'canister_id',
+        dataIndex: 'canister_name',
         ellipsis: true,
-        width: 150,
+        width: 120,
         render: (_, record) => {
             return <Tooltip placement='top' title={record.canister_id}>
-                <span>{record.canister_id}</span>
+                <span>{record.canister_name === undefined ? "<unnamed>" : record.canister_name}</span>
             </Tooltip>
         }
     }, {
         title: 'Query/Update',
         dataIndex: 'function_name',
         width: 150,
+        ellipsis: true,
         render: (_, record) => {
             return <Tooltip placement='top' title={record.function_name}>
                 <span>{record.function_name}</span>
@@ -53,7 +59,12 @@ const AdminCase = (props) => {
         title: '',
         render: (_, record) => {
             return <><Button type="primary">Call</Button>
-                <Button icon={<DeleteOutlined />} danger />
+                <Popconfirm title="Are you sure？" okText="Yes" cancelText="No" onConfirm={() => {
+                    onDeleteMethod(record);
+                }}>
+                    <Button style={{ marginLeft: 3 }} icon={<DeleteOutlined />} danger />
+                </Popconfirm>
+
             </>
         }
     }];
@@ -87,7 +98,7 @@ const AdminCase = (props) => {
     const fetchCaseDetail = async () => {
         setLoading(true);
         try {
-            let cans = await getCanisterList(user);
+            let cans = await getCanisterList(user, true);
             setCanisterList(cans);
             let list = await user.devhubActor.get_test_cases(getUserActiveConfigIndex(user), [{ tag: caseid }], [20]);
             if (list.Authenticated) {
@@ -100,15 +111,24 @@ const AdminCase = (props) => {
                         config: JSON.parse(clist[0].config),
                         canister_calls: clist[0].canister_calls ? [...clist[0].canister_calls] : []
                     };
-                    let tdetail = {
-                        tag: cdetail.tag,
-                        config: JSON.parse(clist[0].config),
-                        canister_calls: []
-                    };
-                    cdetail.canister_calls.forEach((ele, index) => {
-                        tdetail.canister_calls[index] = Object.assign({}, ele);
-                        tdetail.canister_calls[index].uuid = uuidv4();
-                    });
+                    cdetail.canister_calls.forEach(med => {
+                        med.canister_id = med.canister_id.toText();
+                        if (med.params) {
+                            med.params = JSON.parse(med.params);
+                        }
+                        let bingo = cans.find(c => c.canisterId === med.canister_id);
+                        if (bingo) {
+                            med.canister_name = bingo.name;
+                            if (bingo.actor) {
+                                let f = getFieldFromActor(bingo.actor, med.function_name);
+                                if (f) {
+                                    med.method = f;
+                                }
+                            }
+                        }
+
+                    })
+                    let tdetail = cloneCase(cdetail);
                     setCaseDetail(cdetail);
                     setEditCase(tdetail);
                 }
@@ -120,6 +140,20 @@ const AdminCase = (props) => {
         }
 
         setLoading(false);
+    }
+
+    let cloneCase = (caseA) => {
+        let tCase = {
+            tag: caseA.tag,
+            config: JSON.parse(JSON.stringify(caseA.config)),
+            canister_calls: []
+        };
+        caseA.canister_calls.forEach((ele, index) => {
+            tCase.canister_calls[index] = Object.assign({}, ele);
+            tCase.canister_calls[index].uuid = uuidv4();
+        });
+
+        return tCase;
     }
 
     let caseIsEqual = (caseA, caseB) => {
@@ -135,10 +169,18 @@ const AdminCase = (props) => {
         let callIsSame = true;
         caseA.canister_calls.every((element, index) => {
             let elementB = caseB.canister_calls[index];
-            if (!Principal.equal(element.canister_id, elementB.canister_id)) {
+            if (!elementB) {
                 callIsSame = false;
                 return false;
             }
+            if (element.canister_id !== elementB.canister_id) {
+                callIsSame = false;
+                return false;
+            }
+            // if (!Principal.equal(element.canister_id, elementB.canister_id)) {
+            //     callIsSame = false;
+            //     return false;
+            // }
             if (element.function_name !== elementB.function_name) {
                 callIsSame = false;
                 return false;
@@ -152,20 +194,34 @@ const AdminCase = (props) => {
         return callIsSame;
     }
 
-    const onUpdateCase = () => {
-        setTitleSaving(true);
-        // try {
-        //     let testCaseView = Object.assign({}, testCase);
-        //     testCaseView.config.name = values.caseName;
-        //     testCase.config = JSON.stringify(testCase.config);
-        //     let result = await user.devhubActor.cache_test_case(getUserActiveConfigIndex(user),testCaseView);
+    const onUpdateCase = async () => {
+        setUpdating(true)
+        try {
+            let testCaseView = cloneCase(editCase);
+            testCaseView.time_at = convertTimestampToBigInt(new Date().getTime());
+            // testCaseView.canister_id = Principal.fromText(testCaseView.canister_id);
+            testCaseView.canister_calls.forEach((med, index) => {
+                delete med.uuid;
+                delete med.canister_name;
+                med.method = undefined;
+                med.canister_id = Principal.fromText(med.canister_id);
+                med.event = []; // null rep of opt type
+                med.params = JSON.stringify(med.params);
 
-        // } catch (err) {
-        //     console.log('save case name failed', err);
-        //     message.error('save case name failed:' + err);
-        // }
+            });
+            testCaseView.config = JSON.stringify(testCaseView.config);
+            testCaseView.case_run_id = [];
+            console.log('ready to save cases', testCaseView);
+            let result = await user.devhubActor.cache_test_case(getUserActiveConfigIndex(user),testCaseView);
+            let newEditCase = cloneCase(editCase);
+            setCaseDetail(editCase);
+            setEditCase(newEditCase);
 
-        setTitleSaving(false);
+        } catch (err) {
+            console.log('update case  failed', err);
+            message.error('update case  failed:' + err);
+        }
+        setUpdating(false);
 
     }
     const onResetEditTitle = () => {
@@ -177,6 +233,11 @@ const AdminCase = (props) => {
         newState.config.name = values.caseName;
         setEditCase(newState);
         setEditTitle(false);
+    }
+    const onDeleteMethod = (record) => {
+        editCase.canister_calls.splice(editCase.canister_calls.findIndex(method => method.uuid === record.uuid), 1);
+        editCase.canister_calls = [...editCase.canister_calls];
+        setEditCase({ ...editCase });
     }
     const onShowAddCallDrawer = () => {
         setShowAddCallDrawer(true);
@@ -192,24 +253,69 @@ const AdminCase = (props) => {
         setDrawerStep("methods");
     }
 
-    const onMethodsAdded = (newMethods) => {
+    const onMethodsAdded = (canister, newMethods, paramValues) => {
+        editCase.canister_calls = [...editCase.canister_calls, ...newMethods];
+        console.log('update case ====>', editCase, newMethods);
+        setEditCase({ ...editCase });
+
 
     }
+    const closeDrawer = () => {
+        setShowAddCallDrawer(false);
+    }
+
+    const renderCaseExpandablePart = (record) => <div className='caserow-expandable-container'>
+        <div className='caserow-expandable-param-container'>
+            <div>
+                <Text>Call spec:</Text>
+                <Text type="secondary">{`${record.method[1].display()}`}</Text>
+            </div>
+            {record.method && record.method[1].argTypes.map((argIDL, index) => {
+                // console.log('render params with', record.params);
+                return <Form initialValues={record.params}>
+                    <GeneralTypeRender
+                        mode={"read"}
+                        argIDL={argIDL}
+                        paramValue={record.params}
+                        paramConfig={null}
+                        path={[index + '']}
+                        key={`/${index}`}
+                    />
+                </Form>
+            })}
+            {!record.method && <Text type="danger">{`method ${record.function_name} not found`}</Text>}
+        </div>
+        <div className='caserow-expandable-footer-container'>
+            <Button icon={<EditOutlined />} size="large" onClick={() => { }} />
+        </div>
+    </div>
+
+
 
     useEffect(() => {
         fetchCaseDetail();
     }, [])
 
+    useEffect(() => {
+        if (caseDetail && editCase) {
+            if (caseIsEqual(editCase, caseDetail)) {
+                setSaveEnable(false);
+            } else {
+                setSaveEnable(true);
+            }
+        }
+    }, [editCase])
+
     return <div className='section-column-content-container'>
-        {loading && <Spin />}
-        {!loading && editCase &&
+        {(loading || updating) && <Spin size="large"/>}
+        {!loading && !updating && editCase &&
             <>
                 <div className='content-header-container case-toolbar'>
 
                     <div>
                         {!editTitle &&
                             <>
-                                <span>{editCase.config.name}</span><Button icon={<EditOutlined />} size="large" onClick={() => { setEditTitle(true); }} />
+                                <span>{editCase.config.name}</span><Button style={{ marginLeft: 5 }} icon={<EditOutlined />} size="large" onClick={() => { setEditTitle(true); }} />
                             </>}
                         {editTitle && <>
                             <Form form={titleEditForm}
@@ -234,21 +340,31 @@ const AdminCase = (props) => {
                         </>}
                     </div>
                     <div className='case-toolbar-operation-container'>
-                        <Button type="primary" disabled={!saveEnable} loading={updating} size="large">Save</Button>
-                        <Button size="large">Copy</Button>
+                        <Button type="primary" disabled={!saveEnable || editTitle} loading={updating} size="large" 
+                            onClick={() => {
+                                onUpdateCase();
+                            }}
+                        >Save</Button>
+                        <Button style={{ marginLeft: 5 }} size="large">Copy</Button>
                     </div>
                 </div>
                 <div className='case-view-container'>
                     <div className='case-editor-container'>
-                        <Table columns={caseCallColumns} rowKey="uuid"
+                        <Table columns={caseCallColumns} rowKey="uuid" dataSource={editCase.canister_calls}
+                            expandable={{
+                                expandedRowRender: renderCaseExpandablePart,
+                                rowExpandable: record => true,
+                            }}
                             summary={() => <Table.Summary fixed>
                                 <Table.Summary.Row>
-                                    <Table.Summary.Cell index={0}>
-                                        <Button type="primary" onClick={onShowAddCallDrawer}>Add Call</Button>
+                                    <Table.Summary.Cell index={0} colSpan={2}>
+                                        <Button type="primary" onClick={onShowAddCallDrawer} disabled={editTitle || updating}>Add Call</Button>
                                     </Table.Summary.Cell>
                                     {editCase.canister_calls.length > 0 &&
-                                        <Table.Summary.Cell index={1}>
-                                            <Button type="primary">{saveEnable ? "Save & Call All" : "Call All"}</Button>
+                                        <Table.Summary.Cell index={1} colSpan={2}>
+                                            <Button style={{ marginLeft: 10 }} type="primary" disabled={editTitle || updating}
+                                            
+                                            >{saveEnable ? "Save & Call All" : "Call All"}</Button>
                                         </Table.Summary.Cell>}
                                 </Table.Summary.Row>
                             </Table.Summary>}
@@ -268,15 +384,18 @@ const AdminCase = (props) => {
                     <Drawer title="Add Call" placement="bottom"
                         height={"95%"}
                         visible={showAddCallDrawer}
-                        closable={true}
+                        closable={false}
+                        maskClosable={false}
                         // contentWrapperStyle={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}
                         onClose={onAddCallDrawerClosed}
                         getContainer={false}
                         style={{ position: 'absolute' }}
                     >
                         <div className='addcall-drawer-content-container'>
-                            {drawerStep === "canister" && <SelectCanister onSelectCanister={onSelectCanister} canisterList={canisterList} />}
-                            {drawerStep === "methods" && <AddMethod  canister={activeCanister} onMethodsAdded={onMethodsAdded}/>}
+                            {drawerStep === "canister" && <SelectCanister onSelectCanister={onSelectCanister} canisterList={canisterList} closeDrawer={closeDrawer} />}
+                            {drawerStep === "methods" && <AddMethod canister={activeCanister}
+                                onMethodsAdded={onMethodsAdded}
+                                closeDrawer={closeDrawer} />}
                         </div>
                     </Drawer>
                 </div>

@@ -5,11 +5,11 @@ import GeneralTypeRender from './params/GeneralTypeRender';
 
 const { Text } = Typography;
 const EditMethodParamForm = (props) => {
-    const { method, paramIndex, onNewForm } = props;
+    const { method, paramIndex, onNewForm, mode } = props;
     const [form] = Form.useForm();
     const renderMethodParams = (method) => {
         return method[1].argTypes.map((arg, index) => <GeneralTypeRender
-            mode="new"
+            mode={mode}
             argIDL={arg}
             paramValue={null}
             paramConfig={null}
@@ -19,7 +19,9 @@ const EditMethodParamForm = (props) => {
     }
 
     useEffect(() => {
-        onNewForm(paramIndex, form);
+        if (onNewForm) {
+            onNewForm(paramIndex, form);
+        }
     }, [form])
 
 
@@ -32,7 +34,7 @@ const EditMethodParamForm = (props) => {
             <div className='method-param-config-container'>
                 {/* <Form.List name={method.function_name}> */}
 
-                    {renderMethodParams(method.method)}
+                {renderMethodParams(method.method)}
 
                 {/* </Form.List> */}
             </div>

@@ -57,14 +57,15 @@ const AddMethod = (props) => {
         setLoading(false);
     }
 
-    const onNewForm= (index, form) => {
+    const onNewForm = (index, form) => {
         editFormMapping[index] = form;
-        setEditFormMapping({...editFormMapping});
+        setEditFormMapping({ ...editFormMapping });
     }
 
     const onAddMethod = (method) => {
         let methodCfg = {
             canister_id: props.canister.canisterId,
+            canister_name: props.canister.name,
             function_name: method[0],
             uuid: uuidv4(),
             method
@@ -87,7 +88,7 @@ const AddMethod = (props) => {
         }}>{method[0]}</Button>);
     }
 
-    
+
     const renderTabName = (med) => {
         let methodType = 'query';
         if (!med.method[1].annotations.some(value => value === 'query')) {
@@ -111,13 +112,13 @@ const AddMethod = (props) => {
         setNewMethods([...newMethods]);
         editFormMapping[index] = undefined;
         delete editFormMapping[index];
-        setEditFormMapping({...editFormMapping});
+        setEditFormMapping({ ...editFormMapping });
     }
     const onTabChange = (activeKey) => {
         setActiveMethod(newMethods.find(ele => ele.uuid === activeKey));
     }
 
-    
+
 
     const onValueConfigured = (index, values) => {
         console.log('commit values', values);
@@ -139,12 +140,17 @@ const AddMethod = (props) => {
 
     const onConfirm = () => {
         console.log('confirm mapping', editFormMapping);
+        let paramValues = {};
         newMethods.forEach((m, index) => {
             let form = editFormMapping[index];
             if (form) {
-                console.log('form' + index + 'value --->',form.getFieldsValue(true));
+                // console.log('form' + index + 'value --->', form.getFieldsValue(true));
+                m.params = form.getFieldsValue(true);
             }
-        })
+        });
+        props.onMethodsAdded(props.canister, newMethods);
+        props.closeDrawer();
+        setNewMethods([]);
     }
     useEffect(() => {
         initMethods();
@@ -174,7 +180,7 @@ const AddMethod = (props) => {
                 {newMethods.length > 0 && <Tabs type="editable-card" activeKey={activeMethod.uuid} onEdit={onTabEdit} onChange={onTabChange} hideAdd>
                     {
                         newMethods.map((med, index) => <TabPane tab={renderTabName(med)} key={med.uuid} closable={true}>
-                            <EditMethodParamForm method={med} paramIndex={index} onNewForm={onNewForm}/>
+                            <EditMethodParamForm method={med} paramIndex={index} onNewForm={onNewForm} mode={"new"} />
                             {/* <div className='method-config-tab-content-container'>
                                 <div className='method-spec-container'>
                                     <Text>Call spec:</Text>
@@ -201,7 +207,9 @@ const AddMethod = (props) => {
             </div>
             <div className='addmethod-footer-container'>
                 <Button className='method-footer-button' type="primary" onClick={onConfirm}>Confirm</Button>
-                <Button className='method-footer-button'>Cancel</Button>
+                <Button className='method-footer-button' onClick={() => {
+                    props.closeDrawer();
+                }}>Cancel</Button>
             </div>
         </>}
     </div>
