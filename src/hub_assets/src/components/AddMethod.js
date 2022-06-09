@@ -2,10 +2,9 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Principal } from "@dfinity/principal";
 import { v4 as uuidv4 } from 'uuid';
 import { Actor } from "@dfinity/agent";
-import { message, Spin, Button, Tabs, Typography, Form } from 'antd';
+import { message, Spin, Button, Tabs, Typography } from 'antd';
 import { PlusOutlined, ExclamationOutlined, CheckOutlined } from "@ant-design/icons";
 import { useAuth } from '../auth';
-import GeneralTypeRender from './params/GeneralTypeRender';
 import EditMethodParamForm from './EditMethodParamForm';
 
 const { TabPane } = Tabs;
@@ -97,8 +96,8 @@ const AddMethod = (props) => {
         return <div className='method-tab-name-container'>
             <div>{med.function_name}</div>
             <div className='method-type-hint'>{methodType}</div>
-            {med.ready && <CheckOutlined />}
-            {!med.ready && <ExclamationOutlined />}
+            {/* {med.ready && <CheckOutlined />}
+            {!med.ready && <ExclamationOutlined />} */}
         </div>
     }
     const onTabEdit = (targetKey, acttion) => {
@@ -140,7 +139,7 @@ const AddMethod = (props) => {
 
     const onConfirm = () => {
         console.log('confirm mapping', editFormMapping);
-        let paramValues = {};
+        
         newMethods.forEach((m, index) => {
             let form = editFormMapping[index];
             if (form) {

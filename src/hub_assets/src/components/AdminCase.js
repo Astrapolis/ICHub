@@ -9,7 +9,9 @@ import { getFieldFromActor } from '../utils/actorUtils';
 import { useAuth } from '../auth';
 import SelectCanister from './SelectCanister';
 import AddMethod from './AddMethod';
-import GeneralTypeRender from './params/GeneralTypeRender';
+import EditMethod from './EditMethod';
+import MethodParamsDisplay from './MethodParamsDisplay';
+
 import "./styles/AdminCase.less";
 
 const { Text } = Typography;
@@ -24,8 +26,9 @@ const AdminCase = (props) => {
     const [saveEnable, setSaveEnable] = useState(false);
     const [updating, setUpdating] = useState(false);
     const [showAddCallDrawer, setShowAddCallDrawer] = useState(false);
-    const [drawerStep, setDrawerStep] = useState("canister");
+    const [drawerStep, setDrawerStep] = useState(null);
     const [activeCanister, setActiveCanister] = useState(null);
+    const [activeMethod, setActiveMethod] = useState(null);
 
     const [titleEditForm] = Form.useForm();
 
@@ -212,7 +215,7 @@ const AdminCase = (props) => {
             testCaseView.config = JSON.stringify(testCaseView.config);
             testCaseView.case_run_id = [];
             console.log('ready to save cases', testCaseView);
-            let result = await user.devhubActor.cache_test_case(getUserActiveConfigIndex(user),testCaseView);
+            let result = await user.devhubActor.cache_test_case(getUserActiveConfigIndex(user), testCaseView);
             let newEditCase = cloneCase(editCase);
             setCaseDetail(editCase);
             setEditCase(newEditCase);
@@ -241,11 +244,12 @@ const AdminCase = (props) => {
     }
     const onShowAddCallDrawer = () => {
         setShowAddCallDrawer(true);
+        setDrawerStep('canister');
     }
     const onAddCallDrawerClosed = () => {
         setShowAddCallDrawer(false);
         setActiveCanister(null);
-        setDrawerStep("canister");
+        setDrawerStep(null);
     }
 
     const onSelectCanister = (canister) => {
@@ -253,42 +257,47 @@ const AdminCase = (props) => {
         setDrawerStep("methods");
     }
 
-    const onMethodsAdded = (canister, newMethods, paramValues) => {
+    const onMethodsAdded = (canister, newMethods) => {
         editCase.canister_calls = [...editCase.canister_calls, ...newMethods];
         console.log('update case ====>', editCase, newMethods);
         setEditCase({ ...editCase });
-
+    }
+    const onMethodUpdated = (index, method) => {
+        // console.log('ready to update method', method);
+        // editCase.canister_calls = editCase.canister_calls.map(med => med === method ? { ...med } : med);
+        editCase.canister_calls = [...editCase.canister_calls];
+        // console.log('after update', editCase);
+        setEditCase({ ...editCase });
+        setActiveMethod(null);
 
     }
     const closeDrawer = () => {
+        setDrawerStep(null);
         setShowAddCallDrawer(false);
     }
 
-    const renderCaseExpandablePart = (record) => <div className='caserow-expandable-container'>
-        <div className='caserow-expandable-param-container'>
-            <div>
-                <Text>Call spec:</Text>
-                <Text type="secondary">{`${record.method[1].display()}`}</Text>
+    const renderCaseExpandablePart = (record) => {
+        console.log('render case expandable part', record);
+        return (<div className='caserow-expandable-container'>
+            <div className='caserow-expandable-param-container'>
+                <div>
+                    <Text>Call spec:</Text>
+                    <Text type="secondary">{`${record.method[1].display()}`}</Text>
+                </div>
+
+                <MethodParamsDisplay method={record} />
+                
+                {!record.method && <Text type="danger">{`method ${record.function_name} not found`}</Text>}
             </div>
-            {record.method && record.method[1].argTypes.map((argIDL, index) => {
-                // console.log('render params with', record.params);
-                return <Form initialValues={record.params}>
-                    <GeneralTypeRender
-                        mode={"read"}
-                        argIDL={argIDL}
-                        paramValue={record.params}
-                        paramConfig={null}
-                        path={[index + '']}
-                        key={`/${index}`}
-                    />
-                </Form>
-            })}
-            {!record.method && <Text type="danger">{`method ${record.function_name} not found`}</Text>}
-        </div>
-        <div className='caserow-expandable-footer-container'>
-            <Button icon={<EditOutlined />} size="large" onClick={() => { }} />
-        </div>
-    </div>
+            <div className='caserow-expandable-footer-container'>
+                <Button icon={<EditOutlined />} size="large" onClick={() => {
+                    setActiveMethod(record);
+                    setDrawerStep('edit');
+                    setShowAddCallDrawer(true);
+                }} />
+            </div>
+        </div>);
+    }
 
 
 
@@ -307,7 +316,7 @@ const AdminCase = (props) => {
     }, [editCase])
 
     return <div className='section-column-content-container'>
-        {(loading || updating) && <Spin size="large"/>}
+        {(loading || updating) && <Spin size="large" />}
         {!loading && !updating && editCase &&
             <>
                 <div className='content-header-container case-toolbar'>
@@ -340,7 +349,7 @@ const AdminCase = (props) => {
                         </>}
                     </div>
                     <div className='case-toolbar-operation-container'>
-                        <Button type="primary" disabled={!saveEnable || editTitle} loading={updating} size="large" 
+                        <Button type="primary" disabled={!saveEnable || editTitle} loading={updating} size="large"
                             onClick={() => {
                                 onUpdateCase();
                             }}
@@ -353,6 +362,7 @@ const AdminCase = (props) => {
                         <Table columns={caseCallColumns} rowKey="uuid" dataSource={editCase.canister_calls}
                             expandable={{
                                 expandedRowRender: renderCaseExpandablePart,
+                                defaultExpandAllRows: true,
                                 rowExpandable: record => true,
                             }}
                             summary={() => <Table.Summary fixed>
@@ -363,7 +373,7 @@ const AdminCase = (props) => {
                                     {editCase.canister_calls.length > 0 &&
                                         <Table.Summary.Cell index={1} colSpan={2}>
                                             <Button style={{ marginLeft: 10 }} type="primary" disabled={editTitle || updating}
-                                            
+
                                             >{saveEnable ? "Save & Call All" : "Call All"}</Button>
                                         </Table.Summary.Cell>}
                                 </Table.Summary.Row>
@@ -381,7 +391,7 @@ const AdminCase = (props) => {
                             </Table.Summary>}
                         />
                     </div>
-                    <Drawer title="Add Call" placement="bottom"
+                    <Drawer title={drawerStep === "edit" ? "Edit Call" : "Add Call"} placement="bottom"
                         height={"95%"}
                         visible={showAddCallDrawer}
                         closable={false}
@@ -396,6 +406,10 @@ const AdminCase = (props) => {
                             {drawerStep === "methods" && <AddMethod canister={activeCanister}
                                 onMethodsAdded={onMethodsAdded}
                                 closeDrawer={closeDrawer} />}
+                            {drawerStep === "edit" && <EditMethod method={activeMethod}
+                                onMethodUpdated={onMethodUpdated}
+                                closeDrawer={closeDrawer}
+                            />}
                         </div>
                     </Drawer>
                 </div>

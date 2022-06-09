@@ -8,10 +8,11 @@ const EditMethodParamForm = (props) => {
     const { method, paramIndex, onNewForm, mode } = props;
     const [form] = Form.useForm();
     const renderMethodParams = (method) => {
+        
         return method[1].argTypes.map((arg, index) => <GeneralTypeRender
             mode={mode}
             argIDL={arg}
-            paramValue={null}
+            paramValue={method.params}
             paramConfig={null}
             path={[index + '']}
             key={`/${index}`}
@@ -30,7 +31,7 @@ const EditMethodParamForm = (props) => {
             <Text>Call spec:</Text>
             <Text type="secondary">{`${method.method[1].display()}`}</Text>
         </div>
-        {method.method[1].argTypes.length > 0 && <Form form={form}>
+        {method.method[1].argTypes.length > 0 && <Form form={form} initialValues={method.params}>
             <div className='method-param-config-container'>
                 {/* <Form.List name={method.function_name}> */}
 

@@ -18,7 +18,9 @@ const ProfileBar = (props) => {
                 {principalId}
             </div>
         </Tooltip>
-        <Button type="dashed" icon={<DownOutlined />} />
+        <Button type="dashed" icon={<DownOutlined />} onClick={() => {
+            auth.signout();
+        }}/>
     </div>)
 }
 
