@@ -1,40 +1,45 @@
-use candid::{Deserialize, Principal, CandidType, candid_method, IDLProg, TypeEnv, check_prog};
-use serde::Serialize;
-use std::cell::RefCell;
-use std::collections::{VecDeque, HashSet};
-use std::string::String;
-use ic_cdk_macros;
+use candid::{candid_method, check_prog, CandidType, Deserialize, IDLProg, Principal, TypeEnv};
 use ic_cdk::api;
 use ic_cdk::api::stable::{stable_bytes, StableWriter};
+use ic_cdk_macros;
+use serde::Serialize;
+use std::cell::RefCell;
+use std::collections::{HashSet, VecDeque};
+use std::string::String;
 
 thread_local! {
-    static STATE: std::cell::RefCell<CanisterState>  = 
+    static STATE: std::cell::RefCell<CanisterState>  =
     RefCell::new(CanisterState::default());
 }
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CanisterState {
-    user_configs : Vec<UserConfig>,
-    registry_canister_id : Principal,
-    state_meta : StateMeta,
+    user_configs: Vec<UserConfig>,
+    registry_canister_id: Principal,
+    state_meta: StateMeta,
 }
 
 #[derive(Deserialize, Serialize, Debug, CandidType, Clone)]
 pub struct StateMeta {
-    is_public : bool,
-    user_configs_limit : u16,
+    is_public: bool,
+    user_configs_limit: u16,
     calls_limit: u32,
 }
 
 #[derive(CandidType)]
 pub struct CanisterStateStats {
-    state_meta : StateMeta,
+    state_meta: StateMeta,
     user_config_stats: Vec<UserStats>,
     agg_stats: UserStats,
 }
 
 impl CanisterState {
-    fn init(&mut self, registry_canister_id : Principal, user_config : UserConfig, state_meta : StateMeta){
+    fn init(
+        &mut self,
+        registry_canister_id: Principal,
+        user_config: UserConfig,
+        state_meta: StateMeta,
+    ) {
         self.registry_canister_id = registry_canister_id;
         self.user_configs[0] = user_config;
         self.state_meta = state_meta;
@@ -54,49 +59,58 @@ impl CanisterState {
     //     }
     // }
 
-    fn get_user_config(&self, user_config_index : u16, user : &Principal) -> Result<&UserConfig, String> {
+    fn get_user_config(
+        &self,
+        user_config_index: u16,
+        user: &Principal,
+    ) -> Result<&UserConfig, String> {
         match self.user_configs.get(user_config_index as usize) {
-            None => {Err(String::from("user config does not exist"))}
+            None => Err(String::from("user config does not exist")),
             Some(user_config) => {
                 let meta_data = &user_config.meta_data;
                 match meta_data.users.contains(user) {
-                    true => {Ok(user_config)}
-                    false => {match meta_data.is_public {
-                        true => {Ok(user_config)}
-                        false => {Err(String::from("user config is private"))}
-                    }}
+                    true => Ok(user_config),
+                    false => match meta_data.is_public {
+                        true => Ok(user_config),
+                        false => Err(String::from("user config is private")),
+                    },
                 }
             }
         }
     }
 
-    fn get_user_config_mut(&mut self, user_config_index : u16, user : &Principal) -> Result<&mut UserConfig, String> {
+    fn get_user_config_mut(
+        &mut self,
+        user_config_index: u16,
+        user: &Principal,
+    ) -> Result<&mut UserConfig, String> {
         match self.user_configs.get_mut(user_config_index as usize) {
-            None => {Err(String::from("user config does not exist"))}
-            Some(user_config) => {
-                match user_config.meta_data.users.contains(user){
-                    true => {Ok(user_config)}
-                    false => {Err(String::from("users are not authenticated to write"))}
-                }
-            }
+            None => Err(String::from("user config does not exist")),
+            Some(user_config) => match user_config.meta_data.users.contains(user) {
+                true => Ok(user_config),
+                false => Err(String::from("users are not authenticated to write")),
+            },
         }
-    }    
+    }
 
     fn is_root_user(&self, user: &Principal) -> bool {
         // check if user is in root user config
         self.user_configs[0].meta_data.users.contains(user)
     }
-    
-    fn check_num_configs_by_user(& self, user: &Principal) -> usize {
-        self.user_configs.iter().filter(|&c| c.meta_data.users[0] == *user).count()
+
+    fn check_num_configs_by_user(&self, user: &Principal) -> usize {
+        self.user_configs
+            .iter()
+            .filter(|&c| c.meta_data.users[0] == *user)
+            .count()
     }
 
-    fn add_user_config(&mut self, user_config : UserConfig) {
+    fn add_user_config(&mut self, user_config: UserConfig) {
         self.user_configs.push(user_config)
     }
 
-    fn get_canister_state_stats(&self) -> CanisterStateStats { 
-        let mut user_config_stats : Vec<UserStats> = Vec::new();
+    fn get_canister_state_stats(&self) -> CanisterStateStats {
+        let mut user_config_stats: Vec<UserStats> = Vec::new();
         let mut users_count = 0;
         let mut is_public_count = 0;
         let mut canister_configs_count = 0;
@@ -111,20 +125,31 @@ impl CanisterState {
             canister_calls_count += user_stats.canister_calls_count;
             test_cases_count += user_stats.test_cases_count;
         }
-        CanisterStateStats{
+        CanisterStateStats {
             state_meta: self.state_meta.clone(),
             user_config_stats,
-            agg_stats: UserStats{users_count, is_public_count, canister_configs_count, canister_calls_count, test_cases_count, mem_size : None}
+            agg_stats: UserStats {
+                users_count,
+                is_public_count,
+                canister_configs_count,
+                canister_calls_count,
+                test_cases_count,
+                mem_size: None,
+            },
         }
     }
 }
 
 impl Default for CanisterState {
     fn default() -> Self {
-        Self { 
+        Self {
             user_configs: vec![UserConfig::default()],
             registry_canister_id: Principal::anonymous(),
-            state_meta : StateMeta{is_public: false, user_configs_limit : 1, calls_limit : u32::MAX}
+            state_meta: StateMeta {
+                is_public: false,
+                user_configs_limit: 1,
+                calls_limit: u32::MAX,
+            },
         }
     }
 }
@@ -132,7 +157,7 @@ impl Default for CanisterState {
 #[derive(CandidType, Deserialize)]
 pub enum CallResult<T, U> {
     Authenticated(T),
-    UnAuthenticated(U)
+    UnAuthenticated(U),
 }
 
 #[derive(CandidType, Deserialize, Serialize, Debug, Clone)]
@@ -147,7 +172,7 @@ pub struct CanisterCall {
     canister_id: Principal,
     function_name: String,
     params: String,
-    event: Option<CanisterCallEvent>
+    event: Option<CanisterCallEvent>,
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
@@ -155,16 +180,16 @@ struct TestCase {
     tag: String,
     config: String,
     time_at: u64,
-    canister_call_ids: std::ops::Range<u32>
+    canister_call_ids: std::ops::Range<u32>,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Debug)]
 pub struct TestCaseView {
-    case_run_id : Option<u16>,
+    case_run_id: Option<u16>,
     tag: String,
     config: String,
     time_at: u64,
-    canister_calls: Vec<CanisterCall>
+    canister_calls: Vec<CanisterCall>,
 }
 
 impl TestCaseView {
@@ -180,19 +205,19 @@ pub enum TestCaseFilter {
     #[serde(rename = "tag")]
     Tag(CaseFilteTag),
     #[serde(rename = "case_run_id")]
-    TestCaseId(u16)
+    TestCaseId(u16),
 }
 
 #[derive(CandidType, Debug, Deserialize, Clone, Serialize)]
 pub struct CaseFilteAll {
-    is_distinct : bool,
-    limit: Option<u16>
+    is_distinct: bool,
+    limit: Option<u16>,
 }
 
 #[derive(CandidType, Debug, Deserialize, Clone, Serialize)]
 pub struct CaseFilteTag {
-    tag : String,
-    limit: Option<u16>
+    tag: String,
+    limit: Option<u16>,
 }
 
 #[derive(CandidType, Debug, Deserialize, Clone, Serialize)]
@@ -201,7 +226,7 @@ struct CanisterConfig {
     time_updated: u64,
     is_active: bool,
     config: String,
-    meta_data: Vec<String>
+    meta_data: Vec<String>,
 }
 
 #[derive(Serialize, Debug, Deserialize, Clone, CandidType)]
@@ -244,20 +269,20 @@ pub struct UserConfigView {
 }
 
 impl Default for UserConfig {
-    fn default() -> Self{
+    fn default() -> Self {
         Self {
-            meta_data : UserConfigMeta::default(),
-            ui_config : String::new(),
+            meta_data: UserConfigMeta::default(),
+            ui_config: String::new(),
             canister_configs: Vec::new(),
             canister_calls: VecDeque::new(),
             last_call_id: 0,
-            test_cases: Vec::new()
+            test_cases: Vec::new(),
         }
     }
 }
 
 impl UserConfig {
-    fn new(user : Principal, calls_limit : u32, ui_config : String) -> Self{
+    fn new(user: Principal, calls_limit: u32, ui_config: String) -> Self {
         let meta_data = UserConfigMeta {
             users: vec![user],
             calls_limit: calls_limit,
@@ -270,33 +295,33 @@ impl UserConfig {
             canister_configs: Vec::new(),
             canister_calls: VecDeque::new(),
             last_call_id: 0,
-            test_cases: Vec::new()
+            test_cases: Vec::new(),
         }
     }
 
-    fn check_ser_size(&self) -> u32{
+    fn check_ser_size(&self) -> u32 {
         bincode::serialize(&self).unwrap().len() as u32
     }
 
     fn add_user(&mut self, user: Principal) {
         self.meta_data.users.push(user);
-    }    
+    }
 
-    fn update_ui_config(&mut self, ui_config : &String){
+    fn update_ui_config(&mut self, ui_config: &String) {
         self.ui_config = ui_config.clone();
     }
 
-    fn cache_canister_config(&mut self, canister_config : CanisterConfig){
-        for  config in &mut self.canister_configs {
+    fn cache_canister_config(&mut self, canister_config: CanisterConfig) {
+        for config in &mut self.canister_configs {
             if config.canister_id == canister_config.canister_id {
                 *config = canister_config;
-                return ;
+                return;
             }
         }
         self.canister_configs.push(canister_config);
     }
 
-    fn insert_canister_calls(&mut self, canister_calls : Vec<CanisterCall>){
+    fn insert_canister_calls(&mut self, canister_calls: Vec<CanisterCall>) {
         self.last_call_id += canister_calls.len() as u32;
         for canister_call in canister_calls {
             match self.canister_calls.len() as u32 == self.meta_data.calls_limit {
@@ -310,162 +335,195 @@ impl UserConfig {
             }
         }
     }
-    
+
     fn cache_test_case(&mut self, test_case: TestCaseView) -> u16 {
         let case_run_id;
-        let last_test_cases = self.get_test_cases(TestCaseFilter::Tag(CaseFilteTag{tag: test_case.tag.clone(), limit : Some(1)}));
+        let last_test_cases = self.get_test_cases(
+            TestCaseFilter::Tag(CaseFilteTag {tag: test_case.tag.clone(),limit: Some(1),})
+        );
         let last_test_case = last_test_cases.first();
         match last_test_case {
             //if tag not exist, create a new case
-            None => {case_run_id = None}
+            None => case_run_id = None,
             Some(test_case) => {
                 match test_case.is_template() {
                     // if test_case contains no event, over_ride the test case
-                    true => {case_run_id = test_case.case_run_id}
+                    true => case_run_id = test_case.case_run_id,
                     // if test test_case contains event, create a test case
-                    false => {case_run_id = None}
+                    false => case_run_id = None,
                 }
             }
         }
 
         match case_run_id {
             None => {
-                self.test_cases.push(TestCase { 
-                    tag: test_case.tag, config: test_case.config, 
-                    time_at: test_case.time_at, 
-                    canister_call_ids: (self.last_call_id..self.last_call_id+test_case.canister_calls.len() as u32) });
+                self.test_cases.push(TestCase {
+                    tag: test_case.tag,
+                    config: test_case.config,
+                    time_at: test_case.time_at,
+                    canister_call_ids: (self.last_call_id
+                        ..self.last_call_id + test_case.canister_calls.len() as u32),
+                });
                 self.insert_canister_calls(test_case.canister_calls);
-                (self.test_cases.len()-1) as u16
+                (self.test_cases.len() - 1) as u16
             }
             Some(run_id) => {
                 let existing_case = self.test_cases.get_mut(run_id as usize);
                 match existing_case {
-                Some(case) => {
-                    case.config = test_case.config; 
-                    case.time_at = test_case.time_at;
-                    case.canister_call_ids = self.last_call_id..self.last_call_id+test_case.canister_calls.len() as u32;
-                    self.insert_canister_calls(test_case.canister_calls);
+                    Some(case) => {
+                        case.config = test_case.config;
+                        case.time_at = test_case.time_at;
+                        case.canister_call_ids = self.last_call_id
+                            ..self.last_call_id + test_case.canister_calls.len() as u32;
+                        self.insert_canister_calls(test_case.canister_calls);
+                    }
+                    None => {}
                 }
-                None => {}
-                }
-                run_id        
+                run_id
             }
         }
     }
 
     fn build_user_config_view(&self) -> UserConfigView {
-        UserConfigView{
+        UserConfigView {
             meta_data: self.meta_data.clone(),
             ui_config: self.ui_config.clone(),
             canister_configs: self.get_canisters_configs(true),
             canister_calls: self.get_canister_calls(None, None, Some(100)),
-            test_cases: self.get_test_cases(TestCaseFilter::All(CaseFilteAll{is_distinct: true, limit: Some(10)})),
+            test_cases: self.get_test_cases(TestCaseFilter::All(CaseFilteAll {
+                is_distinct: true,
+                limit: Some(10),
+            })),
             stats: self.get_user_config_stats(true),
         }
     }
 
-    fn get_canisters_configs(&self, is_active: bool) -> Vec<CanisterConfig>{
-        self.canister_configs.iter().filter(|config| config.is_active == is_active).cloned().collect()            
-    }     
+    fn get_canisters_configs(&self, is_active: bool) -> Vec<CanisterConfig> {
+        self.canister_configs
+            .iter()
+            .filter(|config| config.is_active == is_active)
+            .cloned()
+            .collect()
+    }
 
-    fn get_canister_calls(&self, canister_id: Option<Principal>, function_name: Option<String>, limit: Option<u16>) -> Vec<CanisterCall> {
+    fn get_canister_calls(
+        &self,
+        canister_id: Option<Principal>,
+        function_name: Option<String>,
+        limit: Option<u16>,
+    ) -> Vec<CanisterCall> {
         let mut related_calls = Vec::new();
         for call in self.canister_calls.iter() {
-            if Some(related_calls.len() as u16) == limit {return related_calls}
+            if Some(related_calls.len() as u16) == limit {
+                return related_calls;
+            }
             match canister_id {
                 Some(c_id) => {
                     if c_id == call.canister_id {
-                            match function_name.clone() {
-                                Some(f_name) => {
-                                    if f_name == call.function_name {
-                                       related_calls.push(call.clone())
-                                    }
+                        match function_name.clone() {
+                            Some(f_name) => {
+                                if f_name == call.function_name {
+                                    related_calls.push(call.clone())
                                 }
-                                None => related_calls.push(call.clone())
                             }
+                            None => related_calls.push(call.clone()),
+                        }
                     }
-                   }
-                None => {related_calls.push(call.clone())}
+                }
+                None => related_calls.push(call.clone()),
             }
         }
         related_calls
     }
 
-    fn get_canister_calls_by_range(&self, r : &std::ops::Range<u32>) -> Vec<CanisterCall>{
+    fn get_canister_calls_by_range(&self, r: &std::ops::Range<u32>) -> Vec<CanisterCall> {
         if self.last_call_id - r.start > self.canister_calls.len() as u32 {
-            return Vec::new()
+            return Vec::new();
         }
-        self.canister_calls.range(
-            (self.last_call_id - r.end ) as usize..(self.last_call_id - r.start ) as usize)
-            .rev().cloned().collect()
+        self.canister_calls
+            .range((self.last_call_id - r.end) as usize..(self.last_call_id - r.start) as usize)
+            .rev()
+            .cloned()
+            .collect()
     }
 
-    fn build_view_by_test_case(&self, case_run_id: u16, test_case:  &TestCase) -> TestCaseView {
-        TestCaseView { 
+    fn build_view_by_test_case(&self, case_run_id: u16, test_case: &TestCase) -> TestCaseView {
+        TestCaseView {
             case_run_id: Some(case_run_id as u16),
-            tag: test_case.tag.clone(), 
-            config: test_case.config.clone(), 
-            time_at: test_case.time_at.clone(), 
-            canister_calls : self.get_canister_calls_by_range(&test_case.canister_call_ids)}
-    }    
-    
+            tag: test_case.tag.clone(),
+            config: test_case.config.clone(),
+            time_at: test_case.time_at.clone(),
+            canister_calls: self.get_canister_calls_by_range(&test_case.canister_call_ids),
+        }
+    }
+
     fn get_test_cases(&self, filter_by: TestCaseFilter) -> Vec<TestCaseView> {
-        let mut related_test_cases : Vec<TestCaseView> = Vec::new();
+        let mut related_test_cases: Vec<TestCaseView> = Vec::new();
         let test_cases_length = self.test_cases.len();
         match filter_by {
             TestCaseFilter::All(case_filter_all) => {
                 let mut unique_tags = HashSet::new();
                 for (idx, test_case) in self.test_cases.iter().rev().enumerate() {
-                    let case_run_id = (test_cases_length - idx - 1) as u16 ; 
-                    if Some(related_test_cases.len() as u16) == case_filter_all.limit { 
-                        return related_test_cases 
+                    let case_run_id = (test_cases_length - idx - 1) as u16;
+                    if Some(related_test_cases.len() as u16) == case_filter_all.limit {
+                        return related_test_cases;
                     }
                     if case_filter_all.is_distinct {
                         if !unique_tags.contains(&test_case.tag) {
                             unique_tags.insert(test_case.tag.clone());
-                            related_test_cases.push(self.build_view_by_test_case(case_run_id, test_case))
+                            related_test_cases
+                                .push(self.build_view_by_test_case(case_run_id, test_case))
                         }
-                    } else {    
-                        related_test_cases.push(self.build_view_by_test_case(case_run_id, test_case))
+                    } else {
+                        related_test_cases
+                            .push(self.build_view_by_test_case(case_run_id, test_case))
                     }
                 }
             }
 
             TestCaseFilter::Tag(case_filter_tag) => {
                 for (idx, test_case) in self.test_cases.iter().rev().enumerate() {
-                    if Some(related_test_cases.len() as u16) == case_filter_tag.limit { return related_test_cases }                            
+                    if Some(related_test_cases.len() as u16) == case_filter_tag.limit {
+                        return related_test_cases;
+                    }
                     if case_filter_tag.tag == test_case.tag {
                         let case_run_id = (test_cases_length - idx - 1) as u16;
-                        related_test_cases.push(self.build_view_by_test_case(case_run_id as u16, test_case));
+                        related_test_cases
+                            .push(self.build_view_by_test_case(case_run_id as u16, test_case));
                     }
-                }  
+                }
             }
 
             TestCaseFilter::TestCaseId(case_run_id) => {
                 match self.test_cases.get(case_run_id as usize) {
-                    None => {return Vec::new()}
-                    Some(test_case) => {return vec![self.build_view_by_test_case(case_run_id as u16, test_case)]}
+                    None => return Vec::new(),
+                    Some(test_case) => {
+                        return vec![self.build_view_by_test_case(case_run_id as u16, test_case)]
+                    }
                 }
             }
-
         }
         related_test_cases
     }
 
-    fn get_user_config_stats(&self, include_mem_size: bool) -> UserStats{
+    fn get_user_config_stats(&self, include_mem_size: bool) -> UserStats {
         UserStats {
             users_count: self.meta_data.users.len() as u16,
             is_public_count: 1,
             canister_configs_count: self.canister_configs.len() as u8,
             canister_calls_count: self.last_call_id - 1,
             test_cases_count: self.test_cases.len() as u16,
-            mem_size: if include_mem_size {Some(self.check_ser_size())} else {None}
+            mem_size: if include_mem_size {
+                Some(self.check_ser_size())
+            } else {
+                None
+            },
         }
     }
 }
 
 #[derive(CandidType, Clone)]
-pub struct UserStats{
+pub struct UserStats {
     users_count: u16,
     is_public_count: u16,
     canister_configs_count: u8,
@@ -476,21 +534,32 @@ pub struct UserStats{
 
 #[ic_cdk_macros::init]
 #[candid_method(init)]
-async fn init(user : Principal, calls_limit : u32, 
-                ui_config : String, is_public : bool, user_configs_limit : u16){
-    let state_meta = StateMeta{is_public, user_configs_limit, calls_limit};
+async fn init(
+    user: Principal,
+    calls_limit: u32,
+    ui_config: String,
+    is_public: bool,
+    user_configs_limit: u16,
+) {
+    let state_meta = StateMeta {
+        is_public,
+        user_configs_limit,
+        calls_limit,
+    };
     let registry_canister_id = api::caller();
     STATE.with(|config_state| {
         let mut config_state = config_state.borrow_mut();
-        config_state.init(registry_canister_id, 
-                            UserConfig::new(user, calls_limit, ui_config), state_meta);
-    }        
-    );
+        config_state.init(
+            registry_canister_id,
+            UserConfig::new(user, calls_limit, ui_config),
+            state_meta,
+        );
+    });
 }
 
 #[ic_cdk_macros::update(name = "update_state_meta")]
 #[candid_method(update, rename = "update_state_meta")]
-async fn update_state_meta(state_meta : StateMeta) -> CallResult<String, String>{
+async fn update_state_meta(state_meta: StateMeta) -> CallResult<String, String> {
     STATE.with(|config_state| {
         let caller = api::caller();
         let mut config_state = config_state.borrow_mut();
@@ -499,86 +568,96 @@ async fn update_state_meta(state_meta : StateMeta) -> CallResult<String, String>
                 config_state.state_meta = state_meta;
                 CallResult::Authenticated(String::from("state meta data is updated"))
             }
-            false => {
-                CallResult::UnAuthenticated(format!("{} is not root user", caller))
-            }
+            false => CallResult::UnAuthenticated(format!("{} is not root user", caller)),
         }
-    }        
-    )    
+    })
 }
 
 #[ic_cdk_macros::update(name = "add_user_to_existing_user_config")]
 #[candid_method(update, rename = "add_user_to_existing_user_config")]
-async fn add_user_to_existing_user_config(user_config_index : u16, new_user : Principal) -> CallResult<String, String>{
+async fn add_user_to_existing_user_config(
+    user_config_index: u16,
+    new_user: Principal,
+) -> CallResult<String, String> {
     let caller = api::caller();
-    let (is_authenticated, registry_canister_id ) = 
-    STATE.with(|config_state|{
+    let (is_authenticated, registry_canister_id) = STATE.with(|config_state| {
         let mut config_state = config_state.borrow_mut();
-        (config_state.get_user_config_mut(user_config_index, &caller).is_ok(), config_state.registry_canister_id)});
+        (
+            config_state
+                .get_user_config_mut(user_config_index, &caller)
+                .is_ok(),
+            config_state.registry_canister_id,
+        )
+    });
     match is_authenticated {
         true => {
-            let call_result: Result<(CallResult<String, String>,), _> = 
-                api::call::call(registry_canister_id, "add_user_to_existing_user_config", (caller, new_user,user_config_index)).await;        
+            let call_result: Result<(CallResult<String, String>,), _> = api::call::call(
+                registry_canister_id,
+                "add_user_to_existing_user_config",
+                (caller, new_user, user_config_index),
+            )
+            .await;
             match call_result {
-                Ok(result) => {
-                    match result.0  {
-                        CallResult::Authenticated(msg) =>{
-                            STATE.with(|config_state| {config_state.borrow_mut().user_configs[user_config_index as usize].add_user(caller)}
-                        );
-                            CallResult::Authenticated(msg)
-                        }
-                        CallResult::UnAuthenticated(msg) => {
-                            CallResult::UnAuthenticated(msg)
-                        }
+                Ok(result) => match result.0 {
+                    CallResult::Authenticated(msg) => {
+                        STATE.with(|config_state| {
+                            config_state.borrow_mut().user_configs[user_config_index as usize]
+                                .add_user(caller)
+                        });
+                        CallResult::Authenticated(msg)
                     }
-                }
+                    CallResult::UnAuthenticated(msg) => CallResult::UnAuthenticated(msg),
+                },
                 Err(msg) => {
                     panic!("{:?}, {}", msg.0, msg.1)
                 }
-            }                
+            }
         }
-        false => {
-            CallResult::UnAuthenticated(String::from("add_user requires authentication"))
-        }
+        false => CallResult::UnAuthenticated(String::from("add_user requires authentication")),
     }
 }
 
 #[ic_cdk_macros::update(name = "add_user_config")]
 #[candid_method(update, rename = "add_user_config")]
-async fn add_user_config(ui_config : String) -> CallResult<String, String>{
+async fn add_user_config(ui_config: String) -> CallResult<String, String> {
     let new_user = api::caller();
-    let (configs_owned, is_root_user, registry_canister_id ) = 
-    STATE.with(|config_state|{
+    let (configs_owned, is_root_user, registry_canister_id) = STATE.with(|config_state| {
         let config_state = config_state.borrow();
-        (config_state.check_num_configs_by_user(&new_user), 
-        config_state.is_root_user(&new_user),
-        config_state.registry_canister_id)});
+        (
+            config_state.check_num_configs_by_user(&new_user),
+            config_state.is_root_user(&new_user),
+            config_state.registry_canister_id,
+        )
+    });
     let is_allowed = configs_owned <= 3 && is_root_user == false || is_root_user == true;
     match is_allowed {
         true => {
-            let call_result: Result<(CallResult<String, String>,), _> = 
-                api::call::call(registry_canister_id, "add_user_to_existing_canister", (new_user,)).await;        
+            let call_result: Result<(CallResult<String, String>,), _> = api::call::call(
+                registry_canister_id,
+                "add_user_to_existing_canister",
+                (new_user,),
+            )
+            .await;
             match call_result {
-                Ok(result) => {
-                    match result.0  {
-                        CallResult::Authenticated(msg) =>{
-                            STATE.with(|config_state| {
-                                let mut config_state = config_state.borrow_mut();
-                                let user_config = UserConfig::new(new_user, config_state.state_meta.calls_limit, ui_config);
-                                config_state.add_user_config(user_config);
-                            }
-                        );
-                            CallResult::Authenticated(msg)
-                        }
-                        CallResult::UnAuthenticated(msg) => {
-                            CallResult::UnAuthenticated(msg)
-                        }
+                Ok(result) => match result.0 {
+                    CallResult::Authenticated(msg) => {
+                        STATE.with(|config_state| {
+                            let mut config_state = config_state.borrow_mut();
+                            let user_config = UserConfig::new(
+                                new_user,
+                                config_state.state_meta.calls_limit,
+                                ui_config,
+                            );
+                            config_state.add_user_config(user_config);
+                        });
+                        CallResult::Authenticated(msg)
                     }
-                }
+                    CallResult::UnAuthenticated(msg) => CallResult::UnAuthenticated(msg),
+                },
                 Err(msg) => {
                     panic!("{:?}, {}", msg.0, msg.1)
                 }
-            }                
+            }
         }
         false => {
             CallResult::UnAuthenticated(format!("add_user_config limit exceeds for {}", new_user))
@@ -588,97 +667,94 @@ async fn add_user_config(ui_config : String) -> CallResult<String, String>{
 
 #[ic_cdk_macros::update(name = "set_user_config_public")]
 #[candid_method(update, rename = "set_user_config_public")]
-async fn set_user_config_public(user_config_index : u16, is_public : bool) -> CallResult<String, String>{
+async fn set_user_config_public(
+    user_config_index: u16,
+    is_public: bool,
+) -> CallResult<String, String> {
     STATE.with(|config_state| {
         let caller = api::caller();
         let mut config_state = config_state.borrow_mut();
-        match config_state.get_user_config_mut(user_config_index, &caller){
+        match config_state.get_user_config_mut(user_config_index, &caller) {
             Ok(user_config) => {
                 user_config.meta_data.is_public = is_public;
                 CallResult::Authenticated(format!("ui config is_public : {}", is_public))
             }
-            Err(msg) => {
-                CallResult::UnAuthenticated(msg)
-            }
+            Err(msg) => CallResult::UnAuthenticated(msg),
         }
-    }        
-    )
+    })
 }
 
 #[ic_cdk_macros::update(name = "cache_ui_config")]
 #[candid_method(update, rename = "cache_ui_config")]
-async fn cache_ui_config(user_config_index : u16, ui_config : String) -> CallResult<String, String>{
+async fn cache_ui_config(user_config_index: u16, ui_config: String) -> CallResult<String, String> {
     STATE.with(|config_state| {
         let caller = api::caller();
         let mut config_state = config_state.borrow_mut();
-        match config_state.get_user_config_mut(user_config_index, &caller){
+        match config_state.get_user_config_mut(user_config_index, &caller) {
             Ok(user_config) => {
                 user_config.update_ui_config(&ui_config);
                 CallResult::Authenticated(String::from("ui config is updated"))
             }
-            Err(msg) => {
-                CallResult::UnAuthenticated(msg)
-            }
+            Err(msg) => CallResult::UnAuthenticated(msg),
         }
-    }        
-    )
+    })
 }
 
 #[ic_cdk_macros::update(name = "cache_canister_config")]
 #[candid_method(update, rename = "cache_canister_config")]
-async fn cache_canister_config(user_config_index : u16, canister_config : CanisterConfig) -> CallResult<String, String>{
+async fn cache_canister_config(
+    user_config_index: u16,
+    canister_config: CanisterConfig,
+) -> CallResult<String, String> {
     STATE.with(|config_state| {
         let caller = api::caller();
         let mut config_state = config_state.borrow_mut();
-        match config_state.get_user_config_mut(user_config_index, &caller){
+        match config_state.get_user_config_mut(user_config_index, &caller) {
             Ok(user_config) => {
                 user_config.cache_canister_config(canister_config);
                 CallResult::Authenticated(String::from("canister config is updated"))
             }
-            Err(msg) => {
-                CallResult::UnAuthenticated(String::from(msg))
-            }
+            Err(msg) => CallResult::UnAuthenticated(String::from(msg)),
         }
-    }        
-    )    
+    })
 }
 
 #[ic_cdk_macros::update(name = "cache_canister_calls")]
 #[candid_method(update, rename = "cache_canister_calls")]
-async fn cache_canister_calls(user_config_index: u16, canister_calls : Vec<CanisterCall>)-> CallResult<String, String>{
+async fn cache_canister_calls(
+    user_config_index: u16,
+    canister_calls: Vec<CanisterCall>,
+) -> CallResult<String, String> {
     STATE.with(|config_state| {
         let caller = api::caller();
         let mut config_state = config_state.borrow_mut();
-        match config_state.get_user_config_mut(user_config_index, &caller){
+        match config_state.get_user_config_mut(user_config_index, &caller) {
             Ok(user_config) => {
                 user_config.insert_canister_calls(canister_calls);
                 CallResult::Authenticated(String::from("canister calls are updated"))
             }
-            Err(msg) => {
-                CallResult::UnAuthenticated(String::from(msg))
-            }
+            Err(msg) => CallResult::UnAuthenticated(String::from(msg)),
         }
-    }        
-    )      
+    })
 }
 
 #[ic_cdk_macros::update(name = "cache_test_case")]
 #[candid_method(update, rename = "cache_test_case")]
-async fn cache_test_case(user_config_index: u16, test_case : TestCaseView)-> CallResult<u16, String>{
+async fn cache_test_case(
+    user_config_index: u16,
+    test_case: TestCaseView,
+) -> CallResult<u16, String> {
     STATE.with(|config_state| {
         let caller = api::caller();
         let mut config_state = config_state.borrow_mut();
-        match config_state.get_user_config_mut(user_config_index, &caller){
+        match config_state.get_user_config_mut(user_config_index, &caller) {
             Ok(user_config) => {
                 let case_run_id = user_config.cache_test_case(test_case);
                 CallResult::Authenticated(case_run_id)
             }
-            Err(msg) => {
-                CallResult::UnAuthenticated(String::from(msg))
-            }
+            Err(msg) => CallResult::UnAuthenticated(String::from(msg)),
         }
-    }        
-    )        
+    })
 }
 
 // #[ic_cdk_macros::query(name = "migrate_user_config")]
@@ -687,8 +763,8 @@ async fn cache_test_case(user_config_index: u16, test_case : TestCaseView)-> Cal
 //     STATE.with(|config_state| {
 //         let config_state = config_state.borrow();
 //         bincode::serialize(&config_state.user_configs[user_config_index as usize]).unwrap()
-//     }        
-//     )        
+//     }
+//     )
 // }
 
 // #[ic_cdk_macros::update(name = "set_user_config")]
@@ -699,96 +775,85 @@ async fn cache_test_case(user_config_index: u16, test_case : TestCaseView)-> Cal
 //         let new_user_config : UserConfig = bincode::deserialize(&user_config_bin).unwrap();
 //         config_state.add_user_config(new_user_config);
 //         config_state.user_configs[config_state.user_configs.len()-1].get_user_config_private()
-//     }        
-//     )        
+//     }
+//     )
 // }
 
 #[ic_cdk_macros::query(name = "get_user_config")]
 #[candid_method(query, rename = "get_user_config")]
-fn get_user_config(user_config_index: u16) -> CallResult<UserConfigView, String>{
+fn get_user_config(user_config_index: u16) -> CallResult<UserConfigView, String> {
     STATE.with(|config_state| {
-        let caller = api::caller();        
+        let caller = api::caller();
         let config_state = config_state.borrow();
-        match config_state.get_user_config(user_config_index, &caller){
-            Ok(user_config) => {
-                CallResult::Authenticated(user_config.build_user_config_view())
-            }
-            Err(msg) => {
-                CallResult::UnAuthenticated(msg)
-            }
-        }   
-    }        
-    )
+        match config_state.get_user_config(user_config_index, &caller) {
+            Ok(user_config) => CallResult::Authenticated(user_config.build_user_config_view()),
+            Err(msg) => CallResult::UnAuthenticated(msg),
+        }
+    })
 }
 
 #[ic_cdk_macros::query(name = "get_canister_calls")]
 #[candid_method(query, rename = "get_canister_calls")]
-fn get_canister_calls(user_config_index: u16, canister_id: Option<Principal>, function_name: Option<String>, limit: Option<u16>) 
-                    -> CallResult<Vec<CanisterCall>, String>
-{
+fn get_canister_calls(
+    user_config_index: u16,
+    canister_id: Option<Principal>,
+    function_name: Option<String>,
+    limit: Option<u16>,
+) -> CallResult<Vec<CanisterCall>, String> {
     STATE.with(|config_state| {
-        let caller = api::caller();        
+        let caller = api::caller();
         let config_state = config_state.borrow();
-        match config_state.get_user_config(user_config_index, &caller){
-            Ok(user_config) => {
-                CallResult::Authenticated(user_config.get_canister_calls(canister_id, function_name, limit))
-            }
-            Err(msg) => {
-                CallResult::UnAuthenticated(msg)
-            }
-        }   
-    }        
-    )
+        match config_state.get_user_config(user_config_index, &caller) {
+            Ok(user_config) => CallResult::Authenticated(user_config.get_canister_calls(
+                canister_id,
+                function_name,
+                limit,
+            )),
+            Err(msg) => CallResult::UnAuthenticated(msg),
+        }
+    })
 }
 
 #[ic_cdk_macros::query(name = "get_test_cases")]
 #[candid_method(query, rename = "get_test_cases")]
-fn get_test_cases(user_config_index: u16, filter_by: TestCaseFilter) 
-                    -> CallResult<Vec<TestCaseView>, String>
-{
+fn get_test_cases(
+    user_config_index: u16,
+    filter_by: TestCaseFilter,
+) -> CallResult<Vec<TestCaseView>, String> {
     STATE.with(|config_state| {
-        let caller = api::caller();        
+        let caller = api::caller();
         let config_state = config_state.borrow();
-        match config_state.get_user_config(user_config_index, &caller){
-            Ok(user_config) => {
-                CallResult::Authenticated(user_config.get_test_cases(filter_by))
-            }
-            Err(msg) => {
-                CallResult::UnAuthenticated(msg)
-            }
-        }   
-    }        
-    )       
+        match config_state.get_user_config(user_config_index, &caller) {
+            Ok(user_config) => CallResult::Authenticated(user_config.get_test_cases(filter_by)),
+            Err(msg) => CallResult::UnAuthenticated(msg),
+        }
+    })
 }
 
 #[ic_cdk_macros::query(name = "get_user_config_stats")]
 #[candid_method(query, rename = "get_user_config_stats")]
-fn get_user_config_stats(user_config_index: u16) -> Option<UserStats>{
+fn get_user_config_stats(user_config_index: u16) -> Option<UserStats> {
     STATE.with(|config_state| {
         let config_state = config_state.borrow();
-        match config_state.user_configs.get(user_config_index as usize){
-            None => {None}
-            Some(user_config) => {Some(user_config.get_user_config_stats(true))}
+        match config_state.user_configs.get(user_config_index as usize) {
+            None => None,
+            Some(user_config) => Some(user_config.get_user_config_stats(true)),
         }
-    }        
-    )
+    })
 }
 
 #[ic_cdk_macros::query(name = "get_canister_state_stats")]
 #[candid_method(query, rename = "get_canister_state_stats")]
-fn get_canister_state_stats() -> CanisterStateStats
-{
+fn get_canister_state_stats() -> CanisterStateStats {
     STATE.with(|config_state| {
         let config_state = config_state.borrow();
-        config_state.get_canister_state_stats()  
-    }        
-    )       
+        config_state.get_canister_state_stats()
+    })
 }
 
 #[ic_cdk_macros::query(name = "get_principal")]
 #[candid_method(query, rename = "get_principal")]
-fn get_principal() -> Principal
-{
+fn get_principal() -> Principal {
     api::caller()
 }
 
@@ -809,7 +874,6 @@ candid::export_service!();
 fn __get_candid_interface_tmp_hack() -> String {
     __export_service()
 }
-
 
 #[ic_cdk_macros::pre_upgrade]
 fn pre_upgrade() {
