@@ -6,11 +6,14 @@ import { EditOutlined, CheckOutlined, CloseOutlined, DeleteOutlined } from "@ant
 import { v4 as uuidv4 } from 'uuid';
 import { getUserActiveConfigIndex, getCanisterList, convertTimestampToBigInt } from '../utils/devhubUtils';
 import { getFieldFromActor } from '../utils/actorUtils';
+import { isMethodCallable } from '../utils/paramRenderUtils';
 import { useAuth } from '../auth';
+import MethodSpec from './MethodSpec';
 import SelectCanister from './SelectCanister';
 import AddMethod from './AddMethod';
 import EditMethod from './EditMethod';
 import MethodParamsDisplay from './MethodParamsDisplay';
+import CallOncePanel from './CallOncePanel';
 
 import "./styles/AdminCase.less";
 
@@ -25,14 +28,24 @@ const AdminCase = (props) => {
     const [editTitle, setEditTitle] = useState(false);
     const [saveEnable, setSaveEnable] = useState(false);
     const [updating, setUpdating] = useState(false);
-    const [showAddCallDrawer, setShowAddCallDrawer] = useState(false);
+    const [showBottomDrawer, setShowBottomDrawer] = useState(false);
     const [drawerStep, setDrawerStep] = useState(null);
     const [activeCanister, setActiveCanister] = useState(null);
     const [activeMethod, setActiveMethod] = useState(null);
+    const [activeCallMethod, setActiveCallMethod] = useState(null);
+    const [activeCallCanister, setActiveCallCanister] = useState(null);
 
     const [titleEditForm] = Form.useForm();
 
     const { user } = useAuth();
+
+    const drawerTitle = {
+        canister: "Add Call",
+        methods: "Add Call",
+        edit: "Edit Call",
+        callonce: "Run Method",
+        runcase: "Run Case"
+    }
 
     const caseCallColumns = [{
         title: '',
@@ -61,7 +74,9 @@ const AdminCase = (props) => {
     }, {
         title: '',
         render: (_, record) => {
-            return <><Button type="primary">Call</Button>
+            return <><Button type="primary" onClick={() => {
+                onCallOneMethod(record);
+            }}>Call</Button>
                 <Popconfirm title="Are you sure？" okText="Yes" cancelText="No" onConfirm={() => {
                     onDeleteMethod(record);
                 }}>
@@ -197,6 +212,22 @@ const AdminCase = (props) => {
         return callIsSame;
     }
 
+    const onCallOneMethod = (record) => {
+        if (!isMethodCallable(record)) {
+            message.warn("Please set the parameter value first!");
+            return;
+        }
+        let can = canisterList.find(can => can.canisterId === record.canister_id);
+        if (!can) {
+            message.warn("Can not find canister(" + record.canister_name + ") in follow list, please check");
+            return;
+        }
+        setActiveCallMethod(record);
+        setActiveCanister(can);
+        setDrawerStep("callonce");
+        setShowBottomDrawer(true);
+    }
+
     const onUpdateCase = async () => {
         setUpdating(true)
         try {
@@ -242,12 +273,12 @@ const AdminCase = (props) => {
         editCase.canister_calls = [...editCase.canister_calls];
         setEditCase({ ...editCase });
     }
-    const onShowAddCallDrawer = () => {
-        setShowAddCallDrawer(true);
+    const onShowBottomDrawer = () => {
+        setShowBottomDrawer(true);
         setDrawerStep('canister');
     }
-    const onAddCallDrawerClosed = () => {
-        setShowAddCallDrawer(false);
+    const onBottomDrawerClosed = () => {
+        setShowBottomDrawer(false);
         setActiveCanister(null);
         setDrawerStep(null);
     }
@@ -272,28 +303,28 @@ const AdminCase = (props) => {
 
     }
     const closeDrawer = () => {
+        if (drawerStep === "callonce") {
+            setActiveCallMethod(null);
+            setActiveCallCanister(null);
+        }
         setDrawerStep(null);
-        setShowAddCallDrawer(false);
+        setShowBottomDrawer(false);
     }
 
     const renderCaseExpandablePart = (record) => {
         console.log('render case expandable part', record);
         return (<div className='caserow-expandable-container'>
             <div className='caserow-expandable-param-container'>
-                <div>
-                    <Text>Call spec:</Text>
-                    <Text type="secondary">{`${record.method[1].display()}`}</Text>
-                </div>
-
+                <MethodSpec method={record} />
                 <MethodParamsDisplay method={record} />
-                
+
                 {!record.method && <Text type="danger">{`method ${record.function_name} not found`}</Text>}
             </div>
             <div className='caserow-expandable-footer-container'>
                 <Button icon={<EditOutlined />} size="large" onClick={() => {
                     setActiveMethod(record);
                     setDrawerStep('edit');
-                    setShowAddCallDrawer(true);
+                    setShowBottomDrawer(true);
                 }} />
             </div>
         </div>);
@@ -320,7 +351,6 @@ const AdminCase = (props) => {
         {!loading && !updating && editCase &&
             <>
                 <div className='content-header-container case-toolbar'>
-
                     <div>
                         {!editTitle &&
                             <>
@@ -368,7 +398,7 @@ const AdminCase = (props) => {
                             summary={() => <Table.Summary fixed>
                                 <Table.Summary.Row>
                                     <Table.Summary.Cell index={0} colSpan={2}>
-                                        <Button type="primary" onClick={onShowAddCallDrawer} disabled={editTitle || updating}>Add Call</Button>
+                                        <Button type="primary" onClick={onShowBottomDrawer} disabled={editTitle || updating}>Add Call</Button>
                                     </Table.Summary.Cell>
                                     {editCase.canister_calls.length > 0 &&
                                         <Table.Summary.Cell index={1} colSpan={2}>
@@ -391,25 +421,34 @@ const AdminCase = (props) => {
                             </Table.Summary>}
                         />
                     </div>
-                    <Drawer title={drawerStep === "edit" ? "Edit Call" : "Add Call"} placement="bottom"
+                    <Drawer title={drawerTitle[drawerStep]} placement="bottom"
                         height={"95%"}
-                        visible={showAddCallDrawer}
-                        closable={false}
-                        maskClosable={false}
+                        visible={showBottomDrawer}
+                        closable={drawerStep === 'canister'}
+                        maskClosable={drawerStep === 'canister'}
                         // contentWrapperStyle={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}
-                        onClose={onAddCallDrawerClosed}
+                        onClose={onBottomDrawerClosed}
                         getContainer={false}
                         style={{ position: 'absolute' }}
                     >
-                        <div className='addcall-drawer-content-container'>
-                            {drawerStep === "canister" && <SelectCanister onSelectCanister={onSelectCanister} canisterList={canisterList} closeDrawer={closeDrawer} />}
-                            {drawerStep === "methods" && <AddMethod canister={activeCanister}
-                                onMethodsAdded={onMethodsAdded}
-                                closeDrawer={closeDrawer} />}
-                            {drawerStep === "edit" && <EditMethod method={activeMethod}
-                                onMethodUpdated={onMethodUpdated}
-                                closeDrawer={closeDrawer}
-                            />}
+                        <div className='bottom-drawer-content-container'>
+                            <div className='bottom-drawer-inner-content-container'>
+                                {drawerStep === "canister" &&
+                                    <SelectCanister onSelectCanister={onSelectCanister} canisterList={canisterList} closeDrawer={closeDrawer} />}
+                                {drawerStep === "methods" && <AddMethod canister={activeCanister}
+                                    onMethodsAdded={onMethodsAdded}
+                                    closeDrawer={closeDrawer} />}
+                                {drawerStep === "edit" && <EditMethod method={activeMethod}
+                                    onMethodUpdated={onMethodUpdated}
+                                    closeDrawer={closeDrawer}
+                                />}
+                                {drawerStep === 'callonce' && <CallOncePanel
+                                    method={activeCallMethod}
+                                    index={0}
+                                    closeDrawer={closeDrawer}
+                                    canisterActor={activeCanister.actor}
+                                />}
+                            </div>
                         </div>
                     </Drawer>
                 </div>

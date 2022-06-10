@@ -8,7 +8,7 @@ import {
     useLocation
 } from "react-router-dom";
 
-import { Button } from "antd";
+import { Button, message } from "antd";
 import { useAuth } from '../auth';
 
 const Login = (props) => {
@@ -17,6 +17,7 @@ const Login = (props) => {
 
     const auth = useAuth();
     const [connecting, setConnecting] = useState(false);
+    const [loginResult, setLoginResult] = useState(null);
 
     let { from } = location.state || { from: { pathname: "/" } };
     return (
@@ -28,12 +29,18 @@ const Login = (props) => {
                     setConnecting(false);
                     if (success) {
                         nav(from);
+                    } else {
+                        message.error(provider);
+                        setLoginResult(provider);
+
                     }
                 });
 
             }}>
                 Connect by II
             </Button>
+
+            {loginResult && <Button type="dashed" onClick={() => { auth.signout(() => { }) }}>Logout</Button>}
         </div>
 
     )

@@ -137,6 +137,7 @@ module.exports = {
       Buffer: [require.resolve("buffer/"), "Buffer"],
       process: require.resolve("process/browser"),
     }),
+    // new CompressionPlugin(),
     // new BundleAnalyzerPlugin(),
   ],
   // proxy /api to port 8000 during development
@@ -149,9 +150,31 @@ module.exports = {
           "^/api": "/api",
         },
       },
+      "/_": {
+        target: "http://localhost:8000",
+        changeOrigin: true,
+      },
+      "/devhub": {
+        target: "http://localhost:8080",
+        pathRewrite: function (path, req) {
+          return "";
+        },
+      },
+      "/prefollow": {
+        target: "http://localhost:8080",
+        pathRewrite: function (path, req) {
+          return ""
+        },
+      },
+      "/connect": {
+        target: "http://localhost:8080",
+        pathRewrite: function (path, req) {
+          return ""
+        },
+      },
+      hot: true,
+      watchFiles: [path.resolve(__dirname, "src", frontendDirectory)],
+      liveReload: true,
     },
-    hot: true,
-    watchFiles: [path.resolve(__dirname, "src", frontendDirectory)],
-    liveReload: true,
-  },
-};
+  }
+}

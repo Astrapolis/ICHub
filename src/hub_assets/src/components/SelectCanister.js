@@ -23,13 +23,8 @@ const SelectCanister = (props) => {
         }} />} />
     }];
 
-    return <div style={{
-        width: '100%', height: "100%", display: "flex",
-        overflow: "auto", alignItems: 'center', justifyContent: 'center'
-    }}>
-        <Table columns={columns} dataSource={props.canisterList} rowKey="canister_id" />
+    return <Table columns={columns} dataSource={props.canisterList} rowKey="canisterId" />
 
-    </div>
 }
 
 export default SelectCanister;

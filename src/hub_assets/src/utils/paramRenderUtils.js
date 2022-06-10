@@ -1,5 +1,6 @@
 import { Principal } from "@dfinity/principal";
 import * as CONSTANT from "../constant";
+import { getFieldFromActor } from "./actorUtils";
 
 /**
  * This file is a copy logic from Render class.
@@ -170,7 +171,7 @@ export function GeneralValueParser() {
         if (Object.prototype.toString.call(d) === '[object Array]') {
             let v = [];
             d.forEach((ele, index) => {
-                v[index] =ty.accept(new GeneralValueParser(), ele);
+                v[index] = ty.accept(new GeneralValueParser(), ele);
             });
             return v;
         } else {
@@ -179,12 +180,12 @@ export function GeneralValueParser() {
     };
 
     this.visitOpt = (t, ty, d) => {
-        
+
         let v = []; // null of opt rep
         if (d === null) {
             return v;
         } else {
-            
+
             let value = ty.accept(new GeneralValueParser(), d);
             return [value];
         }
@@ -330,4 +331,20 @@ valueParserMapper[CONSTANT.VALUE_PARSER_PRIMITIVE] = getPrimitiveValueParser;
 
 export function getParserMap() {
     return valueParserMapper;
+}
+
+export function isMethodCallable(method) {
+    console.log("isMethodCallable ==>", method);
+    let valueValid = true;
+    try {
+        method.method[1].argTypes.forEach((argType, index) => {
+            let paramValues = method.params[index];
+            let probValue = argType.accept(new GeneralValueParser(), paramValues);
+
+        });
+    } catch (err) {
+        console.log("parse error", err);
+        valueValid = false;
+    }
+    return valueValid;
 }

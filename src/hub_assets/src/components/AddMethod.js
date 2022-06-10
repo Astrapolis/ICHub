@@ -144,7 +144,12 @@ const AddMethod = (props) => {
             let form = editFormMapping[index];
             if (form) {
                 // console.log('form' + index + 'value --->', form.getFieldsValue(true));
-                m.params = form.getFieldsValue(true);
+                let values = form.getFieldsValue(true);
+                let params = [];
+                m.method[1].argTypes.forEach((arg, index) => {
+                    params[index] = values[index];
+                });
+                m.params = params;
             }
         });
         props.onMethodsAdded(props.canister, newMethods);
@@ -179,25 +184,7 @@ const AddMethod = (props) => {
                 {newMethods.length > 0 && <Tabs type="editable-card" activeKey={activeMethod.uuid} onEdit={onTabEdit} onChange={onTabChange} hideAdd>
                     {
                         newMethods.map((med, index) => <TabPane tab={renderTabName(med)} key={med.uuid} closable={true}>
-                            <EditMethodParamForm method={med} paramIndex={index} onNewForm={onNewForm} mode={"new"} />
-                            {/* <div className='method-config-tab-content-container'>
-                                <div className='method-spec-container'>
-                                    <Text>Call spec:</Text>
-                                    <Text type="secondary">{`${med.method[1].display()}`}</Text>
-                                </div>
-                                {med.method[1].argTypes.length > 0 &&
-                                    <Form onFinish={(values) => {
-                                        onValueConfigured(index, values)
-                                    }}>
-                                        <div className='method-param-config-container'>
-                                            {renderMethodParams(med.method)}
-                                        </div>
-                                        <Form.Item>
-                                            <Button className='method-footer-button' type="primary" htmlType="submit" disabled={med.ready}>Save</Button>
-                                        </Form.Item>
-                                    </Form>}
-                                {med.method[1].argTypes.length === 0 && <Text type="success">No parameters</Text>}
-                            </div> */}
+                            <EditMethodParamForm method={med} methodIndex={index} onNewForm={onNewForm} mode={"new"} />
                         </TabPane>)
                     }
                 </Tabs>}

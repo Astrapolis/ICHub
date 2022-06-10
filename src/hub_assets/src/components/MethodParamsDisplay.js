@@ -5,7 +5,6 @@ import { Form } from 'antd';
 const MethodParamsDisplay = props => {
     const [form] = Form.useForm();
     const { method } = props;
-    console.log('render MethodParamsDisplay with ===>', method);
     return <Form
         form={form}
         initialValues={method.params}>

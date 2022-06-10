@@ -113,7 +113,7 @@ const FollowPreview = (props) => {
 
                     </div>
 
-                    <Button className='follow-button' size="large" type="primary" onClick={() => {
+                    <Button className='follow-button' size="large" type="primary" loading={following} onClick={() => {
                         onFollowClick();
 
                     }}>Follow</Button>

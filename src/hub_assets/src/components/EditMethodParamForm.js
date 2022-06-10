@@ -2,10 +2,11 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { message, Spin, Button, Tabs, Typography, Form } from 'antd';
 import GeneralTypeRender from './params/GeneralTypeRender';
+import MethodSpec from './MethodSpec';
 
 const { Text } = Typography;
 const EditMethodParamForm = (props) => {
-    const { method, paramIndex, onNewForm, mode } = props;
+    const { method, methodIndex, onNewForm, mode } = props;
     const [form] = Form.useForm();
     const renderMethodParams = (method) => {
         
@@ -21,16 +22,13 @@ const EditMethodParamForm = (props) => {
 
     useEffect(() => {
         if (onNewForm) {
-            onNewForm(paramIndex, form);
+            onNewForm(methodIndex, form);
         }
     }, [form])
 
 
     return <div className='method-config-tab-content-container'>
-        <div className='method-spec-container'>
-            <Text>Call spec:</Text>
-            <Text type="secondary">{`${method.method[1].display()}`}</Text>
-        </div>
+        <MethodSpec method={method} />
         {method.method[1].argTypes.length > 0 && <Form form={form} initialValues={method.params}>
             <div className='method-param-config-container'>
                 {/* <Form.List name={method.function_name}> */}

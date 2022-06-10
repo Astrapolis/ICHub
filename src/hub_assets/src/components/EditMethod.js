@@ -39,7 +39,7 @@ const EditMethod = (props) => {
 
     return <div className='addmethod-container'>
         <div className='content-header-container'>
-            {`${method.canister_name}(${method.canister_id})`}
+            <Text>{`${method.canister_name}(${method.canister_id})`}</Text>
         </div>
         <div className='addmethod-tabs-container'>
             <Tabs activeKey={method.uuid} >
