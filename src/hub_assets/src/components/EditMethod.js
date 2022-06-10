@@ -30,7 +30,12 @@ const EditMethod = (props) => {
     }
 
     const onConfirm = () => {
-        method.params = editForm.getFieldsValue(true);
+        method.params = [];
+        let updatedValue = editForm.getFieldsValue(true);
+        for (let i = 0; i < method.method[1].argTypes.length; i++) {
+            method.params[i] = updatedValue[i];
+        }
+        // method.params[] = editForm.getFieldsValue(true);
         method.uuid = uuidv4();
         onMethodUpdated(method);
 
@@ -44,7 +49,7 @@ const EditMethod = (props) => {
         <div className='addmethod-tabs-container'>
             <Tabs activeKey={method.uuid} >
                 <TabPane tab={renderTabName(method)} key={method.uuid} >
-                    <EditMethodParamForm method={method} paramIndex={0} onNewForm={onNewForm} mode={"new"} />
+                    <EditMethodParamForm method={method} methodIndex={0} onNewForm={onNewForm} mode={"new"} />
                 </TabPane>
             </Tabs>
         </div>

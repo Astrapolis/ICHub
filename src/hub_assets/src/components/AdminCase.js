@@ -7,6 +7,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { getUserActiveConfigIndex, getCanisterList, convertTimestampToBigInt } from '../utils/devhubUtils';
 import { getFieldFromActor } from '../utils/actorUtils';
 import { isMethodCallable } from '../utils/paramRenderUtils';
+import { str2Utf8Bytes } from '../utils/stringUtils';
 import { useAuth } from '../auth';
 import MethodSpec from './MethodSpec';
 import SelectCanister from './SelectCanister';
@@ -35,6 +36,7 @@ const AdminCase = (props) => {
     const [activeMethod, setActiveMethod] = useState(null);
     const [activeCallMethod, setActiveCallMethod] = useState(null);
     const [activeCallCanister, setActiveCallCanister] = useState(null);
+    const [callHistory, setCallHistory] = useState([]);
 
     const [titleEditForm] = Form.useForm();
 
@@ -120,6 +122,7 @@ const AdminCase = (props) => {
             let cans = await getCanisterList(user, true);
             setCanisterList(cans);
             let list = await user.devhubActor.get_test_cases(getUserActiveConfigIndex(user), [{ tag: caseid }], [20]);
+            console.log("case list result ===>", list);
             if (list.Authenticated) {
                 let clist = list.Authenticated;
                 if (clist.length === 0) {
@@ -245,36 +248,102 @@ const AdminCase = (props) => {
         setShowBottomDrawer(true);
     }
 
+    const prepareCallEvent = (result) => {
+        return {
+            time_at: convertTimestampToBigInt(new Date().getTime()),
+            caller: user.identity.getPrincipal(),
+            result: str2Utf8Bytes(result)
+        }
+    }
+
+    const prepareCaseView = (testCase, results) => {
+        testCase.time_at = convertTimestampToBigInt(new Date().getTime());
+        // testCaseView.canister_id = Principal.fromText(testCaseView.canister_id);
+        testCase.canister_calls.forEach((med, index) => {
+            delete med.uuid;
+            delete med.canister_name;
+            med.method = undefined;
+            med.canister_id = Principal.fromText(med.canister_id);
+            med.event = []; // null rep of opt type
+            med.params = JSON.stringify(med.params);
+            if (results) {
+                med.event = [prepareCallEvent(results[i])];
+            }
+        });
+        testCase.config = JSON.stringify(testCase.config);
+        testCase.case_run_id = [];
+        console.log('ready to save cases', testCase);
+    }
+
     const onUpdateCase = async () => {
         setUpdating(true)
         try {
             let testCaseView = cloneCase(editCase);
-            testCaseView.time_at = convertTimestampToBigInt(new Date().getTime());
-            // testCaseView.canister_id = Principal.fromText(testCaseView.canister_id);
-            testCaseView.canister_calls.forEach((med, index) => {
-                delete med.uuid;
-                delete med.canister_name;
-                med.method = undefined;
-                med.canister_id = Principal.fromText(med.canister_id);
-                med.event = []; // null rep of opt type
-                med.params = JSON.stringify(med.params);
-
-            });
-            testCaseView.config = JSON.stringify(testCaseView.config);
-            testCaseView.case_run_id = [];
-            console.log('ready to save cases', testCaseView);
+            prepareCaseView(testCaseView);
             let result = await user.devhubActor.cache_test_case(getUserActiveConfigIndex(user), testCaseView);
-            let newEditCase = cloneCase(editCase);
-            setCaseDetail(editCase);
-            setEditCase(newEditCase);
+            if (result.Authenticated) {
+                if (result.Authenticated.Ok) {
+                    editCase.case_run_id = result.Authenticated.Ok;
+                    let newCaseDetail = cloneCase(editCase);
+                    setCaseDetail(newCaseDetail);
+                    setSaveEnable(false);
+                    setUpdating(false);
+                    return true;
+                } else {
+                    message.error(result.Authenticated.Err);
+                    setUpdating(false);
+                    return false;
+                }
+            } else {
+                message.error(result.UnAuthenticated);
+                setUpdating(false);
+                return false;
+            }
+
+
 
         } catch (err) {
+            setUpdating(false);
             console.log('update case  failed', err);
             message.error('update case  failed:' + err);
+            return false;
+        }
+    }
+
+    const onSaveAndRunCase = async () => {
+        let success = await onUpdateCase();
+        if (success) {
+            onRunCase();
+        }
+    }
+
+    const onSaveRunResult = async (results) => {
+        let testCaseView = cloneCase(editCase);
+        prepareCaseView(testCaseView, results);
+        setUpdating(true);
+        try {
+            let result = await user.devhubActor.cache_test_case(getUserActiveConfigIndex(user), testCaseView);
+            if (result.Authenticated) {
+                if (result.Authenticated.Ok) {
+                    editCase.case_run_id = result.Authenticated.Ok;
+                    let newCaseDetail = cloneCase(editCase);
+                    setCaseDetail(newCaseDetail);
+                    setSaveEnable(false);
+                } else {
+                    message.error(result.Authenticated.Err);
+                }
+            } else {
+                message.error(result.UnAuthenticated);
+            }
+        } catch (err) {
+            setUpdating(false);
+            console.log('update case  failed', err);
+            message.error('update case  failed:' + err);
+            return false;
         }
         setUpdating(false);
-
     }
+
     const onResetEditTitle = () => {
         titleEditForm.resetFields();
         setEditTitle(false);
@@ -421,7 +490,11 @@ const AdminCase = (props) => {
                                         <Table.Summary.Cell index={1} colSpan={2}>
                                             <Button style={{ marginLeft: 10 }} type="primary" disabled={editTitle || updating}
                                                 onClick={() => {
-                                                    onRunCase();
+                                                    if (saveEnable) {
+                                                        onSaveAndRunCase();
+                                                    } else {
+                                                        onRunCase();
+                                                    }
                                                 }}
                                             >{saveEnable ? "Save & Call All" : "Call All"}</Button>
                                         </Table.Summary.Cell>}

@@ -19,22 +19,37 @@ const RunMethodTimeline = (props) => {
     const [result, setResult] = useState(null);
 
     const runRequest = async () => {
-        setRequestDate(new Date().getTime());
+        let startTime = new Date().getTime();
+        setRequestDate(startTime);
         try {
             console.log('canister actor', canisterActor, method);
             let callResult = await canisterActor[method.function_name](...method.params);
             setCallStatus("success");
             let stringifyResult = getFieldNormalizedResult(method.method[1], callResult);
+            let endTime = new Date().getTime();
             setResult(stringifyResult);
-            onResult(index, true, stringifyResult);
-            setResponseDate(new Date().getTime());
+
+            setResponseDate(endTime);
+            onResult(index, true, {
+                stringifyResult,
+                startTime,
+                endTime,
+                success: true
+            });
         } catch (err) {
             console.log('run error', err);
             setCallStatus("danger");
             let stringifyResult = "Error:" + err.message;
+            let endTime = new Date().getTime();
             setResult(stringifyResult);
-            onResult(index, false, stringifyResult);
-            setResponseDate(new Date().getTime());
+            setResponseDate(endTime);
+            onResult(index, false, {
+                stringifyResult,
+                startTime,
+                endTime,
+                success: false
+            });
+            
         }
         setRunDone(true);
     }
