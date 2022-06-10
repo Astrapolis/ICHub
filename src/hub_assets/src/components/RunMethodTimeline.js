@@ -26,14 +26,14 @@ const RunMethodTimeline = (props) => {
             setCallStatus("success");
             let stringifyResult = getFieldNormalizedResult(method.method[1], callResult);
             setResult(stringifyResult);
-            onResult(true, stringifyResult);
+            onResult(index, true, stringifyResult);
             setResponseDate(new Date().getTime());
         } catch (err) {
             console.log('run error', err);
             setCallStatus("danger");
             let stringifyResult = "Error:" + err.message;
             setResult(stringifyResult);
-            onResult(false, stringifyResult);
+            onResult(index, false, stringifyResult);
             setResponseDate(new Date().getTime());
         }
         setRunDone(true);

@@ -14,6 +14,7 @@ import AddMethod from './AddMethod';
 import EditMethod from './EditMethod';
 import MethodParamsDisplay from './MethodParamsDisplay';
 import CallOncePanel from './CallOncePanel';
+import RunCasePanel from './RunCasePanel';
 
 import "./styles/AdminCase.less";
 
@@ -228,6 +229,22 @@ const AdminCase = (props) => {
         setShowBottomDrawer(true);
     }
 
+    const onRunCase = () => {
+        for (const [index, entry] of editCase.canister_calls.entries()) {
+            let canister = canisterList.find(can => can.canisterId === entry.canister_id);
+            if (!canister) {
+                message.warn("Can not find canister(" + entry.canister_name + ") in follow list, please check");
+                return;
+            }
+            if (!isMethodCallable(entry)) {
+                message.warn("Please set the parameter value first!");
+                return;
+            }
+        }
+        setDrawerStep("runcase");
+        setShowBottomDrawer(true);
+    }
+
     const onUpdateCase = async () => {
         setUpdating(true)
         try {
@@ -403,7 +420,9 @@ const AdminCase = (props) => {
                                     {editCase.canister_calls.length > 0 &&
                                         <Table.Summary.Cell index={1} colSpan={2}>
                                             <Button style={{ marginLeft: 10 }} type="primary" disabled={editTitle || updating}
-
+                                                onClick={() => {
+                                                    onRunCase();
+                                                }}
                                             >{saveEnable ? "Save & Call All" : "Call All"}</Button>
                                         </Table.Summary.Cell>}
                                 </Table.Summary.Row>
@@ -448,6 +467,7 @@ const AdminCase = (props) => {
                                     closeDrawer={closeDrawer}
                                     canisterActor={activeCanister.actor}
                                 />}
+                                {drawerStep === 'runcase' && <RunCasePanel testCase={editCase} canisterList={canisterList} closeDrawer={closeDrawer} />}
                             </div>
                         </div>
                     </Drawer>

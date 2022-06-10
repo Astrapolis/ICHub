@@ -7,7 +7,7 @@ const CallOncePanel = (props) => {
     const { method, index, canisterActor, closeDrawer } = props;
     const [calling, setCalling] = useState(true);
 
-    const onResult = (index, result) => {
+    const onResult = (index, success, result) => {
         setCalling(false);
     }
 
