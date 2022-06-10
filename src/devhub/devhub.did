@@ -40,8 +40,19 @@ type TestCaseView = record {
     canister_calls: vec CanisterCall;
 };
 
+type CaseFilteAll = record {
+    is_distinct : bool; 
+    limit : opt nat16;
+};
+
+type CaseFilteTag = record {
+  tag : text; 
+  limit : opt nat16;
+};
+
 type TestCaseFilter = variant {
-    tag : text;
+    all : CaseFilteAll;
+    tag : CaseFilteTag;
     case_run_id : nat16;
 };
 
@@ -85,7 +96,7 @@ type GetCallResult = variant {
 };
 
 type CacheTestResult = variant {
-  Authenticated : variant {Ok: nat16; Err: text};
+  Authenticated : nat16;
   UnAuthenticated: text;
 };
 
@@ -106,7 +117,7 @@ service devhub : {
   cache_test_case: (nat16, TestCaseView) -> (CacheTestResult);
   get_user_config : (nat16) -> (GetConfigResult) query;
   get_canister_calls: (nat16, opt principal, opt text, opt nat16 ) -> (GetCallResult) query;
-  get_test_cases: (nat16, opt TestCaseFilter, opt nat16 ) -> (GetTestResult) query;
+  get_test_cases: (nat16, TestCaseFilter ) -> (GetTestResult) query;
   get_user_config_stats : (nat16) -> (opt UserStats);
   get_canister_state_stats: () -> (CanisterStateStats) query;
   get_principal: () -> (principal) query;
