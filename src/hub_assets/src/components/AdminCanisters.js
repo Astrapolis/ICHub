@@ -54,7 +54,7 @@ const AdminCanisters = (props) => {
     }];
 
     return <>
-        <div className='content-header-container'>Canisters Followed</div>
+        <div className='content-header-container canister-toolbar'>Canisters Followed</div>
         <div>
             <Table bordered
             rowKey={'canisterId'}

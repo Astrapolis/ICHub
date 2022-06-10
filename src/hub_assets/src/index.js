@@ -6,7 +6,7 @@ import { useConnect, useDialog, useProviders, Connect2ICProvider, ConnectButton,
 import { BrowserRouter as Router, Routes, Route, Redirect, Link, NavLink, useMatch, useLocation} from "react-router-dom";
 
 // import "@connect2ic/core/style.css"
-import "antd/dist/antd.css";
+// import "antd/dist/antd.css";
 import "./index.less";
 
 import * as hub from "../../../.dfx/local/canisters/hub";
