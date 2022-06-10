@@ -117,7 +117,7 @@ service devhub : {
   cache_test_case: (nat16, TestCaseView) -> (CacheTestResult);
   get_user_config : (nat16) -> (GetConfigResult) query;
   get_canister_calls: (nat16, opt principal, opt text, opt nat16 ) -> (GetCallResult) query;
-  get_test_cases: (nat16, opt TestCaseFilter ) -> (GetTestResult) query;
+  get_test_cases: (nat16, TestCaseFilter ) -> (GetTestResult) query;
   get_user_config_stats : (nat16) -> (opt UserStats);
   get_canister_state_stats: () -> (CanisterStateStats) query;
   get_principal: () -> (principal) query;
