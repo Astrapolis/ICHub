@@ -1,7 +1,7 @@
 use candid::{Deserialize, Principal, CandidType, candid_method, IDLProg, TypeEnv, check_prog};
 use serde::Serialize;
 use std::cell::RefCell;
-use std::collections::VecDeque;
+use std::collections::{VecDeque, HashSet};
 use std::string::String;
 use ic_cdk_macros;
 use ic_cdk::api;
@@ -158,7 +158,7 @@ struct TestCase {
     canister_call_ids: std::ops::Range<u32>
 }
 
-#[derive(CandidType, Deserialize, Serialize, Debug, Clone)]
+#[derive(CandidType, Deserialize, Serialize, Debug)]
 pub struct TestCaseView {
     case_run_id : Option<u16>,
     tag: String,
@@ -167,12 +167,32 @@ pub struct TestCaseView {
     canister_calls: Vec<CanisterCall>
 }
 
-#[derive(CandidType, Deserialize, Serialize, Debug, Clone)]
+impl TestCaseView {
+    fn is_template(&self) -> bool {
+        self.canister_calls.iter().any(|call| call.event.is_some())
+    }
+}
+
+#[derive(CandidType, Deserialize, Serialize, Debug)]
 pub enum TestCaseFilter {
+    #[serde(rename = "all")]
+    All(CaseFilteAll),
     #[serde(rename = "tag")]
-    Tag(String),
+    Tag(CaseFilteTag),
     #[serde(rename = "case_run_id")]
     TestCaseId(u16)
+}
+
+#[derive(CandidType, Debug, Deserialize, Clone, Serialize)]
+pub struct CaseFilteAll {
+    is_distinct : bool,
+    limit: Option<u16>
+}
+
+#[derive(CandidType, Debug, Deserialize, Clone, Serialize)]
+pub struct CaseFilteTag {
+    tag : String,
+    limit: Option<u16>
 }
 
 #[derive(CandidType, Debug, Deserialize, Clone, Serialize)]
@@ -291,32 +311,44 @@ impl UserConfig {
         }
     }
     
-    fn cache_test_case(&mut self, test_case: TestCaseView) -> Result<u16, String> {
-        match test_case.case_run_id {
+    fn cache_test_case(&mut self, test_case: TestCaseView) -> u16 {
+        let case_run_id;
+        let last_test_cases = self.get_test_cases(TestCaseFilter::Tag(CaseFilteTag{tag: test_case.tag.clone(), limit : Some(1)}));
+        let last_test_case = last_test_cases.first();
+        match last_test_case {
+            //if tag not exist, create a new case
+            None => {case_run_id = None}
+            Some(test_case) => {
+                match test_case.is_template() {
+                    // if test_case contains no event, over_ride the test case
+                    true => {case_run_id = test_case.case_run_id}
+                    // if test test_case contains event, create a test case
+                    false => {case_run_id = None}
+                }
+            }
+        }
+
+        match case_run_id {
             None => {
                 self.test_cases.push(TestCase { 
                     tag: test_case.tag, config: test_case.config, 
                     time_at: test_case.time_at, 
                     canister_call_ids: (self.last_call_id..self.last_call_id+test_case.canister_calls.len() as u32) });
-                self.insert_canister_calls(test_case.canister_calls);            
-                Ok((self.test_cases.len()-1) as u16)
+                self.insert_canister_calls(test_case.canister_calls);
+                (self.test_cases.len()-1) as u16
             }
-            Some(case_run_id) => {
-                match self.test_cases.get_mut(case_run_id as usize) {
-                    None => {Err(format!("case_run_id : {} not found", case_run_id))}
-                    Some(existing_test_case) => {
-                        match existing_test_case.tag == test_case.tag {
-                            true => {
-                                existing_test_case.config = test_case.config; 
-                                existing_test_case.time_at = test_case.time_at;
-                                existing_test_case.canister_call_ids = self.last_call_id..self.last_call_id+test_case.canister_calls.len() as u32;
-                                self.insert_canister_calls(test_case.canister_calls);            
-                                Ok(case_run_id as u16)
-                            }
-                            false => {Err(format!("inconsistent test_case tag : {} vs {}", existing_test_case.tag, test_case.tag))}
-                        }
-                    }
+            Some(run_id) => {
+                let existing_case = self.test_cases.get_mut(run_id as usize);
+                match existing_case {
+                Some(case) => {
+                    case.config = test_case.config; 
+                    case.time_at = test_case.time_at;
+                    case.canister_call_ids = self.last_call_id..self.last_call_id+test_case.canister_calls.len() as u32;
+                    self.insert_canister_calls(test_case.canister_calls);
                 }
+                None => {}
+                }
+                run_id        
             }
         }
     }
@@ -327,7 +359,7 @@ impl UserConfig {
             ui_config: self.ui_config.clone(),
             canister_configs: self.get_canisters_configs(true),
             canister_calls: self.get_canister_calls(None, None, Some(100)),
-            test_cases: self.get_test_cases(None, Some(10)),
+            test_cases: self.get_test_cases(TestCaseFilter::All(CaseFilteAll{is_distinct: true, limit: Some(10)})),
             stats: self.get_user_config_stats(true),
         }
     }
@@ -377,36 +409,45 @@ impl UserConfig {
             canister_calls : self.get_canister_calls_by_range(&test_case.canister_call_ids)}
     }    
     
-    fn get_test_cases(&self, filter_by: Option<TestCaseFilter>, limit: Option<u16>) -> Vec<TestCaseView> {
+    fn get_test_cases(&self, filter_by: TestCaseFilter) -> Vec<TestCaseView> {
         let mut related_test_cases : Vec<TestCaseView> = Vec::new();
         let test_cases_length = self.test_cases.len();
         match filter_by {
-            None => {
+            TestCaseFilter::All(case_filter_all) => {
+                let mut unique_tags = HashSet::new();
                 for (idx, test_case) in self.test_cases.iter().rev().enumerate() {
-                    if Some(related_test_cases.len() as u16) == limit { return related_test_cases }
                     let case_run_id = (test_cases_length - idx - 1) as u16 ; 
-                    related_test_cases.push(self.build_view_by_test_case(case_run_id, test_case))
-                }
-            }
-            Some(filter) => {
-                match filter {
-                    TestCaseFilter::Tag(tag) => {
-                        for (idx, test_case) in self.test_cases.iter().rev().enumerate() {
-                            if Some(related_test_cases.len() as u16) == limit { return related_test_cases }                            
-                            if tag == test_case.tag {
-                                let case_run_id = (test_cases_length - idx - 1) as u16;
-                                related_test_cases.push(self.build_view_by_test_case(case_run_id as u16, test_case));
-                            }
-                        }                        
+                    if Some(related_test_cases.len() as u16) == case_filter_all.limit { 
+                        return related_test_cases 
                     }
-                    TestCaseFilter::TestCaseId(case_run_id) => {
-                        match self.test_cases.get(case_run_id as usize) {
-                            None => {return Vec::new()}
-                            Some(test_case) => {return vec![self.build_view_by_test_case(case_run_id as u16, test_case)]}
+                    if case_filter_all.is_distinct {
+                        if !unique_tags.contains(&test_case.tag) {
+                            unique_tags.insert(test_case.tag.clone());
+                            related_test_cases.push(self.build_view_by_test_case(case_run_id, test_case))
                         }
+                    } else {    
+                        related_test_cases.push(self.build_view_by_test_case(case_run_id, test_case))
                     }
                 }
             }
+
+            TestCaseFilter::Tag(case_filter_tag) => {
+                for (idx, test_case) in self.test_cases.iter().rev().enumerate() {
+                    if Some(related_test_cases.len() as u16) == case_filter_tag.limit { return related_test_cases }                            
+                    if case_filter_tag.tag == test_case.tag {
+                        let case_run_id = (test_cases_length - idx - 1) as u16;
+                        related_test_cases.push(self.build_view_by_test_case(case_run_id as u16, test_case));
+                    }
+                }  
+            }
+
+            TestCaseFilter::TestCaseId(case_run_id) => {
+                match self.test_cases.get(case_run_id as usize) {
+                    None => {return Vec::new()}
+                    Some(test_case) => {return vec![self.build_view_by_test_case(case_run_id as u16, test_case)]}
+                }
+            }
+
         }
         related_test_cases
     }
@@ -623,7 +664,7 @@ async fn cache_canister_calls(user_config_index: u16, canister_calls : Vec<Canis
 
 #[ic_cdk_macros::update(name = "cache_test_case")]
 #[candid_method(update, rename = "cache_test_case")]
-async fn cache_test_case(user_config_index: u16, test_case : TestCaseView)-> CallResult<Result<u16, String>, String>{
+async fn cache_test_case(user_config_index: u16, test_case : TestCaseView)-> CallResult<u16, String>{
     STATE.with(|config_state| {
         let caller = api::caller();
         let mut config_state = config_state.borrow_mut();
@@ -702,7 +743,7 @@ fn get_canister_calls(user_config_index: u16, canister_id: Option<Principal>, fu
 
 #[ic_cdk_macros::query(name = "get_test_cases")]
 #[candid_method(query, rename = "get_test_cases")]
-fn get_test_cases(user_config_index: u16, filter_by: Option<TestCaseFilter>, limit: Option<u16>) 
+fn get_test_cases(user_config_index: u16, filter_by: TestCaseFilter) 
                     -> CallResult<Vec<TestCaseView>, String>
 {
     STATE.with(|config_state| {
@@ -710,7 +751,7 @@ fn get_test_cases(user_config_index: u16, filter_by: Option<TestCaseFilter>, lim
         let config_state = config_state.borrow();
         match config_state.get_user_config(user_config_index, &caller){
             Ok(user_config) => {
-                CallResult::Authenticated(user_config.get_test_cases(filter_by, limit))
+                CallResult::Authenticated(user_config.get_test_cases(filter_by))
             }
             Err(msg) => {
                 CallResult::UnAuthenticated(msg)
