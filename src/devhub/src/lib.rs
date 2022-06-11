@@ -194,7 +194,7 @@ pub struct TestCaseView {
 
 impl TestCaseView {
     fn is_template(&self) -> bool {
-        self.canister_calls.iter().any(|call| call.event.is_some())
+        !self.canister_calls.iter().any(|call| call.event.is_some())
     }
 }
 
