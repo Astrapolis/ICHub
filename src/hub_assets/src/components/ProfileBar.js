@@ -3,7 +3,7 @@ import { Principal } from "@dfinity/principal";
 import { useAuth } from '../auth';
 import { useParams, useNavigate } from "react-router-dom";
 import { Button, Tooltip } from 'antd';
-import { DownOutlined, ContactsOutlined } from "@ant-design/icons";
+import { LogoutOutlined, ContactsOutlined } from "@ant-design/icons";
 import './styles/ProfileBar.less';
 
 const ProfileBar = (props) => {
@@ -12,13 +12,13 @@ const ProfileBar = (props) => {
     let principalId = auth.user.identity.getPrincipal().toText();
 
     return (<div className='profilebar-container'>
-        <Button type="dashed" icon={<ContactsOutlined />} />
+        <Button icon={<ContactsOutlined />} />
         <Tooltip placement="bottom" title={principalId}>
             <div className='principal-container'>
                 {principalId}
             </div>
         </Tooltip>
-        <Button type="dashed" icon={<DownOutlined />} onClick={() => {
+        <Button icon={<LogoutOutlined />} onClick={() => {
             auth.signout();
         }}/>
     </div>)

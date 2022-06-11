@@ -27,7 +27,7 @@ const AdminLayout = (props) => {
     const [caseList, setCaseList] = useState([]);
     const loc = useLocation();
     const nav = useNavigate();
-    const { user } = useAuth();
+    const { user, refreshUserConfig } = useAuth();
     let { caseid } = useParams();
 
     const dashboardMenu = {
@@ -44,6 +44,11 @@ const AdminLayout = (props) => {
     const historyMenu = {
         label: 'History', key: HISTORY_KEY, icon: <HistoryOutlined />
     };
+    const loadUserConfig = async () => {
+        setLoading(true);
+        await refreshUserConfig();
+        setLoading(false);
+    }
 
     const fetchCaseList = async () => {
         setLoading(true);
@@ -79,6 +84,23 @@ const AdminLayout = (props) => {
         setLoading(false);
     };
 
+    // TestCaseView
+    const makeMenuList = (cases) => {
+        let subMenus = [];
+        cases.forEach(c => {
+            c.config = JSON.parse(c.config);
+            let subm = {
+                label: c.config.name,
+                key: CASE_KEY + c.tag
+            }
+            subMenus.push(subm);
+        });
+        setCaseList([...cases]);
+        caseMenu.children = [...subMenus, {
+            label: 'New Case', key: NEWCASE_KEY, icon: <AppstoreAddOutlined />
+        }];
+        setMenuList([dashboardMenu, caseMenu, canisterMenu, historyMenu]);
+    }
 
     const onMenuSelectChange = (menu) => {
         console.log('selected menu', menu);
@@ -128,9 +150,18 @@ const AdminLayout = (props) => {
 
     useEffect(() => {
         if (user) {
-            fetchCaseList();
+            // fetchCaseList();
+            loadUserConfig();
         }
     }, []);
+
+    useEffect(() => {
+        if (user && user.devhubConfig) {
+            console.log('user config', user.devhubConfig);
+            makeMenuList(user.devhubConfig.test_cases);
+        }
+    }, [user]);
+
 
     useEffect(() => {
         console.log('loc ===>', loc);
@@ -168,7 +199,7 @@ const AdminLayout = (props) => {
                     <Menu items={menuList} mode="inline" defaultOpenKeys={[CASES_KEY]}
                         selectedKeys={[activeRoute]} onSelect={onMenuSelectChange} />
                 </Sider>
-                <Layout>
+                <Layout className='admin-content-container'>
                     <Routes>
                         <Route path='/' element={<Navigate replace to="dashboard" />} />
 

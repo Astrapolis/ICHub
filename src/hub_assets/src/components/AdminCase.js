@@ -37,10 +37,12 @@ const AdminCase = (props) => {
     const [activeCallMethod, setActiveCallMethod] = useState(null);
     const [activeCallCanister, setActiveCallCanister] = useState(null);
     const [callHistory, setCallHistory] = useState([]);
+    const [historyLoading, setHistoryLoading] = useState(false);
+    const [historySaving, setHistorySaving] = useState(false);
 
     const [titleEditForm] = Form.useForm();
 
-    const { user } = useAuth();
+    const { user, refreshUserConfig } = useAuth();
 
     const drawerTitle = {
         canister: "Add Call",
@@ -121,8 +123,8 @@ const AdminCase = (props) => {
         try {
             let cans = await getCanisterList(user, true);
             setCanisterList(cans);
-            let list = await user.devhubActor.get_test_cases(getUserActiveConfigIndex(user), [{ tag: caseid }], [20]);
-            console.log("case list result ===>", list);
+            let list = await user.devhubActor.get_test_cases(getUserActiveConfigIndex(user), { tag: { tag: caseid, limit: [] } });
+            console.log("case list result ===>", caseid, list);
             if (list.Authenticated) {
                 let clist = list.Authenticated;
                 if (clist.length === 0) {
@@ -148,20 +150,21 @@ const AdminCase = (props) => {
                                 }
                             }
                         }
-
                     })
                     let tdetail = cloneCase(cdetail);
                     setCaseDetail(cdetail);
                     setEditCase(tdetail);
                 }
-
             }
         } catch (err) {
             console.log('fetch case detail error', err);
             message.error('fetch case detail error: ' + err);
         }
-
         setLoading(false);
+    }
+
+    const fetchCaseCallHistory = () => {
+
     }
 
     let cloneCase = (caseA) => {
@@ -258,20 +261,24 @@ const AdminCase = (props) => {
 
     const prepareCaseView = (testCase, results) => {
         testCase.time_at = convertTimestampToBigInt(new Date().getTime());
+        testCase.case_run_id = []; // null of opt
         // testCaseView.canister_id = Principal.fromText(testCaseView.canister_id);
+        testCase.config.canisterMapping = {};
         testCase.canister_calls.forEach((med, index) => {
+            med.canister_id = Principal.fromText(med.canister_id);
+            testCase.config.canisterMapping[med.canister_id] = med.canister_name;
             delete med.uuid;
             delete med.canister_name;
             med.method = undefined;
-            med.canister_id = Principal.fromText(med.canister_id);
             med.event = []; // null rep of opt type
             med.params = JSON.stringify(med.params);
             if (results) {
-                med.event = [prepareCallEvent(results[i])];
+                med.event = prepareCallEvent(results[i]);
             }
         });
+        
+
         testCase.config = JSON.stringify(testCase.config);
-        testCase.case_run_id = [];
         console.log('ready to save cases', testCase);
     }
 
@@ -280,27 +287,20 @@ const AdminCase = (props) => {
         try {
             let testCaseView = cloneCase(editCase);
             prepareCaseView(testCaseView);
+            console.log('ready to save test case', testCaseView);
             let result = await user.devhubActor.cache_test_case(getUserActiveConfigIndex(user), testCaseView);
-            if (result.Authenticated) {
-                if (result.Authenticated.Ok) {
-                    editCase.case_run_id = result.Authenticated.Ok;
-                    let newCaseDetail = cloneCase(editCase);
-                    setCaseDetail(newCaseDetail);
-                    setSaveEnable(false);
-                    setUpdating(false);
-                    return true;
-                } else {
-                    message.error(result.Authenticated.Err);
-                    setUpdating(false);
-                    return false;
-                }
+            if (result.Authenticated || result.Authenticated === 0) {
+                // editCase.case_run_id = result.Authenticated;
+                let newCaseDetail = cloneCase(editCase);
+                setCaseDetail(newCaseDetail);
+                setSaveEnable(false);
+                setUpdating(false);
+                return true;
             } else {
                 message.error(result.UnAuthenticated);
                 setUpdating(false);
                 return false;
             }
-
-
 
         } catch (err) {
             setUpdating(false);
@@ -320,12 +320,12 @@ const AdminCase = (props) => {
     const onSaveRunResult = async (results) => {
         let testCaseView = cloneCase(editCase);
         prepareCaseView(testCaseView, results);
-        setUpdating(true);
+        setHistorySaving(true);
         try {
             let result = await user.devhubActor.cache_test_case(getUserActiveConfigIndex(user), testCaseView);
             if (result.Authenticated) {
-                if (result.Authenticated.Ok) {
-                    editCase.case_run_id = result.Authenticated.Ok;
+                if (result.Authenticated) {
+                    editCase.case_run_id = result.Authenticated;
                     let newCaseDetail = cloneCase(editCase);
                     setCaseDetail(newCaseDetail);
                     setSaveEnable(false);
@@ -341,7 +341,7 @@ const AdminCase = (props) => {
             message.error('update case  failed:' + err);
             return false;
         }
-        setUpdating(false);
+        setHistorySaving(false);
     }
 
     const onResetEditTitle = () => {
@@ -420,7 +420,8 @@ const AdminCase = (props) => {
 
     useEffect(() => {
         fetchCaseDetail();
-    }, [])
+        fetchCaseCallHistory();
+    }, [caseid])
 
     useEffect(() => {
         if (caseDetail && editCase) {
@@ -433,8 +434,8 @@ const AdminCase = (props) => {
     }, [editCase])
 
     return <div className='section-column-content-container'>
-        {(loading || updating) && <Spin size="large" />}
-        {!loading && !updating && editCase &&
+        {!editCase && loading && <Spin size="large" />}
+        {editCase &&
             <>
                 <div className='content-header-container case-toolbar'>
                     <div>
@@ -465,7 +466,7 @@ const AdminCase = (props) => {
                         </>}
                     </div>
                     <div className='case-toolbar-operation-container'>
-                        <Button type="primary" disabled={!saveEnable || editTitle} loading={updating} size="large"
+                        <Button type="primary" disabled={!saveEnable || editTitle} loading={updating || loading} size="large"
                             onClick={() => {
                                 onUpdateCase();
                             }}
@@ -488,7 +489,7 @@ const AdminCase = (props) => {
                                     </Table.Summary.Cell>
                                     {editCase.canister_calls.length > 0 &&
                                         <Table.Summary.Cell index={1} colSpan={2}>
-                                            <Button style={{ marginLeft: 10 }} type="primary" disabled={editTitle || updating}
+                                            <Button style={{ marginLeft: 10 }} type="primary" disabled={editTitle || updating} loading={historyLoading}
                                                 onClick={() => {
                                                     if (saveEnable) {
                                                         onSaveAndRunCase();
@@ -540,7 +541,10 @@ const AdminCase = (props) => {
                                     closeDrawer={closeDrawer}
                                     canisterActor={activeCanister.actor}
                                 />}
-                                {drawerStep === 'runcase' && <RunCasePanel testCase={editCase} canisterList={canisterList} closeDrawer={closeDrawer} />}
+                                {drawerStep === 'runcase' && <RunCasePanel testCase={editCase} 
+                                canisterList={canisterList}
+                                onSaveRunResult={onSaveRunResult}
+                                closeDrawer={closeDrawer} />}
                             </div>
                         </div>
                     </Drawer>

@@ -8,8 +8,10 @@ import {
     useLocation
 } from "react-router-dom";
 
-import { Button, message } from "antd";
+
+import { Button, message, Card } from "antd";
 import { useAuth } from '../auth';
+import "./styles/login.less";
 
 const Login = (props) => {
     let nav = useNavigate();
@@ -21,26 +23,28 @@ const Login = (props) => {
 
     let { from } = location.state || { from: { pathname: "/" } };
     return (
-        <div>
+        <div className='login-content-container'>
+            <Card title="Connect To II">
 
-            <Button type="primary" loading={connecting} onClick={() => {
-                setConnecting(true);
-                auth.signin((success, provider) => {
-                    setConnecting(false);
-                    if (success) {
-                        nav(from);
-                    } else {
-                        message.error(provider);
-                        setLoginResult(provider);
+                <Button type="primary" loading={connecting} size="large" onClick={() => {
+                    setConnecting(true);
+                    auth.signin((success, provider) => {
+                        setConnecting(false);
+                        if (success) {
+                            nav(from);
+                        } else {
+                            message.error(provider);
+                            setLoginResult(provider);
 
-                    }
-                });
+                        }
+                    });
 
-            }}>
-                Connect by II
-            </Button>
+                }}>
+                    Connect
+                </Button>
 
-            {loginResult && <Button type="dashed" onClick={() => { auth.signout(() => { }) }}>Logout</Button>}
+                {loginResult && <Button type="dashed" onClick={() => { auth.signout(() => { }) }}>Logout</Button>}
+            </Card>
         </div>
 
     )

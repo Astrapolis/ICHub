@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Image, Button, Spin } from 'antd';
+import { Image, Button, Spin, Row, Col, Typography } from 'antd';
 import { BrowserRouter as Router, Routes, Route, Redirect, Link, NavLink, useMatch, useNavigate } from "react-router-dom";
 import logo from "./styles/logo.png";
 import "./styles/TopNavbar.less";
 import { useAuth } from '../auth';
 import ProfileBar from './ProfileBar';
+
+const { Text, Title } = Typography;
 
 const TopNavbar = (props) => {
     const auth = useAuth();
@@ -31,28 +33,29 @@ const TopNavbar = (props) => {
             } else {
                 setAuthChecking(false);
             }
-        } catch(err) {
+        } catch (err) {
             console.log('check auth error', err);
             setAuthChecking(false);
         }
-        
+
     }
     useEffect(() => {
         doAuthCheck();
     }, []);
 
 
-    return (
-        <div className='main-header'>
-            <div className="logo-container">
-                <Image src={logo} width={108} height={28} preview={false} />
-            </div>
-
+    return (<Row wrap={false}>
+        <Col flex="none">
+            <Image src={logo} width={108} height={28} preview={false} />
+        </Col>
+        <Col flex="auto">
             <div className='top-menu-container'>
                 <NavLink to="/">
                     <span className='top-link'>Candid+</span>
                 </NavLink>
             </div>
+        </Col>
+        <Col flex="none">
             {authChecking &&
                 <div className='login-connect-container'>
                     <Spin />
@@ -68,7 +71,9 @@ const TopNavbar = (props) => {
 
             </div>}
             {auth.user && <ProfileBar />}
-        </div>
+        </Col>
+    </Row>
+
     )
 }
 

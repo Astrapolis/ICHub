@@ -339,7 +339,15 @@ export function isMethodCallable(method) {
     try {
         method.method[1].argTypes.forEach((argType, index) => {
             let paramValues = method.params[index];
+            // console.log('checking accept value',argType, paramValues);
             let probValue = argType.accept(new GeneralValueParser(), paramValues);
+            // console.log('probValue ====>', probValue);
+            if (!argType.covariant(probValue)) {
+                // console.log('type check failed');
+                valueValid = false;
+            } else {
+                // console.log('type check passed');
+            }
 
         });
     } catch (err) {
@@ -347,4 +355,21 @@ export function isMethodCallable(method) {
         valueValid = false;
     }
     return valueValid;
+}
+
+
+export function getCallSpec(method) {
+    let specs = [];
+    method.method[1].argTypes.forEach((arg, index) => {
+        let valueDesc = {
+            type: arg.display(),
+            value: method.params[index]
+        };
+        let valueObject = {
+            // title: arg.display(),
+            spec: JSON.stringify(valueDesc)
+        }
+        specs.push(valueObject);
+    });
+    return specs;
 }

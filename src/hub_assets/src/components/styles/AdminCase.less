@@ -5,11 +5,6 @@
 }
 
 .case-toolbar-operation-container {
-    & {
-        .sz(20);
-        margin-right: @sz;
-    }
-
     height: 100%;
     display: flex;
     flex-direction: row;
@@ -35,10 +30,7 @@
     height: 100%;
     overflow-y: auto !important;
     overflow-x: hidden !important;
-    & {
-        .sz(490);
-        width: @sz;
-    }
+    flex: 1;
 
     position: relative;
 }
@@ -52,10 +44,7 @@
     height: 100%;
     overflow-y: auto;
 
-    & {
-        .sz(490);
-        width: @sz;
-    }
+    flex:1;
 
     position: relative;
 }

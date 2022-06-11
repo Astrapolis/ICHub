@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from "react-router-dom";
 import { useAuth } from '../auth';
 import { Image, Form, Input, Button } from 'antd';
+import {SearchOutlined} from "@ant-design/icons";
 import { Principal } from "@dfinity/principal";
 import "./styles/Wellcome.less";
 import leftPng from "./styles/wellcome-left-deco.png";
@@ -41,10 +42,11 @@ const Wellcome = (props) => {
 
 
                 <div className='wellcome-follow-form-container'>
-                    <Form onFinish={onSearch}>
+                    <Form onFinish={onSearch} layout="inline">
                         <Form.Item
                             className='canister-input-element'
                             name="canisterId"
+                            style={{width: '90%'}}
                             validateFirst
                             rules={[{ required: true, message: 'Please enter canisterId!' }, {
                                 message: 'not a principal format!',
@@ -61,9 +63,8 @@ const Wellcome = (props) => {
                             <Input size="large" />
                         </Form.Item>
                         <Form.Item className='canister-input-element'>
-                            <Button type="primary" htmlType="submit" size='large' style={{width: '100%'}}>
-                                Search
-                            </Button>
+                            <Button type="primary" htmlType="submit" size='large' icon={<SearchOutlined />} />
+                            
                         </Form.Item>
                     </Form>
                 </div>

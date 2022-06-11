@@ -6,6 +6,7 @@ import { Principal } from "@dfinity/principal";
 import { InternetIdentity } from "@connect2ic/core/providers/internet-identity";
 import { idlFactory } from '../../../declarations/hub/hub.did.js';
 import { getActorFromCanisterId, isLocalEnv } from '../utils/actorUtils';
+import { getUserActiveConfigIndex} from '../utils/devhubUtils';
 import localCanisterJson from "../../../../.dfx/local/canister_ids.json";
 import * as CONSTANT from "../constant";
 import { ConsoleSqlOutlined } from "@ant-design/icons";
@@ -20,7 +21,7 @@ async function getUserRegisterStatus() {
 
     try {
         let result = await hubActor.get_user_configs_by_user();
-        console.log("get_canisters_by_user result", result);
+        console.log("get_user_configs_by_user result", result);
         if (result.Authenticated && result.Authenticated.length > 0) {
             devhubsOfCurrentIdentity = [...result.Authenticated];
             return true;
@@ -289,11 +290,29 @@ export function useProvideAuth() {
         return await iiAuth.isSignedIn();
     };
 
+    const refreshUserConfig = async () => {
+        if (user) {
+            try {
+                let result = await user.devhubActor.get_user_config(getUserActiveConfigIndex(user));
+                if (result.Authenticated) {
+                    user.devhubConfig = result.Authenticated;
+                    setUser({...user});
+                } else {
+                    console.log('failed to get user config', result.UnAuthenticated);
+                }
+
+            } catch (err) {
+                console.log('get user config error', err);
+            }
+        }
+    }
+
     return {
         user,
         signin,
         signout,
-        isSignedIn
+        isSignedIn,
+        refreshUserConfig
     };
 }
 

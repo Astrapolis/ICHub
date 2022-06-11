@@ -5,7 +5,7 @@ import RunMethodTimeline from './RunMethodTimeline';
 const { Text } = Typography;
 
 const RunCasePanel = (props) => {
-    const { testCase, canisterList, closeDrawer } = props;
+    const { testCase, canisterList, closeDrawer, onSaveRunResult } = props;
     const [calling, setCalling] = useState(true);
     const [runningCases, setRunningCases] = useState([]);
     const [failed, setFailed] = useState(false);
@@ -39,7 +39,13 @@ const RunCasePanel = (props) => {
     }, [])
 
     return <Card title="Run Case" style={{ width: '100%' }}
-        actions={[<Button type="primary" disabled={failed} loading={calling} key="run-case-result-save">Save To History</Button>,
+        actions={[<Button type="primary" disabled={failed} loading={calling} 
+        key="run-case-result-save"
+        onClick={() => {
+            closeDrawer();
+            onSaveRunResult();
+        }}
+        >Save To History</Button>,
         <Button loading={calling} key="run-case-result-discard" onClick={() => {
             closeDrawer();
         }}>Discard</Button>]}
