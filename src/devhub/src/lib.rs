@@ -339,7 +339,11 @@ impl UserConfig {
     fn cache_test_case(&mut self, test_case: TestCaseView) -> u16 {
         let case_run_id;
         let last_test_cases = self.get_test_cases(
-            TestCaseFilter::Tag(CaseFilteTag {tag: test_case.tag.clone(),limit: Some(1),})
+            TestCaseFilter::Tag(CaseFilteTag {
+                tag: test_case.tag.clone(),
+                limit: Some(1),
+            }),
+            None,
         );
         let last_test_case = last_test_cases.first();
         match last_test_case {
@@ -390,10 +394,13 @@ impl UserConfig {
             ui_config: self.ui_config.clone(),
             canister_configs: self.get_canisters_configs(true),
             canister_calls: self.get_canister_calls(None, None, Some(100)),
-            test_cases: self.get_test_cases(TestCaseFilter::All(CaseFilteAll {
-                is_distinct: true,
-                limit: Some(10),
-            })),
+            test_cases: self.get_test_cases(
+                TestCaseFilter::All(CaseFilteAll {
+                    is_distinct: true,
+                    limit: Some(10),
+                }),
+                None,
+            ),
             stats: self.get_user_config_stats(true),
         }
     }
@@ -447,17 +454,42 @@ impl UserConfig {
             .collect()
     }
 
-    fn build_view_by_test_case(&self, case_run_id: u16, test_case: &TestCase) -> TestCaseView {
-        TestCaseView {
+    fn build_view_by_test_case(
+        &self,
+        case_run_id: u16,
+        test_case: &TestCase,
+        with_event: Option<bool>,
+    ) -> Option<TestCaseView> {
+        let mut canister_calls = self.get_canister_calls_by_range(&test_case.canister_call_ids);
+
+        match with_event {
+            None => {}
+            Some(with) => match with {
+                true => {
+                    let has_event = self.canister_calls.iter().any(|call| call.event.is_some());
+                    if !has_event {
+                        return None;
+                    }
+                }
+                false => {
+                    canister_calls.iter_mut().for_each(|call| call.event = None);
+                }
+            },
+        }
+        Some(TestCaseView {
             case_run_id: Some(case_run_id as u16),
             tag: test_case.tag.clone(),
             config: test_case.config.clone(),
             time_at: test_case.time_at.clone(),
-            canister_calls: self.get_canister_calls_by_range(&test_case.canister_call_ids),
-        }
+            canister_calls,
+        })
     }
 
-    fn get_test_cases(&self, filter_by: TestCaseFilter) -> Vec<TestCaseView> {
+    fn get_test_cases(
+        &self,
+        filter_by: TestCaseFilter,
+        with_event: Option<bool>,
+    ) -> Vec<TestCaseView> {
         let mut related_test_cases: Vec<TestCaseView> = Vec::new();
         let test_cases_length = self.test_cases.len();
         match filter_by {
@@ -471,12 +503,20 @@ impl UserConfig {
                     if case_filter_all.is_distinct {
                         if !unique_tags.contains(&test_case.tag) {
                             unique_tags.insert(test_case.tag.clone());
-                            related_test_cases
-                                .push(self.build_view_by_test_case(case_run_id, test_case))
+                            let case_view =
+                                self.build_view_by_test_case(case_run_id, test_case, with_event);
+                            match case_view {
+                                Some(view) => related_test_cases.push(view),
+                                None => continue,
+                            }
                         }
                     } else {
-                        related_test_cases
-                            .push(self.build_view_by_test_case(case_run_id, test_case))
+                        let case_view =
+                            self.build_view_by_test_case(case_run_id, test_case, with_event);
+                        match case_view {
+                            Some(view) => related_test_cases.push(view),
+                            None => continue,
+                        }
                     }
                 }
             }
@@ -488,8 +528,12 @@ impl UserConfig {
                     }
                     if case_filter_tag.tag == test_case.tag {
                         let case_run_id = (test_cases_length - idx - 1) as u16;
-                        related_test_cases
-                            .push(self.build_view_by_test_case(case_run_id as u16, test_case));
+                        let case_view =
+                            self.build_view_by_test_case(case_run_id, test_case, with_event);
+                        match case_view {
+                            Some(view) => related_test_cases.push(view),
+                            None => continue,
+                        }
                     }
                 }
             }
@@ -498,7 +542,11 @@ impl UserConfig {
                 match self.test_cases.get(case_run_id as usize) {
                     None => return Vec::new(),
                     Some(test_case) => {
-                        return vec![self.build_view_by_test_case(case_run_id as u16, test_case)]
+                        return vec![self.build_view_by_test_case(
+                            case_run_id as u16,
+                            test_case,
+                            None,
+                        ).unwrap()]
                     }
                 }
             }
@@ -819,12 +867,15 @@ fn get_canister_calls(
 fn get_test_cases(
     user_config_index: u16,
     filter_by: TestCaseFilter,
+    with_event: Option<bool>,
 ) -> CallResult<Vec<TestCaseView>, String> {
     STATE.with(|config_state| {
         let caller = api::caller();
         let config_state = config_state.borrow();
         match config_state.get_user_config(user_config_index, &caller) {
-            Ok(user_config) => CallResult::Authenticated(user_config.get_test_cases(filter_by)),
+            Ok(user_config) => {
+                CallResult::Authenticated(user_config.get_test_cases(filter_by, with_event))
+            }
             Err(msg) => CallResult::UnAuthenticated(msg),
         }
     })
