@@ -193,8 +193,8 @@ pub struct TestCaseView {
 }
 
 impl TestCaseView {
-    fn is_template(&self) -> bool {
-        !self.canister_calls.iter().any(|call| call.event.is_some())
+    fn has_event(&self) -> bool {
+        self.canister_calls.iter().any(|call| call.event.is_some())
     }
 }
 
@@ -350,11 +350,11 @@ impl UserConfig {
             //if tag not exist, create a new case
             None => case_run_id = None,
             Some(test_case) => {
-                match test_case.is_template() {
+                match test_case.has_event() {
                     // if test_case contains no event, over_ride the test case
-                    true => case_run_id = test_case.case_run_id,
+                    true => case_run_id = None,
                     // if test test_case contains event, create a test case
-                    false => case_run_id = None,
+                    false => case_run_id = test_case.case_run_id,
                 }
             }
         }
@@ -466,7 +466,7 @@ impl UserConfig {
             None => {}
             Some(with) => match with {
                 true => {
-                    let has_event = self.canister_calls.iter().any(|call| call.event.is_some());
+                    let has_event = canister_calls.iter().any(|call| call.event.is_some());
                     if !has_event {
                         return None;
                     }
