@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Timeline, Typography, Divider, Card } from 'antd';
 import { getFieldNormalizedResult } from '../utils/actorUtils';
-import { getCallSpec } from '../utils/paramRenderUtils';
+import { getCallSpec,GeneralValueParser } from '../utils/paramRenderUtils';
 import MethodSpec from './MethodSpec';
 import CallSpec from './CallSpec';
 import './styles/RunMethodTimeline.less';
@@ -24,7 +24,11 @@ const RunMethodTimeline = (props) => {
         try {
             console.log('canister actor', canisterActor, method);
             console.log('ready to run', method.function_name, method.params);
-            let callResult = await canisterActor[method.function_name](...method.params);
+            let paramValues = [];
+            method.params.forEach((param, idx) => {
+                paramValues[idx] = method.method[1].argTypes[idx].accept(new GeneralValueParser(), param);
+            });
+            let callResult = await canisterActor[method.function_name](...paramValues);
             setCallStatus("success");
             let stringifyResult = getFieldNormalizedResult(method.method[1], callResult);
             let endTime = new Date().getTime();
