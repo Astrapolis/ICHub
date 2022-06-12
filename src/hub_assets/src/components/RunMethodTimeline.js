@@ -22,7 +22,6 @@ const RunMethodTimeline = (props) => {
         let startTime = new Date().getTime();
         setRequestDate(startTime);
         try {
-            console.log('canister actor', canisterActor, method);
             console.log('ready to run', method.function_name, method.params);
             let paramValues = [];
             method.params.forEach((param, idx) => {

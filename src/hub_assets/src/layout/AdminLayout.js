@@ -100,7 +100,9 @@ const AdminLayout = (props) => {
         caseMenu.children = [...subMenus, {
             label: 'New Case', key: NEWCASE_KEY, icon: <AppstoreAddOutlined />
         }];
-        setMenuList([dashboardMenu, caseMenu, canisterMenu, historyMenu]);
+        setMenuList([
+            //dashboardMenu, 
+            caseMenu, canisterMenu, historyMenu]);
     }
 
     const onMenuSelectChange = (menu) => {
@@ -203,7 +205,7 @@ const AdminLayout = (props) => {
                 <Layout className='admin-content-container'>
                     <Routes>
                         <Route path='/' element={<Navigate replace to="newcase" />} />
-                        <Route path='prefollow/:canisterId' element={<FollowPreview />}/>
+                        <Route path='prefollow/:canisterId' element={<FollowPreview />} />
                         {/* <Route path='dashboard' element={<AdminDashboard />} /> */}
                         <Route path='cases/:caseid' element={<AdminCase />} />
                         <Route path='newcase' element={<AdminNewCase />} />

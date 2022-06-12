@@ -29,6 +29,8 @@ const AddMethod = (props) => {
     const [methodsReady, setMethodsReady] = useState([]);
     const [activeMethod, setActiveMethod] = useState(null);
     const [editFormMapping, setEditFormMapping] = useState({});
+    const [editValueFetcherMapping, setEditValueFetcherMapping] = useState({});
+
 
     const initMethods = async () => {
         setLoading(true);
@@ -59,6 +61,11 @@ const AddMethod = (props) => {
     const onNewForm = (index, form) => {
         editFormMapping[index] = form;
         setEditFormMapping({ ...editFormMapping });
+    }
+
+    const setEditValueFetchorFromChild = (index, fetchor) => {
+        editValueFetcherMapping[index] = fetchor;
+        setEditValueFetcherMapping({ ...editValueFetcherMapping });
     }
 
     const onAddMethod = (method) => {
@@ -138,20 +145,31 @@ const AddMethod = (props) => {
     }
 
     const onConfirm = () => {
-        console.log('confirm mapping', editFormMapping);
-        
+        // console.log('confirm mapping', editFormMapping);
+
         newMethods.forEach((m, index) => {
-            let form = editFormMapping[index];
-            if (form) {
-                // console.log('form' + index + 'value --->', form.getFieldsValue(true));
-                let values = form.getFieldsValue(true);
+            // let form = editFormMapping[index];
+            // if (form) {
+            //     // console.log('form' + index + 'value --->', form.getFieldsValue(true));
+            //     let values = form.getFieldsValue(true);
+            //     let params = [];
+            //     m.method[1].argTypes.forEach((arg, index) => {
+            //         params[index] = values[index];
+            //     });
+            //     m.params = params;
+            // }
+            let fetchor = editValueFetcherMapping[index];
+            if (fetchor) {
+                let values = fetchor(index);
+                console.log('add methods values ====>', values);
                 let params = [];
-                m.method[1].argTypes.forEach((arg, index) => {
-                    params[index] = values[index];
+                m.method[1].argTypes.forEach((arg, idx) => {
+                    params[idx] = values[idx];
                 });
                 m.params = params;
             }
         });
+        console.log('confirm add ====>', newMethods);
         props.onMethodsAdded(props.canister, newMethods);
         props.closeDrawer();
         setNewMethods([]);
@@ -184,7 +202,7 @@ const AddMethod = (props) => {
                 {newMethods.length > 0 && <Tabs type="editable-card" activeKey={activeMethod.uuid} onEdit={onTabEdit} onChange={onTabChange} hideAdd>
                     {
                         newMethods.map((med, index) => <TabPane tab={renderTabName(med)} key={med.uuid} closable={true}>
-                            <EditMethodParamForm method={med} methodIndex={index} onNewForm={onNewForm} mode={"new"} />
+                            <EditMethodParamForm method={med} methodIndex={index} setValueFetchor={setEditValueFetchorFromChild} mode={"new"} />
                         </TabPane>)
                     }
                 </Tabs>}

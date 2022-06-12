@@ -6,7 +6,7 @@ import { getPrimitiveValueParser } from '../../utils/paramRenderUtils';
 const PrimitiveRender = (props) => {
 
     const { mode, argIDL, paramValue, paramConfig, path } = props;
-    // console.log('render primitive value with path ===>', path);
+    console.log('render primitive value with path ===>', path);
     return <Form.Item
         name={path}
         label={paramConfig && paramConfig.name ? paramConfig.name : argIDL.display()}

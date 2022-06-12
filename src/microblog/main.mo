@@ -41,6 +41,7 @@ actor {
         testInput: shared(ParamRecord) -> async ReturnRecord;
         testOpt: shared(?ParamRecord) -> async Nat;
         testArray: shared([ParamRecord]) -> async Nat;
+        testPrimitiveArray: shared([Nat]) -> async Nat;
     };
 
     stable var authorName : ?Text = null;
@@ -72,6 +73,9 @@ actor {
         return para.size();
     };
 
+    public shared func testPrimitiveArray(para: [Nat]) : async Nat {
+        return para.size();
+    };
 
     public shared (mes) func set_name(text:Text) : async () {
         

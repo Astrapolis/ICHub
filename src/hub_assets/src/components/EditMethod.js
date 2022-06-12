@@ -12,10 +12,17 @@ import './styles/EditMethod.less';
 const EditMethod = (props) => {
     const { method, onMethodUpdated } = props;
     const [editForm, setEditForm] = useState(null);
+    const [editValueFetcher, setEditValueFetcher] = useState({});
 
     const onNewForm = (index, form) => {
         setEditForm(form);
     }
+    const setEditValueFetchorFromChild = (index, fetchor) => {
+        console.log("EditMethod setEditValueFetchorFromChild ====>", fetchor);
+        editValueFetcher[0] = fetchor;
+        setEditValueFetcher({...editValueFetcher});
+    }
+
     const renderTabName = (med) => {
         let methodType = 'query';
         if (!method.method[1].annotations.some(value => value === 'query')) {
@@ -31,9 +38,13 @@ const EditMethod = (props) => {
 
     const onConfirm = () => {
         method.params = [];
-        let updatedValue = editForm.getFieldsValue(true);
-        for (let i = 0; i < method.method[1].argTypes.length; i++) {
-            method.params[i] = updatedValue[i];
+        // let updatedValue = editForm.getFieldsValue(true);
+        if (editValueFetcher[0]) {
+            console.log('ready to invoke', editValueFetcher[0]);
+            let updatedValue = editValueFetcher[0](0);
+            for (let i = 0; i < method.method[1].argTypes.length; i++) {
+                method.params[i] = updatedValue[i];
+            }
         }
         // method.params[] = editForm.getFieldsValue(true);
         method.uuid = uuidv4();
@@ -49,7 +60,7 @@ const EditMethod = (props) => {
         <div className='addmethod-tabs-container'>
             <Tabs activeKey={method.uuid} >
                 <TabPane tab={renderTabName(method)} key={method.uuid} >
-                    <EditMethodParamForm method={method} methodIndex={0} onNewForm={onNewForm} mode={"new"} />
+                    <EditMethodParamForm method={method} methodIndex={0} setValueFetchor={setEditValueFetchorFromChild} mode={"new"} />
                 </TabPane>
             </Tabs>
         </div>

@@ -244,6 +244,7 @@ const AdminCase = (props) => {
     }
 
     const onCallOneMethod = (record) => {
+        console.log('ready to call ====>', record);
         if (!isMethodCallable(record)) {
             message.warn("Please set the parameter value first!");
             return;
@@ -527,9 +528,12 @@ const AdminCase = (props) => {
                         />
                     </div>
                     <div className='case-history-container'>
-                        {callHistory.length === 0 && <Empty />}
-                        {callHistory.length > 0 &&
-                            <Card title="Call History" actions={[<Button type="primary">All Logs</Button>]}>
+
+
+                        <Card title="Call History" actions={[<Button type="primary">All Logs</Button>]}>
+                            {(historySaving || historyLoading || updating) && <Spin />}
+                            {callHistory.length === 0 && <Empty />}
+                            {callHistory.length > 0 &&
                                 <Collapse defaultActiveKey={callHistory[0].case_run_id} onChange={() => {
 
                                 }}>
@@ -540,9 +544,9 @@ const AdminCase = (props) => {
                                         <RunMethodHistoryEntry testCase={history} />
                                     </Panel>)}
                                 </Collapse>
+                            }
+                        </Card>
 
-                            </Card>
-                        }
                         {/* <Table columns={caseHistoryColumns}
                             summary={() => <Table.Summary fixed>
                                 <Table.Summary.Row>

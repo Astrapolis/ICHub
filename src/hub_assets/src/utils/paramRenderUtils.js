@@ -171,6 +171,7 @@ export function GeneralValueParser() {
         if (Object.prototype.toString.call(d) === '[object Array]') {
             let v = [];
             d.forEach((ele, index) => {
+                console.log('vec ===>', ele, index);
                 v[index] = ty.accept(new GeneralValueParser(), ele);
             });
             return v;
@@ -339,7 +340,7 @@ export function isMethodCallable(method) {
     try {
         method.method[1].argTypes.forEach((argType, index) => {
             let paramValues = method.params[index];
-            // console.log('checking accept value',argType, paramValues);
+            console.log('checking accept value',argType, paramValues);
             let probValue = argType.accept(new GeneralValueParser(), paramValues);
             // console.log('probValue ====>', probValue);
             if (!argType.covariant(probValue)) {
