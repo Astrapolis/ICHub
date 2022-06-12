@@ -1,17 +1,23 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Principal } from "@dfinity/principal";
-import { message, Button, Table, Layout } from 'antd';
+import { message, Button, Table, Layout, Typography, Row, Col, Form, Input } from 'antd';
+import { PlusOutlined } from "@ant-design/icons"
 import { DownloadOutlined } from '@ant-design/icons';
 import { useAuth } from '../auth';
 import { getCanisterList } from '../utils/devhubUtils';
+import "./styles/AdminCanisters.less";
 
 const { Header, Content } = Layout;
+const { Text, Title } = Typography;
 
 const AdminCanisters = (props) => {
     const [listLoading, setListLoading] = useState(false);
     const [listData, setListData] = useState([]);
     const { user } = useAuth();
-
+    const nav = useNavigate();
+    const [addMore, setAddMore] = useState(false);
+    let loc = useLocation();
 
     const fetchCanisterList = async () => {
         setListLoading(true);
@@ -22,13 +28,21 @@ const AdminCanisters = (props) => {
         setListLoading(false);
     }
 
+    const onFollowNew = async (values) => {
+        nav('/devhub/admin/prefollow/' + values.newCanisterId, {
+            state: {
+                from: loc
+            }
+        });
+    }
+
     useEffect(() => {
         fetchCanisterList();
     }, []);
 
     let columns = [{
         title: 'No',
-        render: (_,record,index) => <span>{index}</span>
+        render: (_, record, index) => <span>{index}</span>
     }, {
         title: 'Name',
         dataIndex: 'name',
@@ -53,18 +67,68 @@ const AdminCanisters = (props) => {
         render: (_, entry) => <Button type="link">Unfollow</Button>
     }];
 
-    return <>
-        <div className='content-header-container canister-toolbar'>Canisters Followed</div>
-        <div>
-            <Table bordered
-            rowKey={'canisterId'}
-            columns={columns} 
-            pagination={false}
-            dataSource={listData} 
-            loading={listLoading} />
-        </div>
+    return <Layout>
+        {/* <Header className='content-header-container'> */}
+        <div className='content-header-container canister-toolbar'>
+            {/* <Row wrap={false}>
+                <Col flex="auto"> */}
+            <Text strong>Canisters Followed</Text>
+            {/* </Col>
+                <Col flex="none"> */}
+            <div>
+                {!addMore &&
+                    <Button size="large" type="primary" icon={<PlusOutlined />} onClick={() => {
+                        setAddMore(true);
+                    }} />
+                }
+                {addMore &&
+                    <Form layout="inline" onFinish={onFollowNew}>
+                        <Form.Item name="newCanisterId"
+                            validateFirst
 
-    </>
+                            rules={[{ required: true, message: 'Please enter canisterId!' }, {
+                                message: 'not a principal format!',
+                                validator: (_, value) => {
+                                    try {
+                                        let p = Principal.fromText(value);
+                                        return Promise.resolve();
+                                    } catch (err) {
+                                        return Promise.reject('invalid principal');
+                                    }
+                                }
+                            }]}
+                        >
+                            <Input className='canisterid-input' placeholder='Enter New CanisterId' />
+                        </Form.Item>
+                        <Form.Item>
+                            <Button type="primary" htmlType='submit' size="large" >Follow</Button>
+                        </Form.Item>
+                        <Form.Item>
+                            <Button htmlType='reset' size="large" onClick={
+                                () => {
+                                    setAddMore(false);
+                                }
+                            } >Cancel</Button>
+                        </Form.Item>
+                    </Form>
+                }
+            </div>
+            {/* </Col>
+
+            </Row> */}
+
+        </div>
+        {/* </Header> */}
+        <Content>
+            <Table bordered
+                rowKey={'canisterId'}
+                columns={columns}
+                pagination={false}
+                dataSource={listData}
+                loading={listLoading} />
+        </Content>
+    </Layout>
+
 }
 
 export default AdminCanisters;

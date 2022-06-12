@@ -60,7 +60,7 @@ const Wellcome = (props) => {
                                 }
                             }]}
                         >
-                            <Input size="large" />
+                            <Input size="large" placeholder='Enter New CanisterId' />
                         </Form.Item>
                         <Form.Item className='canister-input-element'>
                             <Button type="primary" htmlType="submit" size='large' icon={<SearchOutlined />} />

@@ -67,7 +67,11 @@ body {
         .rem(32);
         line-height: @rem;
     }
-    // background-color: #F8F8F8;
+    & {
+        .sz(5);
+        padding: 0 @sz;
+    }
+    background-color: white;
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -78,4 +82,11 @@ body {
     width: 100%;
     flex:1;
     position: relative;
+}
+
+.canisterid-input {
+    & {
+        .sz(300);
+        width: @sz;
+    }
 }

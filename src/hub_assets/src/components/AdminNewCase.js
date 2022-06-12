@@ -57,7 +57,7 @@ const AdminNewCase = (props) => {
         <div className="content-main-container">
             <Card title="Create A New Case">
                 <Form onFinish={onNewCase} className="newcase-form" layout="inline">
-                    <Form.Item name="caseName" style={{width: '75%'}}
+                    <Form.Item name="caseName" style={{width: '70%'}}
                     rules={[{
                         required: true,
                         message: 'Please enter new case name!'

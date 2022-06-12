@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Principal } from "@dfinity/principal";
+import { HttpAgent, Actor } from "@dfinity/agent";
 import { useAuth } from '../auth';
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { Button, message, Result, Form, Modal, Input } from 'antd';
 import { LeftOutlined } from "@ant-design/icons";
 import { getUserActiveConfigIndex } from '../utils/devhubUtils';
+import { getActorFromCanisterId, isLocalEnv } from '../utils/actorUtils';
 
 import "./styles/FollowPreview.less";
 import {
@@ -19,7 +21,7 @@ const FollowPreview = (props) => {
     const [resultStatus, setResultStatus] = useState('success');
     const [resultTitle, setResultTitle] = useState('');
     const [showNameDlg, setShowNameDlg] = useState(false);
-    const { user } = useAuth();
+    const { user, refreshUserConfig } = useAuth();
     let { canisterId } = useParams();
     const [form] = Form.useForm();
     const nav = useNavigate();
@@ -40,6 +42,24 @@ const FollowPreview = (props) => {
         }
     }
     const onFollow = async (canisterName) => {
+        try {
+            let agent = null;
+            if (user) {
+                agent = user.agent;
+            } else {
+                agent = new HttpAgent();
+                if (isLocalEnv()) {
+                    agent.fetchRootKey().catch(err => {
+                        console.warn("Unable to fetch root key. Check to ensure that your local replica is running")
+                        console.error(err)
+                    });
+                }
+            }
+            let actor = getActorFromCanisterId(canisterId, agent);
+        } catch (err) {
+            message.error('no canister found, please check the principal is valid.');
+            return;
+        }
 
         let newCfg = Object.assign({}, DEFAULT_CANISTER_CONFIG);
         let cfg = Object.assign({name: canisterName}, DEFAULT_UI_CONFIG);
@@ -52,7 +72,7 @@ const FollowPreview = (props) => {
             setInResult(true);
             if (result.Authenticated) {
                 // follow success
-
+                refreshUserConfig();
                 setResultStatus('success');
                 setResultTitle('You have successfully follow the canister!');
             } else {
@@ -67,6 +87,11 @@ const FollowPreview = (props) => {
         setFollowing(false);
 
     }
+    useEffect(() => {
+        if (!canisterId) {
+            nav("/");
+        }
+    }, [])
     return (
         <div className='prefollow-container'>
             <Modal

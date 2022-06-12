@@ -321,6 +321,7 @@ const AdminCase = (props) => {
                 setCaseDetail(newCaseDetail);
                 setSaveEnable(false);
                 setUpdating(false);
+                refreshUserConfig();
                 return true;
             } else {
                 message.error(result.UnAuthenticated);

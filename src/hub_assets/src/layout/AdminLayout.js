@@ -8,6 +8,7 @@ import AdminCase from '../components/AdminCase';
 import AdminNewCase from '../components/AdminNewCase';
 import AdminCanisters from '../components/AdminCanisters';
 import AdminCaseHistory from '../components/AdminCaseHistory';
+import FollowPreview from '../components/FollowPreview';
 import { useAuth } from '../auth';
 import { getUserActiveConfigIndex } from '../utils/devhubUtils';
 import "./styles/AdminLayout.less";
@@ -128,25 +129,25 @@ const AdminLayout = (props) => {
 
     }
 
-    const onNewCase = (newCaseId, tag, caseName, timeAt) => {
-        console.log('onNewCase', newCaseId, tag, caseName, timeAt);
-        let newCase = {
-            test_case_id: newCaseId,
-            tag,
-            config: {
-                name: caseName
-            },
-            time_at: timeAt,
-            event: null
-        }
-        setCaseList([newCase, ...caseList]);
-        menuList[1].children = [{ label: caseName, key: CASE_KEY + tag }, ...menuList[1].children];
-        setMenuList([...menuList]);
-    }
+    // const onNewCase = (newCaseId, tag, caseName, timeAt) => {
+    //     console.log('onNewCase', newCaseId, tag, caseName, timeAt);
+    //     let newCase = {
+    //         test_case_id: newCaseId,
+    //         tag,
+    //         config: {
+    //             name: caseName
+    //         },
+    //         time_at: timeAt,
+    //         event: null
+    //     }
+    //     setCaseList([newCase, ...caseList]);
+    //     menuList[1].children = [{ label: caseName, key: CASE_KEY + tag }, ...menuList[1].children];
+    //     setMenuList([...menuList]);
+    // }
 
-    const onCaseNameChanged = (caseId, caseName) => {
+    // const onCaseNameChanged = (caseId, caseName) => {
 
-    }
+    // }
 
     useEffect(() => {
         if (user) {
@@ -201,11 +202,11 @@ const AdminLayout = (props) => {
                 </Sider>
                 <Layout className='admin-content-container'>
                     <Routes>
-                        <Route path='/' element={<Navigate replace to="dashboard" />} />
-
-                        <Route path='dashboard' element={<AdminDashboard />} />
-                        <Route path='cases/:caseid' element={<AdminCase onCaseNameChanged={onCaseNameChanged} />} />
-                        <Route path='newcase' element={<AdminNewCase onNewCase={onNewCase} />} />
+                        <Route path='/' element={<Navigate replace to="newcase" />} />
+                        <Route path='prefollow/:canisterId' element={<FollowPreview />}/>
+                        {/* <Route path='dashboard' element={<AdminDashboard />} /> */}
+                        <Route path='cases/:caseid' element={<AdminCase />} />
+                        <Route path='newcase' element={<AdminNewCase />} />
                         <Route path='canisters' element={<AdminCanisters />} />
                         <Route path='history' element={<AdminCaseHistory />} />
                     </Routes>

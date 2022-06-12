@@ -22,7 +22,13 @@ export function isCanisterInFollowList(userConfig, canisterIdString) {
     return false;
 }
 
-export function extractCanisterCfgList(userConfig) {
+export function extractCanisterCfgList(userConfig, noCheck) {
+    if (noCheck) {
+        let list = userConfig.canister_configs;
+        list.forEach(entry => entry.config = typeof entry.config === "string" ? JSON.parse(entry.config) : entry.config);
+
+        return list;
+    }
     if (!userConfig || !userConfig.Authenticated) {
         return [];
     }
@@ -65,46 +71,47 @@ export function getUserActiveConfigIndex(user) {
 export const getCanisterList = async (user, needActor) => {
 
     try {
-        let userConfig = await user.devhubActor.get_user_config(getUserActiveConfigIndex(user));
-        if (userConfig.UnAuthenticated) {
-            console.log('list failed', userConfig.UnAuthenticated);
-            message.error(userConfig.UnAuthenticated)
-            return [];
-        } else {
-            let canisterList = extractCanisterCfgList(userConfig);
-            let data = [];
-            // canisterList.forEach((entry, index) => {
-            //     let row = {
-            //         name: entry.config.name,
-            //         canisterId: entry.canister_id.toText(),
-            //         historyCalls: 0,
-            //         lastCallAt: 0
-            //     }
-            //     data.push(row);
-            // });
-            for (const [index, entry] of canisterList.entries()) {
-                let row = {
-                    name: entry.config.name,
-                    canisterId: entry.canister_id.toText(),
-                    historyCalls: 0,
-                    lastCallAt: 0
-                }
-                if (needActor) {
-                    try {
-                        let actor = await getActorFromCanisterId(row.canisterId, user.agent);
-                        if (actor) {
-                            row.actor = actor;
-                        }
-                    } catch (err) {
-                        console.log('get canister actor failed', err);
-                    }
-                }
-
-                data.push(row);
+        let userConfig = user.devhubConfig;
+        //  await user.devhubActor.get_user_config(getUserActiveConfigIndex(user));
+        // if (userConfig.UnAuthenticated) {
+        //     console.log('list failed', userConfig.UnAuthenticated);
+        //     message.error(userConfig.UnAuthenticated)
+        //     return [];
+        // } else {
+        let canisterList = extractCanisterCfgList(userConfig, true);
+        let data = [];
+        // canisterList.forEach((entry, index) => {
+        //     let row = {
+        //         name: entry.config.name,
+        //         canisterId: entry.canister_id.toText(),
+        //         historyCalls: 0,
+        //         lastCallAt: 0
+        //     }
+        //     data.push(row);
+        // });
+        for (const [index, entry] of canisterList.entries()) {
+            let row = {
+                name: entry.config.name,
+                canisterId: entry.canister_id.toText(),
+                historyCalls: 0,
+                lastCallAt: 0
             }
-            console.log('canister list ===>', data);
-            return data;
+            if (needActor) {
+                try {
+                    let actor = await getActorFromCanisterId(row.canisterId, user.agent);
+                    if (actor) {
+                        row.actor = actor;
+                    }
+                } catch (err) {
+                    console.log('get canister actor failed', err);
+                }
+            }
+
+            data.push(row);
         }
+        console.log('canister list ===>', data);
+        return data;
+        // }
 
         // TODO: extract call history summary data
 
