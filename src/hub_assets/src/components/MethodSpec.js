@@ -5,8 +5,8 @@ const { Text } = Typography;
 const MethodSpec = (props) => {
     const {method} = props;
     return <div>
-        <Text>Method spec:</Text>
-        <Text type="secondary">{`${method.method[1].display()}`}</Text>
+        <Text mark>Method spec:</Text>
+        <Text code>{`${method.method[1].display()}`}</Text>
     </div>
 }
 

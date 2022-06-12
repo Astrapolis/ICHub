@@ -59,6 +59,7 @@ const AdminCanisters = (props) => {
             <Table bordered
             rowKey={'canisterId'}
             columns={columns} 
+            pagination={false}
             dataSource={listData} 
             loading={listLoading} />
         </div>

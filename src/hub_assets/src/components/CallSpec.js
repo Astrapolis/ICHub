@@ -29,16 +29,16 @@ const CallSpec = (props) => {
 
     return <>
         {!callSpec && <Spin />}
-        {callSpec && callSpec.length === 0 && <Text>Empty Parameters</Text>}
+        {callSpec && callSpec.length === 0 && <Text type="success">Empty Parameters</Text>}
         {callSpec && callSpec.length > 0 &&
             <List
-                header={<Text>Call Values:</Text>}
+                header={<Text strong>Call Values:</Text>}
                 itemLayout="horizontal"
                 dataSource={callSpec}
                 renderItem={item => (<List.Item>
                     <List.Item.Meta
-                        title={item.title}
-                        description={item.desc} />
+                        title={<Text mark>{item.title}</Text>}
+                        description={<Text code>{item.desc}</Text>} />
                 </List.Item>)}
             />}
     </>

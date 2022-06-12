@@ -23,7 +23,7 @@ const SelectCanister = (props) => {
         }} />} />
     }];
 
-    return <Table columns={columns} dataSource={props.canisterList} rowKey="canisterId" />
+    return <Table columns={columns} dataSource={props.canisterList} pagination={false} rowKey="canisterId" />
 
 }
 

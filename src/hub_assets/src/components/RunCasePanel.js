@@ -43,7 +43,7 @@ const RunCasePanel = (props) => {
         key="run-case-result-save"
         onClick={() => {
             closeDrawer();
-            onSaveRunResult();
+            onSaveRunResult(results);
         }}
         >Save To History</Button>,
         <Button loading={calling} key="run-case-result-discard" onClick={() => {

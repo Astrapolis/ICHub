@@ -73,10 +73,10 @@ const RunMethodTimeline = (props) => {
         <div className='runinfo-section-container'>
             <Timeline pending={!runDone}>
                 {requestDate > 0 && <Timeline.Item>
-                    <Text type="success">Request has been sent at {new Date(requestDate).toLocaleTimeString()}</Text>
+                    <Text type="success">Request has been sent at {new Date(requestDate).toUTCString()}</Text>
                 </Timeline.Item>}
                 {responseDate > 0 && <Timeline.Item>
-                    <Text type="success">Call Result at {new Date(responseDate).toLocaleTimeString()}</Text>
+                    <Text type="success">Call Result at {new Date(responseDate).toUTCString()}</Text>
                 </Timeline.Item>}
                 {result && <Timeline.Item>
                     <Text type={callStatus}>{`result: ${result}`}</Text>

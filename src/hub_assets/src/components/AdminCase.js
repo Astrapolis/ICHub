@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Principal } from "@dfinity/principal";
-import { Button, Form, Input, message, Spin, Table, Tooltip, Drawer, Typography, Popconfirm } from 'antd';
+import {
+    Button, Form, Input, message, Spin, Table, Tooltip,
+    Drawer, Typography, Popconfirm, Collapse, Empty, Card
+} from 'antd';
 import { EditOutlined, CheckOutlined, CloseOutlined, DeleteOutlined } from "@ant-design/icons";
 import { v4 as uuidv4 } from 'uuid';
-import { getUserActiveConfigIndex, getCanisterList, convertTimestampToBigInt } from '../utils/devhubUtils';
+import { getUserActiveConfigIndex, getCanisterList, convertTimestampToBigInt, convertBignumberToDate } from '../utils/devhubUtils';
 import { getFieldFromActor } from '../utils/actorUtils';
 import { isMethodCallable } from '../utils/paramRenderUtils';
 import { str2Utf8Bytes } from '../utils/stringUtils';
@@ -16,10 +19,11 @@ import EditMethod from './EditMethod';
 import MethodParamsDisplay from './MethodParamsDisplay';
 import CallOncePanel from './CallOncePanel';
 import RunCasePanel from './RunCasePanel';
-
+import RunMethodHistoryEntry from "./RunCaseHistoryEntry";
 import "./styles/AdminCase.less";
 
 const { Text } = Typography;
+const { Panel } = Collapse;
 
 const AdminCase = (props) => {
     let { caseid } = useParams();
@@ -123,7 +127,7 @@ const AdminCase = (props) => {
         try {
             let cans = await getCanisterList(user, true);
             setCanisterList(cans);
-            let list = await user.devhubActor.get_test_cases(getUserActiveConfigIndex(user), { tag: { tag: caseid, limit: [] } });
+            let list = await user.devhubActor.get_test_cases(getUserActiveConfigIndex(user), { tag: { tag: caseid, limit: [1] } }, [false]);
             console.log("case list result ===>", caseid, list);
             if (list.Authenticated) {
                 let clist = list.Authenticated;
@@ -155,6 +159,8 @@ const AdminCase = (props) => {
                     setCaseDetail(cdetail);
                     setEditCase(tdetail);
                 }
+            } else {
+                message.error(list.UnAuthenticated);
             }
         } catch (err) {
             console.log('fetch case detail error', err);
@@ -163,8 +169,26 @@ const AdminCase = (props) => {
         setLoading(false);
     }
 
-    const fetchCaseCallHistory = () => {
+    const fetchCaseCallHistory = async () => {
+        setHistoryLoading(true);
+        try {
+            let list = await user.devhubActor.get_test_cases(getUserActiveConfigIndex(user), { tag: { tag: caseid, limit: [10] } }, [true]);
+            console.log('history raw list', list);
+            let history = [];
+            if (list.Authenticated) {
+                history = list.Authenticated;
 
+                console.log('fetch case history list ====>', history);
+                setCallHistory([...history]);
+            } else {
+                message.error(list.UnAuthenticated);
+            }
+        } catch (err) {
+            console.log('fetch case history error', err);
+            message.error('fetch case history error ' + err);
+        }
+
+        setHistoryLoading(false);
     }
 
     let cloneCase = (caseA) => {
@@ -252,14 +276,16 @@ const AdminCase = (props) => {
     }
 
     const prepareCallEvent = (result) => {
+        console.log('prepareCallEvent', result);
         return {
             time_at: convertTimestampToBigInt(new Date().getTime()),
             caller: user.identity.getPrincipal(),
-            result: str2Utf8Bytes(result)
+            result: str2Utf8Bytes(JSON.stringify(result))
         }
     }
 
     const prepareCaseView = (testCase, results) => {
+        console.log('prepareCaseView ===>', testCase, results);
         testCase.time_at = convertTimestampToBigInt(new Date().getTime());
         testCase.case_run_id = []; // null of opt
         // testCaseView.canister_id = Principal.fromText(testCaseView.canister_id);
@@ -273,10 +299,10 @@ const AdminCase = (props) => {
             med.event = []; // null rep of opt type
             med.params = JSON.stringify(med.params);
             if (results) {
-                med.event = prepareCallEvent(results[i]);
+                med.event = [prepareCallEvent(results[index])];
             }
         });
-        
+
 
         testCase.config = JSON.stringify(testCase.config);
         console.log('ready to save cases', testCase);
@@ -318,28 +344,23 @@ const AdminCase = (props) => {
     }
 
     const onSaveRunResult = async (results) => {
+        // console.log('onSaveRunResult  ===>', results);
         let testCaseView = cloneCase(editCase);
         prepareCaseView(testCaseView, results);
         setHistorySaving(true);
         try {
+            console.log('ready to save call result', testCaseView);
             let result = await user.devhubActor.cache_test_case(getUserActiveConfigIndex(user), testCaseView);
-            if (result.Authenticated) {
-                if (result.Authenticated) {
-                    editCase.case_run_id = result.Authenticated;
-                    let newCaseDetail = cloneCase(editCase);
-                    setCaseDetail(newCaseDetail);
-                    setSaveEnable(false);
-                } else {
-                    message.error(result.Authenticated.Err);
-                }
+            console.log('save run result', result);
+            if (result.Authenticated || result.Authenticated === 0) {
+                message.info('Case Result has been saved.');
+                fetchCaseCallHistory();
             } else {
                 message.error(result.UnAuthenticated);
             }
         } catch (err) {
-            setUpdating(false);
-            console.log('update case  failed', err);
-            message.error('update case  failed:' + err);
-            return false;
+            console.log('save case run result failed', err);
+            message.error('save case run result failed:' + err);
         }
         setHistorySaving(false);
     }
@@ -398,7 +419,7 @@ const AdminCase = (props) => {
     }
 
     const renderCaseExpandablePart = (record) => {
-        console.log('render case expandable part', record);
+        // console.log('render case expandable part', record);
         return (<div className='caserow-expandable-container'>
             <div className='caserow-expandable-param-container'>
                 <MethodSpec method={record} />
@@ -477,6 +498,7 @@ const AdminCase = (props) => {
                 <div className='case-view-container'>
                     <div className='case-editor-container'>
                         <Table columns={caseCallColumns} rowKey="uuid" dataSource={editCase.canister_calls}
+                            pagination={false}
                             expandable={{
                                 expandedRowRender: renderCaseExpandablePart,
                                 defaultExpandAllRows: true,
@@ -504,7 +526,23 @@ const AdminCase = (props) => {
                         />
                     </div>
                     <div className='case-history-container'>
-                        <Table columns={caseHistoryColumns}
+                        {callHistory.length === 0 && <Empty />}
+                        {callHistory.length > 0 &&
+                            <Card title="Call History" actions={[<Button type="primary">All Logs</Button>]}>
+                                <Collapse defaultActiveKey={callHistory[0].case_run_id} onChange={() => {
+
+                                }}>
+                                    {callHistory.map((history, index) => <Panel header={<><Text mark>{`Run ${history.case_run_id[0] + 1}: `}</Text>
+                                        <Text>{`${new Date(convertBignumberToDate(history.time_at)).toUTCString()}`}</Text></>}
+                                        key={history.case_run_id}
+                                    >
+                                        <RunMethodHistoryEntry testCase={history} />
+                                    </Panel>)}
+                                </Collapse>
+
+                            </Card>
+                        }
+                        {/* <Table columns={caseHistoryColumns}
                             summary={() => <Table.Summary fixed>
                                 <Table.Summary.Row>
                                     <Table.Summary.Cell index={0}>
@@ -512,7 +550,7 @@ const AdminCase = (props) => {
                                     </Table.Summary.Cell>
                                 </Table.Summary.Row>
                             </Table.Summary>}
-                        />
+                        /> */}
                     </div>
                     <Drawer title={drawerTitle[drawerStep]} placement="bottom"
                         height={"95%"}
@@ -541,10 +579,10 @@ const AdminCase = (props) => {
                                     closeDrawer={closeDrawer}
                                     canisterActor={activeCanister.actor}
                                 />}
-                                {drawerStep === 'runcase' && <RunCasePanel testCase={editCase} 
-                                canisterList={canisterList}
-                                onSaveRunResult={onSaveRunResult}
-                                closeDrawer={closeDrawer} />}
+                                {drawerStep === 'runcase' && <RunCasePanel testCase={editCase}
+                                    canisterList={canisterList}
+                                    onSaveRunResult={onSaveRunResult}
+                                    closeDrawer={closeDrawer} />}
                             </div>
                         </div>
                     </Drawer>
