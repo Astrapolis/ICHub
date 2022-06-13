@@ -330,6 +330,12 @@ export function getPrimitiveValueParser() {
     return parser;
 }
 
+export function getGeneralValueParser() {
+    let parser = new GeneralValueParser();
+    return parser;
+}
+
+
 const valueParserMapper = {
 
 };
@@ -370,7 +376,7 @@ export function getCallSpec(method) {
     method.method[1].argTypes.forEach((arg, index) => {
         let valueDesc = {
             type: arg.display(),
-            value: arg.valueToString(method.params[index])
+            value: arg.valueToString(arg.accept(getGeneralValueParser(), method.params[index]))
         };
         let valueObject = {
             // title: arg.display(),

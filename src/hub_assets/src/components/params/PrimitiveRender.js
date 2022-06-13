@@ -13,18 +13,19 @@ const PrimitiveRender = (props) => {
         let values = form.getFieldsValue(true);
         console.log('get value from primitive form', values);
         let retValue = values[path];
-        try {
-            let valueProbe = argIDL.accept(
-                getPrimitiveValueParser(),
-                retValue
-            );
-            if (!argIDL.covariant(valueProbe)) {
-                return retValue;
-            }
-            return valueProbe;
-        }catch (err) {
-            return retValue;
-        }
+        // try {
+        //     let valueProbe = argIDL.accept(
+        //         getPrimitiveValueParser(),
+        //         retValue
+        //     );
+        //     if (!argIDL.covariant(valueProbe)) {
+        //         return retValue;
+        //     }
+        //     return valueProbe;
+        // }catch (err) {
+        //     return retValue;
+        // }
+        return retValue;
     }
 
     useEffect(() => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Typography, List, Divider, Spin } from 'antd';
+import { getPrimitiveValueParser, getGeneralValueParser } from '../utils/paramRenderUtils';
 const { Text } = Typography;
 
 const CallSpec = (props) => {
@@ -11,7 +12,7 @@ const CallSpec = (props) => {
         method.method[1].argTypes.forEach((arg, index) => {
             let valueDesc = {
                 type: arg.display(),
-                value: arg.valueToString(method.params[index])
+                value: arg.valueToString(arg.accept(getGeneralValueParser(), method.params[index]))
             };
             let valueObject = {
                 title: arg.display(),
