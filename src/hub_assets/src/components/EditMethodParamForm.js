@@ -12,18 +12,26 @@ const EditMethodParamForm = (props) => {
     const [childValueFetchors, setChildValueFetchors] = useState({})
 
 
-    const setValueFetchorFromChild = (key, fetchor) => {
+    const setEditMethodFormValueFetchorFromChild = (key, fetchor) => {
+        console.log('setter of EditMethodParamForm');
+
         childValueFetchors[key] = fetchor;
+        console.log('fetchorMapping', childValueFetchors);
         setChildValueFetchors({ ...childValueFetchors });
+        setValueFetchor(methodIndex, fetchEditValue);
     }
 
-    const fetchValue = (index) => {
+    const fetchEditValue = (index) => {
         // let paramValues = [];
         // method.method[1].argTypes.forEach((arg, index) => {
         //     paramValues[index] = childValueFetchors[`/${index}`]();
         // });
-
-        return childValueFetchors[`/${index}`]();
+        console.log('fetchor of EditMethodParamForm');
+        let values = childValueFetchors[JSON.stringify([index + ''])]();
+        console.log('get value from edit method form', values);
+        let value = {};
+        value[index] = values;
+        return value;
     }
 
     const renderMethodParams = (method) => {
@@ -32,26 +40,28 @@ const EditMethodParamForm = (props) => {
             paramValues = [...method.params];
         }
 
-        return method.method[1].argTypes.map((arg, index) =>{ 
+        return method.method[1].argTypes.map((arg, index) => {
             let paramV = undefined;
             if (paramValues[index] !== undefined) {
                 paramV = {};
                 paramV[index] = paramValues[index];
             }
-        return <GeneralTypeRender
-            mode={mode}
-            argIDL={arg}
-            paramValue={paramV}
-            paramConfig={null}
-            path={[index + '']}
-            key={`/${index}`}
-            vKey={`/${index}`}
-            valueFetchor={setValueFetchorFromChild}
-        />})
+            return <GeneralTypeRender
+                mode={mode}
+                argIDL={arg}
+                paramValue={paramV}
+                paramConfig={null}
+                valueKey={index + ''}
+                path={[index + '']}
+                key={`/${index}`}
+                vKey={`/${index}`}
+                valueFetchor={setEditMethodFormValueFetchorFromChild}
+            />
+        })
     }
 
     useEffect(() => {
-        setValueFetchor(methodIndex, fetchValue);
+        setValueFetchor(methodIndex, fetchEditValue);
     }, [])
 
 

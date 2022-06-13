@@ -17,10 +17,11 @@ const EditMethod = (props) => {
     const onNewForm = (index, form) => {
         setEditForm(form);
     }
-    const setEditValueFetchorFromChild = (index, fetchor) => {
-        console.log("EditMethod setEditValueFetchorFromChild ====>", fetchor);
+    const setEditMethodValueFetchorFromChild = (index, fetchor) => {
+        console.log('setter of EditMethod');
         editValueFetcher[0] = fetchor;
-        setEditValueFetcher({...editValueFetcher});
+        console.log('fetchorMapping', editValueFetcher);
+        setEditValueFetcher({ ...editValueFetcher });
     }
 
     const renderTabName = (med) => {
@@ -42,6 +43,7 @@ const EditMethod = (props) => {
         if (editValueFetcher[0]) {
             console.log('ready to invoke', editValueFetcher[0]);
             let updatedValue = editValueFetcher[0](0);
+            console.log('got value ===>', updatedValue);
             for (let i = 0; i < method.method[1].argTypes.length; i++) {
                 method.params[i] = updatedValue[i];
             }
@@ -60,7 +62,7 @@ const EditMethod = (props) => {
         <div className='addmethod-tabs-container'>
             <Tabs activeKey={method.uuid} >
                 <TabPane tab={renderTabName(method)} key={method.uuid} >
-                    <EditMethodParamForm method={method} methodIndex={0} setValueFetchor={setEditValueFetchorFromChild} mode={"new"} />
+                    <EditMethodParamForm method={method} methodIndex={0} setValueFetchor={setEditMethodValueFetchorFromChild} mode={"new"} />
                 </TabPane>
             </Tabs>
         </div>

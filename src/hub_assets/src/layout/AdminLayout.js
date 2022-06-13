@@ -102,7 +102,9 @@ const AdminLayout = (props) => {
         }];
         setMenuList([
             //dashboardMenu, 
-            caseMenu, canisterMenu, historyMenu]);
+            caseMenu, canisterMenu, 
+            // historyMenu
+        ]);
     }
 
     const onMenuSelectChange = (menu) => {
@@ -210,7 +212,7 @@ const AdminLayout = (props) => {
                         <Route path='cases/:caseid' element={<AdminCase />} />
                         <Route path='newcase' element={<AdminNewCase />} />
                         <Route path='canisters' element={<AdminCanisters />} />
-                        <Route path='history' element={<AdminCaseHistory />} />
+                        {/* <Route path='history' element={<AdminCaseHistory />} /> */}
                     </Routes>
                 </Layout>
             </>}

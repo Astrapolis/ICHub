@@ -22,8 +22,10 @@ const MethodParamsDisplay = props => {
                     argIDL={argIDL}
                     paramConfig={null}
                     paramValue={paramV}
+                    valueKey={index + ''}
                     path={[index + '']}
                     key={`/${index}`}
+                    vKey={`/${index}`}
                 />
             );
         })}

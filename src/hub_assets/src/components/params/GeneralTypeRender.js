@@ -9,9 +9,31 @@ import "./styles/GeneralTypeRender.less";
 
 const GeneralTypeRender = (props) => {
     const [renderType, setRenderType] = useState(null);
-    const { mode, argIDL, paramValue, paramConfig, path, vKey, valueFetchor } = props;
+    const { mode, argIDL, paramValue, paramConfig, path, valueKey, vKey, valueFetchor } = props;
+    const [childTypeValueFetchors, setChildTypeValueFetchors] = useState({});
+    // const [form] = Form.useForm();
 
-    const [form] = Form.useForm();
+    const setGeneralValueFetchorFromChild = (key, fetchor) => {
+        console.log('setter of GeneralTypeRender');
+
+        childTypeValueFetchors[key] = fetchor;
+        console.log('fetchorMapping', childTypeValueFetchors);
+        setChildTypeValueFetchors({ ...childTypeValueFetchors });
+        if (valueFetchor) {
+            valueFetchor(JSON.stringify(path), fetchGeneralValue);
+        }
+    }
+
+    const fetchGeneralValue = () => {
+        console.log('fetchor of GeneralTypeRender');
+        let values = undefined;
+        let key = JSON.stringify(path);
+        if (childTypeValueFetchors[key]) {
+            values = childTypeValueFetchors[key]();
+        }
+        console.log('get value from general type ====>', values);
+        return values;
+    }
 
     const renderParameters = () => {
         if (renderType === null) {
@@ -19,23 +41,35 @@ const GeneralTypeRender = (props) => {
         } else {
             switch (renderType) {
                 case CONSTANT.RENDER_TYPE:
-                    return <PrimitiveRender {...props} />
+                    return <PrimitiveRender
+                        valueFetchor={setGeneralValueFetchorFromChild}
+                        mode={mode}
+                        argIDL={argIDL}
+                        paramValue={paramValue}
+                        paramConfig={paramConfig}
+                        path={path}
+                        key={vKey}
+                    />
                 case CONSTANT.RENDER_VEC:
-                    return <VecRender {...props} />
+                    return <VecRender
+                        valueFetchor={setGeneralValueFetchorFromChild}
+                        mode={mode}
+                        argIDL={argIDL}
+                        paramValue={paramValue ? paramValue[valueKey] : []}
+                        paramConfig={paramConfig}
+                        path={path}
+                        key={vKey}
+                        vKey={vKey}
+                    />
                 default:
                     return <span>{renderType}</span>
             }
         }
-
-    }
-    const fetchValue = () => {
-        let values = form.getFieldsValue(true);
-        return values;
     }
 
     useEffect(() => {
         if (valueFetchor) {
-            valueFetchor(vKey, fetchValue);
+            valueFetchor(JSON.stringify(path), fetchGeneralValue);
         }
         let rdType = argIDL.accept(getGeneralTypeRender(), null);
         console.log('rdType ====>', rdType);
@@ -43,9 +77,9 @@ const GeneralTypeRender = (props) => {
     }, []);
 
     return <div className='general-type-param-container'>
-        <Form form={form} initialValues={paramValue}>
-            {renderParameters()}
-        </Form>
+        {/* <Form form={form} initialValues={paramValue}> */}
+        {renderParameters()}
+        {/* </Form> */}
     </div>
 }
 

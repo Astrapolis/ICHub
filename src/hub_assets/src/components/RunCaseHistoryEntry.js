@@ -48,7 +48,7 @@ const RunMethodHistoryEntry = (props) => {
         ellipsis: true,
         width: 150,
         render: (_, record) => {
-            return <Tooltip placement='top' title={record.canister_id}>
+            return <Tooltip placement='top' title={record.canister_id.toText()}>
                 <span>{record.canister_name === undefined ? "<unnamed>" : record.canister_name}</span>
             </Tooltip>
         }

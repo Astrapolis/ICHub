@@ -364,7 +364,7 @@ export function getCallSpec(method) {
     method.method[1].argTypes.forEach((arg, index) => {
         let valueDesc = {
             type: arg.display(),
-            value: method.params[index]
+            value: arg.valueToString(method.params[index])
         };
         let valueObject = {
             // title: arg.display(),
