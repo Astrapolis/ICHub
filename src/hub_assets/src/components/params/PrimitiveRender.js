@@ -5,14 +5,26 @@ import { getPrimitiveValueParser } from '../../utils/paramRenderUtils';
 
 const PrimitiveRender = (props) => {
     const [form] = Form.useForm();
-    const { mode, argIDL, paramValue, paramConfig, path, vKey, valueFetchor } = props;
+    const { mode, argIDL, paramValue, paramConfig, path, vKey, valueFetchor, displayName } = props;
     console.log('render primitive value with path ===>', path, paramValue);
 
     const fetchPrimitiveValue = () => {
         console.log('fetchor of PrimitiveRender');
         let values = form.getFieldsValue(true);
         console.log('get value from primitive form', values);
-        return values[path];
+        let retValue = values[path];
+        try {
+            let valueProbe = argIDL.accept(
+                getPrimitiveValueParser(),
+                retValue
+            );
+            if (!argIDL.covariant(valueProbe)) {
+                return retValue;
+            }
+            return valueProbe;
+        }catch (err) {
+            return retValue;
+        }
     }
 
     useEffect(() => {
@@ -24,7 +36,7 @@ const PrimitiveRender = (props) => {
     return <Form form={form} initialValues={paramValue}>
         <Form.Item
             name={path}
-            label={paramConfig && paramConfig.name ? paramConfig.name : argIDL.display()}
+            label={displayName ? displayName : argIDL.display()}
             validateFirst
             rules={[{
                 required: true,

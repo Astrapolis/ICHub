@@ -64,7 +64,7 @@ const AdminCase = (props) => {
         title: 'Canister',
         dataIndex: 'canister_name',
         ellipsis: true,
-        width: 120,
+        width: 150,
         render: (_, record) => {
             return <Tooltip placement='top' title={record.canister_id}>
                 <span>{record.canister_name === undefined ? "<unnamed>" : record.canister_name}</span>
@@ -73,7 +73,7 @@ const AdminCase = (props) => {
     }, {
         title: 'Query/Update',
         dataIndex: 'function_name',
-        width: 150,
+        width: 200,
         ellipsis: true,
         render: (_, record) => {
             return <Tooltip placement='top' title={record.function_name}>
@@ -298,7 +298,13 @@ const AdminCase = (props) => {
             delete med.canister_name;
             med.method = undefined;
             med.event = []; // null rep of opt type
-            med.params = JSON.stringify(med.params);
+            med.params = JSON.stringify(med.params, (key, value)=> {
+                if (typeof value === "bigint") {
+                    return value.toString();
+                } else {
+                    return value;
+                }
+            });
             if (results) {
                 med.event = [prepareCallEvent(results[index])];
             }

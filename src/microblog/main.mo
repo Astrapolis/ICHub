@@ -18,6 +18,8 @@ actor {
         commet: Text;
         isValid: Bool;
         credit: Int;
+        value: Nat;
+        income: Nat;
     };
 
     public type ReturnRecord = {
@@ -26,6 +28,8 @@ actor {
         commet: Text;
         isValid: Bool;
         credit: Int;
+        value: Nat;
+        income: Nat;
     };
 
     public type Microblog = actor {
@@ -55,6 +59,8 @@ actor {
             commet = para.commet;
             isValid = para.isValid;
             credit = para.credit;
+            value = para.value;
+            income = para.income;
         };
     };
 

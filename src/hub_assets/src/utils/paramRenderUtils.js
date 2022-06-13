@@ -289,12 +289,18 @@ function PrimitiveValueParser() {
     this.visitNull = (t, v) => null;
 
     this.visitBool = (t, v) => {
-        if (v === 'true') {
-            return true;
+        if (typeof v === 'boolean') {
+            return v;
         }
-        if (v === 'false') {
-            return false;
+        if (typeof v === 'string') {
+            if (v === 'true') {
+                return true;
+            }
+            if (v === 'false') {
+                return false;
+            }
         }
+
         throw new Error(`Cannot parse ${v} as boolean`);
     };
 
@@ -304,9 +310,9 @@ function PrimitiveValueParser() {
 
     this.visitNumber = (t, v) => BigInt(v);
 
-    this.visitPrincipal = (t, v) => Principal.fromText(v);
+    this.visitPrincipal = (t, v) => typeof v === "string" ? Principal.fromText(v) : v;
 
-    this.visitService = (t, v) => Principal.fromText(v);
+    this.visitService = (t, v) => typeof v === "string" ? Principal.fromText(v) : v;
 
     this.visitFunc = (t, v) => {
         const x = v.split('.', 2);
@@ -340,7 +346,7 @@ export function isMethodCallable(method) {
     try {
         method.method[1].argTypes.forEach((argType, index) => {
             let paramValues = method.params[index];
-            console.log('checking accept value',argType, paramValues);
+            console.log('checking accept value', argType, paramValues);
             let probValue = argType.accept(new GeneralValueParser(), paramValues);
             // console.log('probValue ====>', probValue);
             if (!argType.covariant(probValue)) {

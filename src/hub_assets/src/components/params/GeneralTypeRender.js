@@ -3,13 +3,14 @@ import { Spin, Form } from 'antd';
 import { getGeneralTypeRender } from "../../utils/paramRenderUtils";
 import PrimitiveRender from './PrimitiveRender';
 import VecRender from './VecRender';
+import RecordRender from './RecordRender';
 import * as CONSTANT from "../../constant";
 
 import "./styles/GeneralTypeRender.less";
 
 const GeneralTypeRender = (props) => {
     const [renderType, setRenderType] = useState(null);
-    const { mode, argIDL, paramValue, paramConfig, path, valueKey, vKey, valueFetchor } = props;
+    const { mode, argIDL, paramValue, paramConfig, path, valueKey, vKey, valueFetchor, displayName } = props;
     const [childTypeValueFetchors, setChildTypeValueFetchors] = useState({});
     // const [form] = Form.useForm();
 
@@ -48,6 +49,7 @@ const GeneralTypeRender = (props) => {
                         paramValue={paramValue}
                         paramConfig={paramConfig}
                         path={path}
+                        displayName={displayName}
                         key={vKey}
                     />
                 case CONSTANT.RENDER_VEC:
@@ -57,6 +59,19 @@ const GeneralTypeRender = (props) => {
                         argIDL={argIDL}
                         paramValue={paramValue ? paramValue[valueKey] : []}
                         paramConfig={paramConfig}
+                        displayName={displayName}
+                        path={path}
+                        key={vKey}
+                        vKey={vKey}
+                    />
+                case CONSTANT.RENDER_RECORD:
+                    return <RecordRender
+                        valueFetchor={setGeneralValueFetchorFromChild}
+                        mode={mode}
+                        argIDL={argIDL}
+                        paramValue={paramValue ? paramValue[valueKey] : {}}
+                        paramConfig={paramConfig}
+                        displayName={displayName}
                         path={path}
                         key={vKey}
                         vKey={vKey}

@@ -6,7 +6,7 @@ const { Text } = Typography;
 
 const VecRender = (props) => {
 
-    const { mode, argIDL, paramConfig, paramValue, path, vKey, valueFetchor } = props;
+    const { mode, argIDL, paramConfig, paramValue, path, vKey, valueFetchor, displayName } = props;
     const [arrayValues, setArrayValues] = useState([]);
     const [entryTypeValueFetchors, setEntryTypeValueFetchors] = useState([]);
 
@@ -43,10 +43,10 @@ const VecRender = (props) => {
     }
     const onRemoveEntry = (index) => {
         arrayValues.splice(index, 1);
-        entryTypeValueFetchors.splice(index,1);
+        entryTypeValueFetchors.splice(index, 1);
         setEntryTypeValueFetchors([...entryTypeValueFetchors]);
         setArrayValues([...arrayValues]);
-        
+
     }
 
     useEffect(() => {
@@ -56,7 +56,7 @@ const VecRender = (props) => {
         if (paramValue) {
             console.log('vec paramValue', paramValue);
             let values = [];
-            paramValue.forEach((v,index) => {
+            paramValue.forEach((v, index) => {
                 values[index] = {
                     key: `${vKey}/${index}`,
                     value: v
@@ -66,64 +66,41 @@ const VecRender = (props) => {
         }
     }, [])
 
-    return <>
-        <List
-            header={<Text>{paramConfig && paramConfig.name ? paramConfig.name : argIDL.display()}</Text>}
-            footer={<Button type="dashed" disabled={mode==="read"} onClick={() => onAddNewEntry()} block icon={<PlusOutlined />}>
-                Add
-            </Button>}
-            bordered
-            dataSource={arrayValues}
-            renderItem={(item, index) => {
-                let iValue = {
+    return <List
+        header={<Text>{displayName ? displayName : argIDL.display()}</Text>}
+        footer={<Button type="dashed" disabled={mode === "read"} onClick={() => onAddNewEntry()} block icon={<PlusOutlined />}>
+            Add
+        </Button>}
+        bordered
+        dataSource={arrayValues}
+        renderItem={(item, index) => {
+            let iValue = {
 
-                };
-                iValue[index] = item.value;
-                return (
-                    <List.Item>
-                        <Space key={`${item.key}`} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
-                            <GeneralTypeRender
-                                mode={mode}
-                                argIDL={argIDL._type}
-                                paramValue={iValue}
-                                paramConfig={paramConfig}
-                                valueKey={index + ''}
-                                path={[index + '']}
-                                key={`G/${item.key}`}
-                                vKey={`${vKey}/${index}`}
-                                valueFetchor={(path, fetchor) => {
-                                    setArrayValueFetchorFromChild(index, fetchor);
-                                }} />
-                            {mode === "new" && <MinusCircleOutlined onClick={() => onRemoveEntry(index)} />}
-                        </Space>
-                    </List.Item>
-                );
-            }}
-        />
-    </>
-    // return <Form form={form} initialValues={paramValue}>
-    //     <Form.Item
-    //         label={paramConfig && paramConfig.name ? paramConfig.name : argIDL.display()}
-    //     >
-    //         <Form.List name={path}
-    //         >
-    //             {(fields, { add, remove }) => <>
-    //                 {fields.map((field, index) => {
-    // return <Space key={field.key} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
-    //                         <GeneralTypeRender mode={mode}
-    //                             argIDL={argIDL._type}
-    //                             paramConfig={paramConfig}
-    //                             path={[...path, index + '']} />
-    //                         {mode === "new" && <MinusCircleOutlined onClick={() => remove(field.name)} />}</Space>
-    //                 })}
-    //                 {mode === "new" &&
-    //                     <Form.Item>
+            };
+            iValue[index] = item.value;
+            return (
+                <List.Item>
+                    <Space key={`${item.key}`} style={{ display: 'flex', marginBottom: 8 }} align="baseline">
+                        <GeneralTypeRender
+                            mode={mode}
+                            argIDL={argIDL._type}
+                            paramValue={iValue}
+                            paramConfig={paramConfig}
+                            valueKey={index + ''}
+                            path={[index + '']}
+                            key={`G/${item.key}`}
+                            vKey={`${vKey}/${index}`}
+                            valueFetchor={(path, fetchor) => {
+                                setArrayValueFetchorFromChild(index, fetchor);
+                            }} />
+                        {mode === "new" && <MinusCircleOutlined onClick={() => onRemoveEntry(index)} />}
+                    </Space>
+                </List.Item>
+            );
+        }}
+    />
 
-    //                     </Form.Item>}
-    //             </>}
-    //         </Form.List>
-    //     </Form.Item>
-    // </Form>
+
 }
 
 export default VecRender;
