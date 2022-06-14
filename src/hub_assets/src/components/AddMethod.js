@@ -5,6 +5,8 @@ import { Actor } from "@dfinity/agent";
 import { message, Spin, Button, Tabs, Typography } from 'antd';
 import { PlusOutlined, ExclamationOutlined, CheckOutlined } from "@ant-design/icons";
 import { useAuth } from '../auth';
+import { useCasesValue } from './params';
+
 import EditMethodParamForm from './EditMethodParamForm';
 
 const { TabPane } = Tabs;
@@ -21,6 +23,7 @@ import './styles/AddMethod.less';
 
 const AddMethod = (props) => {
     const { user } = useAuth();
+
     const [loading, setLoading] = useState(false);
     const [queryMethods, setQueryMethods] = useState([]);
     const [updateMethods, setUpdateMethods] = useState([]);
@@ -29,8 +32,12 @@ const AddMethod = (props) => {
     const [methodsReady, setMethodsReady] = useState([]);
     const [activeMethod, setActiveMethod] = useState(null);
     const [editFormMapping, setEditFormMapping] = useState({});
-    const [editValueFetcherMapping, setEditValueFetcherMapping] = useState({});
-
+    
+    const {
+        casesValue,
+        registerCaseValue,
+        clearCaseValue
+    } = useCasesValue();
 
     const initMethods = async () => {
         setLoading(true);
@@ -58,16 +65,7 @@ const AddMethod = (props) => {
         setLoading(false);
     }
 
-    const onNewForm = (index, form) => {
-        editFormMapping[index] = form;
-        setEditFormMapping({ ...editFormMapping });
-    }
-
-    const setEditValueFetchorFromChild = (index, fetchor) => {
-        editValueFetcherMapping[index] = fetchor;
-        setEditValueFetcherMapping({ ...editValueFetcherMapping });
-    }
-
+    
     const onAddMethod = (method) => {
         let methodCfg = {
             canister_id: props.canister.canisterId,
@@ -80,6 +78,7 @@ const AddMethod = (props) => {
         setNewMethods([...newMethods, methodCfg]);
         setMethodsReady([...methodsReady, false]);
         setActiveMethod(methodCfg);
+        registerCaseValue(methodCfg.uuid, method[1]);
     }
 
     const renderQueryMethods = () => {
@@ -125,49 +124,20 @@ const AddMethod = (props) => {
     }
 
 
-
-    const onValueConfigured = (index, values) => {
-        console.log('commit values', values);
-        let med = newMethods[index];
-        med.ready = true;
-        let nMethods = null;
-        if (index === 0) {
-            nMethods = [med, ...newMethods.slice(1)];
-        } else {
-            if (index === newMethods.lenght) {
-                nMethods = [...newMethods.slice(0, index), med];
-            } else {
-                nMethods = [...newMethods.slice(0, index), med, ...newMethods.slice(index + 1)];
-            }
-        }
-        setNewMethods(nMethods);
-
-    }
-
     const onConfirm = () => {
         // console.log('confirm mapping', editFormMapping);
 
-        newMethods.forEach((m, index) => {
-            // let form = editFormMapping[index];
-            // if (form) {
-            //     // console.log('form' + index + 'value --->', form.getFieldsValue(true));
-            //     let values = form.getFieldsValue(true);
-            //     let params = [];
-            //     m.method[1].argTypes.forEach((arg, index) => {
-            //         params[index] = values[index];
-            //     });
-            //     m.params = params;
-            // }
-            let fetchor = editValueFetcherMapping[index];
-            if (fetchor) {
-                let values = fetchor(index);
-                console.log('add methods values ====>', values);
-                let params = [];
-                m.method[1].argTypes.forEach((arg, idx) => {
-                    params[idx] = values[idx];
-                });
-                m.params = params;
-            }
+        newMethods.forEach(m => {
+            
+            m.params = JSON.parse(JSON.stringify(casesValue[m.uuid]), (key, value) => {
+                if (typeof value === "bigint") {
+                    return value.toString();
+                } else {
+                    return value;
+                }
+            });
+            console.log('method params', m, m.params);
+
         });
         console.log('confirm add ====>', newMethods);
         props.onMethodsAdded(props.canister, newMethods);
@@ -176,6 +146,10 @@ const AddMethod = (props) => {
     }
     useEffect(() => {
         initMethods();
+        return () => {
+            // console.log('add method destroy ======>', newMethods);
+            clearCaseValue();
+        }
     }, []);
 
     return <div className='addmethod-container'>
@@ -199,14 +173,15 @@ const AddMethod = (props) => {
 
             <div className='addmethod-tabs-container'>
 
-                {newMethods.length > 0 && <Tabs type="editable-card" activeKey={activeMethod.uuid} onEdit={onTabEdit} onChange={onTabChange} hideAdd>
-                    {
-                        newMethods.map((med, index) => <TabPane tab={renderTabName(med)} key={med.uuid} closable={true}>
-                            <EditMethodParamForm method={med} methodIndex={index} setValueFetchor={setEditValueFetchorFromChild} mode={"new"} />
-                        </TabPane>)
-                    }
-                </Tabs>}
-
+                {newMethods.length > 0 && 
+                    <Tabs type="editable-card" activeKey={activeMethod.uuid} onEdit={onTabEdit} onChange={onTabChange} hideAdd>
+                        {
+                            newMethods.map((med, index) => <TabPane tab={renderTabName(med)} key={med.uuid} closable={true}>
+                                <EditMethodParamForm method={med} />
+                            </TabPane>)
+                        }
+                    </Tabs>
+                }
 
             </div>
             <div className='addmethod-footer-container'>

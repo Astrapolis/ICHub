@@ -1,43 +1,43 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 
 import { Button, Form, Input } from 'antd';
-import { getPrimitiveValueParser } from '../../utils/paramRenderUtils';
+import { getPrimitiveValueParser, convertPathToJson } from '../../utils/paramRenderUtils';
+import { useCasesValue } from '.';
 
 const PrimitiveRender = (props) => {
     const [form] = Form.useForm();
-    const { mode, argIDL, paramValue, paramConfig, path, vKey, valueFetchor, displayName } = props;
-    console.log('render primitive value with path ===>', path, paramValue);
+    const { mode, argIDL, path, fieldName } = props;
+    // const [formInitialValue, setFormInitialValue] = useState(null);
+    const {
+        casesValue,
+        updateParamValue,
+        getParamValue
+    } = useCasesValue();
 
-    const fetchPrimitiveValue = () => {
-        console.log('fetchor of PrimitiveRender');
-        let values = form.getFieldsValue(true);
-        console.log('get value from primitive form', values);
-        let retValue = values[path];
-        // try {
-        //     let valueProbe = argIDL.accept(
-        //         getPrimitiveValueParser(),
-        //         retValue
-        //     );
-        //     if (!argIDL.covariant(valueProbe)) {
-        //         return retValue;
-        //     }
-        //     return valueProbe;
-        // }catch (err) {
-        //     return retValue;
-        // }
-        return retValue;
+
+    const onPrimitiveValueChanged = (changedValues, allValues) => {
+        updateParamValue(path.join('/'), changedValues);
     }
 
     useEffect(() => {
-        if (valueFetchor) {
-            valueFetchor(JSON.stringify(path), fetchPrimitiveValue);
+        if (form) {
+            let value = getParamValue(path.join('/'));
+            let formValue = convertPathToJson(path, value);
+            form.setFieldsValue(formValue);
         }
-    }, []);
+    }, [form]);
+    useEffect(() => {
+        let value = getParamValue(path.join('/'));
+        let formValue = convertPathToJson(path, value);
+        form.setFieldsValue(formValue);
+    }, [casesValue])
 
-    return <Form form={form} initialValues={paramValue}>
+    return <Form form={form}
+        onValuesChange={onPrimitiveValueChanged}
+    >
         <Form.Item
             name={path}
-            label={displayName ? displayName : argIDL.display()}
+            label={fieldName ? fieldName : argIDL.display()}
             validateFirst
             rules={[{
                 required: true,

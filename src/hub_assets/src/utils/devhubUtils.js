@@ -72,6 +72,7 @@ export const getCanisterList = async (user, needActor) => {
 
     try {
         let userConfig = user.devhubConfig;
+        if (!userConfig) return [];
         //  await user.devhubActor.get_user_config(getUserActiveConfigIndex(user));
         // if (userConfig.UnAuthenticated) {
         //     console.log('list failed', userConfig.UnAuthenticated);

@@ -350,6 +350,7 @@ export function isMethodCallable(method) {
     console.log("isMethodCallable ==>", method);
     let valueValid = true;
     try {
+
         method.method[1].argTypes.forEach((argType, index) => {
             let paramValues = method.params[index];
             console.log('checking accept value', argType, paramValues);
@@ -361,7 +362,6 @@ export function isMethodCallable(method) {
             } else {
                 // console.log('type check passed');
             }
-
         });
     } catch (err) {
         console.log("parse error", err);
@@ -385,4 +385,20 @@ export function getCallSpec(method) {
         specs.push(valueObject);
     });
     return specs;
+}
+
+export function convertPathToJson(path, value) {
+    let json = {};
+    let ref = json;
+    path.forEach((key, index) => {
+        if (index < (path.length - 1)) {
+            let obj = {};
+            ref[key] = obj;
+            ref = obj;
+        } else {
+            ref[key] = value;
+        }
+    });
+    return json;
+
 }

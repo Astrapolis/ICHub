@@ -3,7 +3,7 @@ import { useParams } from 'react-router-dom';
 import { Principal } from "@dfinity/principal";
 import {
     Button, Form, Input, message, Spin, Table, Tooltip,
-    Drawer, Typography, Popconfirm, Collapse, Empty, Card
+    Drawer, Typography, Popconfirm, Collapse, Empty, Card, Space
 } from 'antd';
 import { EditOutlined, CheckOutlined, CloseOutlined, DeleteOutlined } from "@ant-design/icons";
 import { v4 as uuidv4 } from 'uuid';
@@ -12,6 +12,7 @@ import { getFieldFromActor } from '../utils/actorUtils';
 import { isMethodCallable } from '../utils/paramRenderUtils';
 import { str2Utf8Bytes } from '../utils/stringUtils';
 import { useAuth } from '../auth';
+import { ProvideCasesValue } from './params';
 import MethodSpec from './MethodSpec';
 import SelectCanister from './SelectCanister';
 import AddMethod from './AddMethod';
@@ -86,6 +87,11 @@ const AdminCase = (props) => {
             return <><Button type="primary" onClick={() => {
                 onCallOneMethod(record);
             }}>Call</Button>
+                <Button icon={<EditOutlined />} style={{ marginLeft: 3 }} onClick={() => {
+                    setActiveMethod(record);
+                    setDrawerStep('edit');
+                    setShowBottomDrawer(true);
+                }} />
                 <Popconfirm title="Are you sure？" okText="Yes" cancelText="No" onConfirm={() => {
                     onDeleteMethod(record);
                 }}>
@@ -123,6 +129,7 @@ const AdminCase = (props) => {
     }]
 
     const fetchCaseDetail = async () => {
+
         setLoading(true);
         try {
             let cans = await getCanisterList(user, true);
@@ -140,6 +147,7 @@ const AdminCase = (props) => {
                         canister_calls: clist[0].canister_calls ? [...clist[0].canister_calls] : []
                     };
                     cdetail.canister_calls.forEach(med => {
+                        med.uuid = uuidv4();
                         med.canister_id = med.canister_id.toText();
                         if (med.params) {
                             med.params = JSON.parse(med.params);
@@ -199,7 +207,7 @@ const AdminCase = (props) => {
         };
         caseA.canister_calls.forEach((ele, index) => {
             tCase.canister_calls[index] = Object.assign({}, ele);
-            tCase.canister_calls[index].uuid = uuidv4();
+            // tCase.canister_calls[index].uuid = uuidv4();
         });
 
         return tCase;
@@ -298,7 +306,7 @@ const AdminCase = (props) => {
             delete med.canister_name;
             med.method = undefined;
             med.event = []; // null rep of opt type
-            med.params = JSON.stringify(med.params, (key, value)=> {
+            med.params = JSON.stringify(med.params, (key, value) => {
                 if (typeof value === "bigint") {
                     return value.toString();
                 } else {
@@ -429,19 +437,19 @@ const AdminCase = (props) => {
     const renderCaseExpandablePart = (record) => {
         // console.log('render case expandable part', record);
         return (<div className='caserow-expandable-container'>
-            <div className='caserow-expandable-param-container'>
-                <MethodSpec method={record} />
+            {/* <div className='caserow-expandable-param-container'> */}
+            <MethodSpec method={record} />
+            <Card title={<Text mark>Call Spec:</Text>}
+            >
+
                 <MethodParamsDisplay method={record} />
 
                 {!record.method && <Text type="danger">{`method ${record.function_name} not found`}</Text>}
-            </div>
-            <div className='caserow-expandable-footer-container'>
-                <Button icon={<EditOutlined />} size="large" onClick={() => {
-                    setActiveMethod(record);
-                    setDrawerStep('edit');
-                    setShowBottomDrawer(true);
-                }} />
-            </div>
+            </Card>
+            {/* </div> */}
+            {/* <div className='caserow-expandable-footer-container'>
+                
+            </div> */}
         </div>);
     }
 
@@ -563,40 +571,45 @@ const AdminCase = (props) => {
                             </Table.Summary>}
                         /> */}
                     </div>
-                    <Drawer title={drawerTitle[drawerStep]} placement="bottom"
-                        height={"95%"}
-                        visible={showBottomDrawer}
-                        closable={drawerStep === 'canister'}
-                        maskClosable={drawerStep === 'canister'}
-                        // contentWrapperStyle={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}
-                        onClose={onBottomDrawerClosed}
-                        getContainer={false}
-                        style={{ position: 'absolute' }}
-                    >
-                        <div className='bottom-drawer-content-container'>
-                            <div className='bottom-drawer-inner-content-container'>
-                                {drawerStep === "canister" &&
-                                    <SelectCanister onSelectCanister={onSelectCanister} canisterList={canisterList} closeDrawer={closeDrawer} />}
-                                {drawerStep === "methods" && <AddMethod canister={activeCanister}
-                                    onMethodsAdded={onMethodsAdded}
-                                    closeDrawer={closeDrawer} />}
-                                {drawerStep === "edit" && <EditMethod method={activeMethod}
-                                    onMethodUpdated={onMethodUpdated}
-                                    closeDrawer={closeDrawer}
-                                />}
-                                {drawerStep === 'callonce' && <CallOncePanel
-                                    method={activeCallMethod}
-                                    index={0}
-                                    closeDrawer={closeDrawer}
-                                    canisterActor={activeCanister.actor}
-                                />}
-                                {drawerStep === 'runcase' && <RunCasePanel testCase={editCase}
-                                    canisterList={canisterList}
-                                    onSaveRunResult={onSaveRunResult}
-                                    closeDrawer={closeDrawer} />}
+                    {showBottomDrawer &&
+                        <Drawer title={drawerTitle[drawerStep]} placement="bottom"
+                            height={"95%"}
+                            visible={showBottomDrawer}
+                            closable={drawerStep === 'canister'}
+                            maskClosable={drawerStep === 'canister'}
+                            destroyOnClose={true}
+                            // contentWrapperStyle={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}
+                            onClose={onBottomDrawerClosed}
+                            getContainer={false}
+                            style={{ position: 'absolute' }}
+                        >
+                            <div className='bottom-drawer-content-container'>
+                                <div className='bottom-drawer-inner-content-container'>
+                                    {drawerStep === "canister" &&
+                                        <SelectCanister onSelectCanister={onSelectCanister} canisterList={canisterList} closeDrawer={closeDrawer} />}
+                                    {drawerStep === "methods" && <ProvideCasesValue>
+                                        <AddMethod canister={activeCanister}
+                                            onMethodsAdded={onMethodsAdded}
+                                            closeDrawer={closeDrawer} /></ProvideCasesValue>}
+                                    {drawerStep === "edit" && <ProvideCasesValue>
+                                        <EditMethod method={activeMethod}
+                                            onMethodUpdated={onMethodUpdated}
+                                            closeDrawer={closeDrawer}
+                                        /></ProvideCasesValue>}
+                                    {drawerStep === 'callonce' && <CallOncePanel
+                                        method={activeCallMethod}
+                                        index={0}
+                                        closeDrawer={closeDrawer}
+                                        canisterActor={activeCanister.actor}
+                                    />}
+                                    {drawerStep === 'runcase' && <RunCasePanel testCase={editCase}
+                                        canisterList={canisterList}
+                                        onSaveRunResult={onSaveRunResult}
+                                        closeDrawer={closeDrawer} />}
+                                </div>
                             </div>
-                        </div>
-                    </Drawer>
+                        </Drawer>
+                    }
                 </div>
             </>
         }

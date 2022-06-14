@@ -102,7 +102,7 @@ const AdminLayout = (props) => {
         }];
         setMenuList([
             //dashboardMenu, 
-            caseMenu, canisterMenu, 
+            caseMenu, canisterMenu,
             // historyMenu
         ]);
     }
@@ -177,8 +177,16 @@ const AdminLayout = (props) => {
                 setActiveRoute(DASHBOARD_KEY);
             }
             if (loc.pathname.startsWith('/devhub/admin/cases')) {
-                console.log('set active route to', (CASE_KEY + loc.state.caseid))
-                setActiveRoute(CASE_KEY + loc.state.caseid);
+                if (caseid) {
+                    setActiveRoute(CASE_KEY + caseid);
+                } else {
+                    if (loc.state && loc.state.caseid) {
+                        setActiveRoute(CASE_KEY + loc.state.caseid);
+                    } else {
+                        nav('/devhub/admin/newcase');
+                    }
+                }
+
 
             }
             if (loc.pathname.startsWith('/devhub/admin/newcase')) {
@@ -209,7 +217,11 @@ const AdminLayout = (props) => {
                         <Route path='/' element={<Navigate replace to="newcase" />} />
                         <Route path='prefollow/:canisterId' element={<FollowPreview />} />
                         {/* <Route path='dashboard' element={<AdminDashboard />} /> */}
-                        <Route path='cases/:caseid' element={<AdminCase />} />
+                        <Route path='cases/:caseid' element={
+                            
+                                <AdminCase />
+                        
+                        } />
                         <Route path='newcase' element={<AdminNewCase />} />
                         <Route path='canisters' element={<AdminCanisters />} />
                         {/* <Route path='history' element={<AdminCaseHistory />} /> */}

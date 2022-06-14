@@ -1,5 +1,6 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { Spin, Form } from 'antd';
+import { IDL } from "@dfinity/candid";
+import { Spin, Form, Typography } from 'antd';
 import { getGeneralTypeRender } from "../../utils/paramRenderUtils";
 import PrimitiveRender from './PrimitiveRender';
 import VecRender from './VecRender';
@@ -8,11 +9,14 @@ import * as CONSTANT from "../../constant";
 
 import "./styles/GeneralTypeRender.less";
 
+const { Text } = Typography;
+
 const GeneralTypeRender = (props) => {
     const [renderType, setRenderType] = useState(null);
-    const { mode, argIDL, paramValue, paramConfig, path, valueKey, vKey, valueFetchor, displayName } = props;
+    const { mode, argIDL, paramValue, paramConfig, path, valueKey, vKey, valueFetchor, fieldName } = props;
     const [childTypeValueFetchors, setChildTypeValueFetchors] = useState({});
     // const [form] = Form.useForm();
+    // console.log('render general type ', argIDL instanceof IDL.RecordClass, argIDL instanceof IDL.PrimitiveType);
 
     const setGeneralValueFetchorFromChild = (key, fetchor) => {
         console.log('setter of GeneralTypeRender');
@@ -37,6 +41,33 @@ const GeneralTypeRender = (props) => {
     }
 
     const renderParameters = () => {
+        if (argIDL instanceof IDL.PrimitiveType) {
+            return <PrimitiveRender
+                argIDL={argIDL}
+                path={path}
+                fieldName={fieldName}
+                key={path.join('/')}
+            />
+        }
+        if (argIDL instanceof IDL.RecordClass) {
+            return <RecordRender
+                argIDL={argIDL}
+                path={path}
+                fieldName={fieldName}
+                key={path.join('/')}
+            />
+        }
+        if (argIDL instanceof IDL.VecClass) {
+            return <VecRender
+                argIDL={argIDL}
+                path={path}
+                fieldName={fieldName}
+                key={path.join('/')}
+            />
+        }
+
+        return <Text type="warning">Not Implemented</Text>
+
         if (renderType === null) {
             return <Spin />
         } else {
@@ -83,12 +114,12 @@ const GeneralTypeRender = (props) => {
     }
 
     useEffect(() => {
-        if (valueFetchor) {
-            valueFetchor(JSON.stringify(path), fetchGeneralValue);
-        }
-        let rdType = argIDL.accept(getGeneralTypeRender(), null);
-        console.log('rdType ====>', rdType);
-        setRenderType(rdType);
+        // if (valueFetchor) {
+        //     valueFetchor(JSON.stringify(path), fetchGeneralValue);
+        // }
+        // let rdType = argIDL.accept(getGeneralTypeRender(), null);
+        // console.log('rdType ====>', rdType);
+        // setRenderType(rdType);
     }, []);
 
     return <div className='general-type-param-container'>
