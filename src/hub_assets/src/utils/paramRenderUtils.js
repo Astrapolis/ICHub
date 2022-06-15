@@ -1,4 +1,5 @@
 import { Principal } from "@dfinity/principal";
+import { IDL } from "@dfinity/candid";
 import * as CONSTANT from "../constant";
 import { getFieldFromActor } from "./actorUtils";
 
@@ -400,5 +401,46 @@ export function convertPathToJson(path, value) {
         }
     });
     return json;
+
+}
+export function gothroughArgType(argIDL) {
+    if (argIDL instanceof IDL.PrimitiveType) {
+        return undefined;
+    }
+    if (argIDL instanceof IDL.RecordClass) {
+        let subObject = {};
+        return makeRecordTypeTemplateValue(argIDL, subObject);
+    }
+    if (argIDL instanceof IDL.VecClass) {
+        return [];
+    }
+
+    if (argIDL instanceof IDL.OptClass) {
+        return null;
+    }
+}
+
+
+export function makeRecordTypeTemplateValue(argIDL, rootObject) {
+    argIDL._fields.forEach((field, index) => {
+        let fieldName = field[0];
+        let fieldIDL = field[1];
+        rootObject[fieldName] = gothroughArgType(fieldIDL);
+    });
+    return rootObject;
+}
+
+
+export function constructMethodParamValueObjectTemplate(methodIDL) {
+    if (methodIDL.argTypes.length === 0) {
+        return;
+    }
+    let valueTemplate = [];
+
+    methodIDL.argTypes.forEach((argIDL, index) => {
+        valueTemplate[index] = gothroughArgType(argIDL);
+    });
+
+    return valueTemplate;
 
 }

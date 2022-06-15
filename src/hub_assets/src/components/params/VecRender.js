@@ -1,6 +1,6 @@
-import React, { useContext, useState, useEffect, useRef } from 'react';
-import { ConsoleSqlOutlined, MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import { Form, Space, Button, List, Typography } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import { Space, Button, List, Typography } from 'antd';
 import { useCasesValue } from '.';
 import GeneralTypeRender from './GeneralTypeRender';
 const { Text } = Typography;
@@ -19,12 +19,8 @@ const VecRender = (props) => {
 
 
     const onAddNewEntry = () => {
-        // arrayValues.length += 1;
+
         let pathString = `${path.join('/')}/${arrayValues.length}`;
-        // arrayValues[arrayValues.length] = {
-        //     key: pathString
-        // }
-        // setArrayValues([...arrayValues]);
         addParamValue(pathString, argIDL._type);
     }
     const onRemoveEntry = (index) => {
@@ -37,8 +33,6 @@ const VecRender = (props) => {
         console.log('fetch vec value by path', path.join('/'));
         let paramValue = getParamValue(path.join('/'));
 
-
-        // if (paramValue) {
         console.log('vec paramValue', paramValue);
         let values = [];
         paramValue.forEach((v, index) => {
@@ -48,7 +42,7 @@ const VecRender = (props) => {
             }
         });
         setArrayValues([...values]);
-        // }
+
     }, [casesValue])
 
     return <List

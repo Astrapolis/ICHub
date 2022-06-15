@@ -4,6 +4,7 @@ import { Typography, Card } from 'antd';
 import PrimitiveDisplay from './PrimitiveDisplay';
 import RecordDisplay from './RecordDisplay';
 import VecDisplay from './VecDisplay';
+import OptDisplay from './OptDisplay';
 import "./styles/GeneralTypeRender.less";
 
 const { Text } = Typography;
@@ -36,7 +37,14 @@ const GeneralTypeDisplay = (props) => {
                 fieldName={fieldName}
             />
         }
-
+        if (argIDL instanceof IDL.OptClass) {
+            return <OptDisplay
+                argIDL={argIDL}
+                paramValue={paramValue}
+                path={path}
+                fieldName={fieldName}
+            />
+        }
         return <Text type="warning">Not Implemented</Text>
     }
 

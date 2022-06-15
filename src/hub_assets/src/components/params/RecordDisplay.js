@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Typography, Collapse } from 'antd';
 import { getPrimitiveValueParser, getGeneralValueParser } from '../../utils/paramRenderUtils';
 import GeneralTypeDisplay from './GeneralTypeDisplay';
-import { Field } from 'rc-field-form';
+
 const { Text } = Typography;
 const { Panel } = Collapse;
 
