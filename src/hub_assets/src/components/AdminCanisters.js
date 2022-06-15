@@ -1,7 +1,10 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Principal } from "@dfinity/principal";
-import { message, Button, Table, Layout, Typography, Row, Col, Form, Input } from 'antd';
+import {
+    message, Button, Table, Layout, Typography, PageHeader,
+    Row, Col, Form, Input
+} from 'antd';
 import { PlusOutlined } from "@ant-design/icons"
 import { DownloadOutlined } from '@ant-design/icons';
 import { useAuth } from '../auth';
@@ -67,67 +70,51 @@ const AdminCanisters = (props) => {
         render: (_, entry) => <Button type="link">Unfollow</Button>
     }];
 
-    return <Layout>
-        {/* <Header className='content-header-container'> */}
-        <div className='content-header-container canister-toolbar'>
-            {/* <Row wrap={false}>
-                <Col flex="auto"> */}
-            <Text strong>Canisters Followed</Text>
-            {/* </Col>
-                <Col flex="none"> */}
-            <div>
-                {!addMore &&
-                    <Button size="large" type="primary" icon={<PlusOutlined />} onClick={() => {
-                        setAddMore(true);
-                    }} />
-                }
-                {addMore &&
-                    <Form layout="inline" onFinish={onFollowNew}>
-                        <Form.Item name="newCanisterId"
-                            validateFirst
+    return <>
+        <PageHeader
+            title="Canisters Followed"
+            extra={[!addMore ? <Button size="large" type="primary" icon={<PlusOutlined />} onClick={() => {
+                setAddMore(true);
+            }} /> : <Form layout="inline" onFinish={onFollowNew}>
+                <Form.Item name="newCanisterId"
+                    validateFirst
 
-                            rules={[{ required: true, message: 'Please enter canisterId!' }, {
-                                message: 'not a principal format!',
-                                validator: (_, value) => {
-                                    try {
-                                        let p = Principal.fromText(value);
-                                        return Promise.resolve();
-                                    } catch (err) {
-                                        return Promise.reject('invalid principal');
-                                    }
-                                }
-                            }]}
-                        >
-                            <Input className='canisterid-input' placeholder='Enter New CanisterId' />
-                        </Form.Item>
-                        <Form.Item>
-                            <Button type="primary" htmlType='submit' size="large" >Follow</Button>
-                        </Form.Item>
-                        <Form.Item>
-                            <Button htmlType='reset' size="large" onClick={
-                                () => {
-                                    setAddMore(false);
-                                }
-                            } >Cancel</Button>
-                        </Form.Item>
-                    </Form>
-                }
-            </div>
-            {/* </Col>
-
-            </Row> */}
-
-        </div>
-        {/* </Header> */}
-        <Content>
-            <Table bordered
-                rowKey={'canisterId'}
-                columns={columns}
-                pagination={false}
-                dataSource={listData}
-                loading={listLoading} />
-        </Content>
-    </Layout>
+                    rules={[{ required: true, message: 'Please enter canisterId!' }, {
+                        message: 'not a principal format!',
+                        validator: (_, value) => {
+                            try {
+                                let p = Principal.fromText(value);
+                                return Promise.resolve();
+                            } catch (err) {
+                                return Promise.reject('invalid principal');
+                            }
+                        }
+                    }]}
+                >
+                    <Input className='canisterid-input' placeholder='Enter New CanisterId' />
+                </Form.Item>
+                <Form.Item>
+                    <Button type="primary" htmlType='submit' size="large" >Follow</Button>
+                </Form.Item>
+                <Form.Item>
+                    <Button htmlType='reset' size="large" onClick={
+                        () => {
+                            setAddMore(false);
+                        }
+                    } >Cancel</Button>
+                </Form.Item>
+            </Form>]} />
+        <Layout>
+            <Content>
+                <Table bordered
+                    rowKey={'canisterId'}
+                    columns={columns}
+                    pagination={false}
+                    dataSource={listData}
+                    loading={listLoading} />
+            </Content>
+        </Layout>
+    </>
 
 }
 

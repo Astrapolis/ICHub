@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createRef } from 'react';
 import { Button, Card, Typography } from 'antd';
 import RunMethodTimeline from './RunMethodTimeline';
 
@@ -27,24 +27,26 @@ const RunCasePanel = (props) => {
         return runningCases.map((method, index) => {
             let canister = canisterList.find((can) => can.canisterId === method.canister_id);
             return <RunMethodTimeline onResult={onResult} method={method} index={index}
-                canisterActor={canister.actor} key={method.uuid}/>
+                canisterActor={canister.actor} key={method.uuid} />
+
         });
     }
     const startRun = () => {
         setRunningCases([methods[0]]);
     }
+    
     useEffect(() => {
         console.log('render methods', methods);
         startRun();
     }, [])
 
     return <Card title="Run Case" style={{ width: '100%' }}
-        actions={[<Button type="primary" disabled={failed} loading={calling} 
-        key="run-case-result-save"
-        onClick={() => {
-            closeDrawer();
-            onSaveRunResult(results);
-        }}
+        actions={[<Button type="primary" disabled={failed} loading={calling}
+            key="run-case-result-save"
+            onClick={() => {
+                closeDrawer();
+                onSaveRunResult(results);
+            }}
         >Save To History</Button>,
         <Button loading={calling} key="run-case-result-discard" onClick={() => {
             closeDrawer();

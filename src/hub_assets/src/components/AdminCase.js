@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Principal } from "@dfinity/principal";
 import {
-    Button, Form, Input, message, Spin, Table, Tooltip,
-    Drawer, Typography, Popconfirm, Collapse, Empty, Card, Space
+    Button, Form, Input, message, Spin, Table, Tooltip, PageHeader,
+    Drawer, Typography, Popconfirm, Collapse, Empty, Card, Space,
+    Layout, Row, Col
 } from 'antd';
 import { EditOutlined, CheckOutlined, CloseOutlined, DeleteOutlined } from "@ant-design/icons";
 import { v4 as uuidv4 } from 'uuid';
@@ -470,12 +471,12 @@ const AdminCase = (props) => {
         }
     }, [editCase])
 
-    return <div className='section-column-content-container'>
+    return <>
         {!editCase && loading && <Spin size="large" />}
         {editCase &&
             <>
-                <div className='content-header-container case-toolbar'>
-                    <div>
+                <PageHeader
+                    title={<>
                         {!editTitle &&
                             <>
                                 <span>{editCase.config.name}</span><Button style={{ marginLeft: 5 }} icon={<EditOutlined />} size="large" onClick={() => { setEditTitle(true); }} />
@@ -501,76 +502,84 @@ const AdminCase = (props) => {
                                 </Form.Item>
                             </Form>
                         </>}
-                    </div>
-                    <div className='case-toolbar-operation-container'>
-                        <Button type="primary" disabled={!saveEnable || editTitle} loading={updating || loading} size="large"
-                            onClick={() => {
-                                onUpdateCase();
-                            }}
-                        >Save</Button>
-                        <Button style={{ marginLeft: 5 }} size="large">Copy</Button>
-                    </div>
-                </div>
-                <div className='case-view-container'>
-                    <div className='case-editor-container'>
-                        <Table columns={caseCallColumns} rowKey="uuid" dataSource={editCase.canister_calls}
-                            pagination={false}
-                            expandable={{
-                                expandedRowRender: renderCaseExpandablePart,
-                                defaultExpandAllRows: true,
-                                rowExpandable: record => true,
-                            }}
-                            summary={() => <Table.Summary fixed>
-                                <Table.Summary.Row>
-                                    <Table.Summary.Cell index={0} colSpan={2}>
+                    </>}
+                    extra={[<Button type="primary" disabled={!saveEnable || editTitle} loading={updating || loading}
+                        onClick={() => {
+                            onUpdateCase();
+                        }}
+                    >Save</Button>,
+                    <Button style={{ marginLeft: 5 }} >Copy</Button>]} >
+
+                </PageHeader>
+                <Layout style={{ overflow: 'auto' }}>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Card title="Call List" extra={
+                                <Row gutter={8}>
+                                    <Col span={12}>
                                         <Button type="primary" onClick={onShowBottomDrawer} disabled={editTitle || updating}>Add Call</Button>
-                                    </Table.Summary.Cell>
-                                    {editCase.canister_calls.length > 0 &&
-                                        <Table.Summary.Cell index={1} colSpan={2}>
-                                            <Button style={{ marginLeft: 10 }} type="primary" disabled={editTitle || updating} loading={historyLoading}
-                                                onClick={() => {
-                                                    if (saveEnable) {
-                                                        onSaveAndRunCase();
-                                                    } else {
-                                                        onRunCase();
-                                                    }
-                                                }}
-                                            >{saveEnable ? "Save & Call All" : "Call All"}</Button>
-                                        </Table.Summary.Cell>}
-                                </Table.Summary.Row>
-                            </Table.Summary>}
-                        />
-                    </div>
-                    <div className='case-history-container'>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Button style={{ marginLeft: 10 }} type="primary" disabled={editTitle || updating} loading={historyLoading}
+                                            onClick={() => {
+                                                if (saveEnable) {
+                                                    onSaveAndRunCase();
+                                                } else {
+                                                    onRunCase();
+                                                }
+                                            }}
+                                        >{saveEnable ? "Save & Call All" : "Call All"}</Button>
+                                    </Col>
+                                </Row>
+                            }>
+                                <Table columns={caseCallColumns} rowKey="uuid" dataSource={editCase.canister_calls}
+                                    pagination={false}
+                                    expandable={{
+                                        expandedRowRender: renderCaseExpandablePart,
+                                        defaultExpandAllRows: true,
+                                        rowExpandable: record => true,
+                                    }}
+                                // summary={() => <Table.Summary fixed>
+                                //     <Table.Summary.Row>
+                                //         <Table.Summary.Cell index={0} colSpan={2}>
+                                //             <Button type="primary" onClick={onShowBottomDrawer} disabled={editTitle || updating}>Add Call</Button>
+                                //         </Table.Summary.Cell>
+                                //         {editCase.canister_calls.length > 0 &&
+                                //             <Table.Summary.Cell index={1} colSpan={2}>
+                                //                 <Button style={{ marginLeft: 10 }} type="primary" disabled={editTitle || updating} loading={historyLoading}
+                                //                     onClick={() => {
+                                //                         if (saveEnable) {
+                                //                             onSaveAndRunCase();
+                                //                         } else {
+                                //                             onRunCase();
+                                //                         }
+                                //                     }}
+                                //                 >{saveEnable ? "Save & Call All" : "Call All"}</Button>
+                                //             </Table.Summary.Cell>}
+                                //     </Table.Summary.Row>
+                                // </Table.Summary>}
+                                />
+                            </Card>
+                        </Col>
+                        <Col span={12}>
+                            <Card title="Call History" extra={<Button type="primary">All Logs</Button>}>
+                                {(historySaving || historyLoading || updating) && <Spin />}
+                                {callHistory.length === 0 && <Empty />}
+                                {callHistory.length > 0 &&
+                                    <Collapse defaultActiveKey={callHistory[0].case_run_id} onChange={() => {
 
-
-                        <Card title="Call History" actions={[<Button type="primary">All Logs</Button>]}>
-                            {(historySaving || historyLoading || updating) && <Spin />}
-                            {callHistory.length === 0 && <Empty />}
-                            {callHistory.length > 0 &&
-                                <Collapse defaultActiveKey={callHistory[0].case_run_id} onChange={() => {
-
-                                }}>
-                                    {callHistory.map((history, index) => <Panel header={<><Text mark>{`Run ${history.case_run_id[0] + 1}: `}</Text>
-                                        <Text>{`${new Date(convertBignumberToDate(history.time_at)).toUTCString()}`}</Text></>}
-                                        key={history.case_run_id}
-                                    >
-                                        <RunMethodHistoryEntry testCase={history} />
-                                    </Panel>)}
-                                </Collapse>
-                            }
-                        </Card>
-
-                        {/* <Table columns={caseHistoryColumns}
-                            summary={() => <Table.Summary fixed>
-                                <Table.Summary.Row>
-                                    <Table.Summary.Cell index={0}>
-                                        <Button type="primary">All Logs</Button>
-                                    </Table.Summary.Cell>
-                                </Table.Summary.Row>
-                            </Table.Summary>}
-                        /> */}
-                    </div>
+                                    }}>
+                                        {callHistory.map((history, index) => <Panel header={<><Text mark>{`Run ${history.case_run_id[0] + 1}: `}</Text>
+                                            <Text>{`${new Date(convertBignumberToDate(history.time_at)).toUTCString()}`}</Text></>}
+                                            key={history.case_run_id}
+                                        >
+                                            <RunMethodHistoryEntry testCase={history} />
+                                        </Panel>)}
+                                    </Collapse>
+                                }
+                            </Card>
+                        </Col>
+                    </Row>
                     {showBottomDrawer &&
                         <Drawer title={drawerTitle[drawerStep]} placement="bottom"
                             height={"95%"}
@@ -610,11 +619,10 @@ const AdminCase = (props) => {
                             </div>
                         </Drawer>
                     }
-                </div>
+                </Layout>
             </>
         }
-
-    </div>
+    </>
 }
 
 export default AdminCase;

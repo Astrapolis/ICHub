@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, createRef } from 'react';
 import { Timeline, Typography, Divider, Card } from 'antd';
 import { getFieldNormalizedResult } from '../utils/actorUtils';
 import { getCallSpec,GeneralValueParser } from '../utils/paramRenderUtils';
@@ -12,11 +12,13 @@ const RunMethodTimeline = (props) => {
 
     const { method, index, onResult, canisterActor } = props;
     const [runDone, setRunDone] = useState(false);
-
     const [requestDate, setRequestDate] = useState(0);
     const [responseDate, setResponseDate] = useState(0);
     const [callStatus, setCallStatus] = useState(null);
     const [result, setResult] = useState(null);
+    const refStart = createRef();
+    const refEnd = createRef();
+    const refResult = createRef();
 
     const runRequest = async () => {
         let startTime = new Date().getTime();
@@ -63,6 +65,39 @@ const RunMethodTimeline = (props) => {
     }
 
     useEffect(() => {
+        if (requestDate > 0) {
+            if (refStart.current) {
+                refStart.current.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                });
+            }
+        }
+    }, [requestDate])
+
+    useEffect(() => {
+        if (responseDate > 0) {
+            if (refEnd.current) {
+                refEnd.current.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                });
+            }
+        }
+    }, [responseDate])
+
+    useEffect(() => {
+        if (result) {
+            if (refResult.current) {
+                refResult.current.scrollIntoView({
+                    behavior: 'smooth',
+                    block: 'start',
+                });
+            }
+        }
+    }, [result])
+
+    useEffect(() => {
         runRequest();
     }, []);
 
@@ -76,13 +111,13 @@ const RunMethodTimeline = (props) => {
         <div className='runinfo-section-container'>
             <Timeline pending={!runDone}>
                 {requestDate > 0 && <Timeline.Item>
-                    <Text type="success">Request has been sent at {new Date(requestDate).toUTCString()}</Text>
+                    <Text ref={refStart} type="success">Request has been sent at {new Date(requestDate).toUTCString()}</Text>
                 </Timeline.Item>}
                 {responseDate > 0 && <Timeline.Item>
-                    <Text type="success">Call Result at {new Date(responseDate).toUTCString()}</Text>
+                    <Text ref={refEnd} type="success">Call Result at {new Date(responseDate).toUTCString()}</Text>
                 </Timeline.Item>}
                 {result && <Timeline.Item>
-                    <Text type={callStatus}>{`result: ${result}`}</Text>
+                    <Text ref={refResult} type={callStatus}>{`result: ${result}`}</Text>
                 </Timeline.Item>}
             </Timeline>
         </div>
