@@ -81,7 +81,7 @@ export function usePrivdeCasesValue() {
         if (Array.isArray(ref)) {
             ref[parseInt(lastKey)] = newValue[parseInt(lastKey)];
         } else {
-            ref[lastKey] = newValue[lastKey];
+            ref[lastKey] = refV[lastKey];
         }
 
     }
@@ -139,7 +139,7 @@ export function usePrivdeCasesValue() {
      * @param {*} value 
      */
     const updateParamValue = (argPath, valueObject) => {
-        console.log('update value ', argPath, valueObject);
+        console.log('update value ', JSON.stringify(argPath), JSON.stringify(valueObject), JSON.stringify(casesValue));
         let pathes = argPath.split('/');
         let uuid = pathes[0];
         let paramIndex = pathes[1];
@@ -155,6 +155,7 @@ export function usePrivdeCasesValue() {
             updateRootObject(uuid, paramIndex, rootObject);
         }
         casesValue[uuid] = [...casesValue[uuid]];
+        console.log('after update ', JSON.stringify(casesValue));
         setCasesValue({ ...casesValue });
     }
 
@@ -187,6 +188,48 @@ export function usePrivdeCasesValue() {
         setCasesValue({ ...casesValue });
     }
 
+    const replaceParamValue = (argPath, newValue) => {
+
+    }
+
+    const existsParamValueAtPath = (argPath) => {
+        let pathes = argPath.split('/');
+        let uuid = pathes[0];
+        let paramIndex = pathes[1];
+        let rootObject = casesValue[uuid][paramIndex];
+        pathes.splice(0,2);
+        let ref = rootObject;
+        
+        for (const [index, path] of pathes.entries()) {
+            console.log('existsParamValueAtPath -->',ref, path);
+            if (Array.isArray(ref)) {
+                if (parseInt(path) >= ref.length) {
+                    console.log('return ', false);
+                    return false;
+                } else {
+                    ref = ref[parseInt(path)];
+                }
+            } else {
+                if (typeof ref === 'object' && ref !== null) {
+                    if (!Object.prototype.hasOwnProperty.call(ref, path)) {
+                        console.log('return ', false);
+                        return false;
+                    } else {
+                        ref = ref[path];
+                    }
+                } else {
+                    console.log('return ', false);
+                    return false;
+                }
+            }
+        }
+        
+            
+       
+        console.log('return ', true);
+        return true;
+    }
+
     const getParamValue = (argPath) => {
         console.log('getParamValue by path ', argPath, casesValue);
         let pathes = argPath.split('/');
@@ -212,6 +255,7 @@ export function usePrivdeCasesValue() {
         addParamValue,
         updateParamValue,
         removeParamValue,
+        existsParamValueAtPath,
         getParamValue
     }
 }

@@ -2,6 +2,7 @@ import { Principal } from "@dfinity/principal";
 import { IDL } from "@dfinity/candid";
 import * as CONSTANT from "../constant";
 import { getFieldFromActor } from "./actorUtils";
+import { IntClass } from "@dfinity/candid/lib/cjs/idl";
 
 /**
  * This file is a copy logic from Render class.
@@ -209,7 +210,26 @@ export function GeneralValueParser() {
     };
 
     this.visitVariant = (t, fields, d) => {
-        return this.visitConstruct(t, d);
+
+        if (typeof d === 'object' && d !== null) {
+            let objectKey = Object.keys(d)[0];
+            let keyIndex = fields.findIndex(([_, field]) => _ === objectKey);
+
+            if (keyIndex >= 0) {
+                let fieldIDL = fields[keyIndex][1];
+
+                let v = fieldIDL.accept(new GeneralValueParser(), d[objectKey]);
+                let value = {
+
+                };
+                value[objectKey] = v;
+                return value;
+            } else {
+                return this.visitConstruct(t, d);
+            }
+        } else {
+            this.visitConstruct(t, d);
+        }
     };
 
     this.visitRec = (t, ty, d) => {
@@ -404,6 +424,9 @@ export function convertPathToJson(path, value) {
 
 }
 export function gothroughArgType(argIDL) {
+    if (argIDL instanceof IDL.NullClass) {
+        return null;
+    }
     if (argIDL instanceof IDL.PrimitiveType) {
         return undefined;
     }
@@ -418,6 +441,17 @@ export function gothroughArgType(argIDL) {
     if (argIDL instanceof IDL.OptClass) {
         return null;
     }
+
+    if (argIDL instanceof IDL.VariantClass) {
+        let subObject = {}
+        let defaultKey = argIDL._fields[0][0];
+        console.log('ready to gothrough variant class default key', defaultKey, argIDL._fields[0]);
+        let defaultValue = gothroughArgType(argIDL._fields[0][1]);
+        console.log('got default key value', defaultValue);
+        subObject[defaultKey] = defaultValue;
+        return subObject;
+    }
+
 }
 
 

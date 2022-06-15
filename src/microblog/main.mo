@@ -32,6 +32,13 @@ actor {
         income: Nat;
     };
 
+    public type Shape = {
+        #dot : ();
+        #circle : Float;
+        #rectangle : { width : Float; height : Float };
+        #_2669435721_ : Text;
+    };
+
     public type Microblog = actor {
         follow: shared(Principal) -> async ();
         unfollow: shared(Principal) -> async ();
@@ -46,11 +53,23 @@ actor {
         testOpt: shared(?ParamRecord) -> async Nat;
         testArray: shared([ParamRecord]) -> async Nat;
         testPrimitiveArray: shared([Nat]) -> async Nat;
+        testVariant: shared(Shape) -> async Text;
     };
 
     stable var authorName : ?Text = null;
     stable var postList = List.nil<Message>();
     stable var followList = List.nil<Principal>();
+
+    public shared func testVariant(shape: Shape): async Text {
+
+        switch(shape) {
+            case(#dot(x)) { return "dot"};
+            case(#circle(x)) {return "circle"};
+            case(#rectangle(x)) {return "rectangle"};
+            case(#_2669435721_(x)) {return x};
+        }
+    
+    };
 
     public shared func testInput(para: ParamRecord): async ReturnRecord {
         return {

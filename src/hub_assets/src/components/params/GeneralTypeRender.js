@@ -6,6 +6,7 @@ import PrimitiveRender from './PrimitiveRender';
 import VecRender from './VecRender';
 import RecordRender from './RecordRender';
 import OptRender from './OptRender';
+import VariantRender from './VariantRender';
 
 
 import "./styles/GeneralTypeRender.less";
@@ -44,6 +45,14 @@ const GeneralTypeRender = (props) => {
         }
         if (argIDL instanceof IDL.OptClass) {
             return <OptRender
+                argIDL={argIDL}
+                path={path}
+                fieldName={fieldName}
+                key={path.join('/')}
+            />
+        }
+        if (argIDL instanceof IDL.VariantClass) {
+            return <VariantRender
                 argIDL={argIDL}
                 path={path}
                 fieldName={fieldName}
