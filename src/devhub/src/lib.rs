@@ -12,6 +12,8 @@ thread_local! {
     RefCell::new(CanisterState::default());
 }
 
+type Blob = Vec<u8>;
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct CanisterState {
     user_configs: Vec<UserConfig>,
@@ -164,14 +166,14 @@ pub enum CallResult<T, U> {
 pub struct CanisterCallEvent {
     time_at: u64,
     caller: Principal,
-    result: Vec<u8>,
+    result: Blob,
 }
 
 #[derive(CandidType, Deserialize, Serialize, Debug, Clone)]
 pub struct CanisterCall {
     canister_id: Principal,
     function_name: String,
-    params: String,
+    params: Vec<Blob>,
     event: Option<CanisterCallEvent>,
 }
 
