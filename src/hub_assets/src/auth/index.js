@@ -255,7 +255,7 @@ class iiAuthObject {
     };
 }
 
-const iiAuth = new iiAuthObject(false);
+const iiAuth = new iiAuthObject(true);
 
 export const AuthContext = createContext();
 

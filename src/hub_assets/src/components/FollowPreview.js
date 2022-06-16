@@ -144,7 +144,7 @@ const FollowPreview = (props) => {
                     }}>Follow</Button>
                 </div>
                 <div className='preview-container'>
-                    <iframe src={`http://localhost:8000/?canisterId=rkp4c-7iaaa-aaaaa-aaaca-cai&id=${canisterId}`} />
+                    <iframe src={`http://localhost:8000/?canisterId=renrk-eyaaa-aaaaa-aaada-cai=${canisterId}`} />
                 </div>
             </>}
             {inResult && <>
