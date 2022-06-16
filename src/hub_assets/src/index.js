@@ -10,12 +10,12 @@ import { BrowserRouter as Router, Routes, Route, Redirect, Link, NavLink, useMat
 import "./index.less";
 
 import * as hub from "../../../.dfx/local/canisters/hub";
-import { ProvideAuth, AuthGuardedRoute } from './auth';
+import { AuthProvide, RequireAuth } from './auth';
 import Login from './components/Login';
 import Wellcome from './components/Wellcome';
 import TopNavbar from './components/TopNavbar';
-import FollowPreview from './components/FollowPreview';
-import AdminLayout from './layout/AdminLayout';
+const FollowPreview = React.lazy(() => import('./components/FollowPreview'));
+const AdminLayout = React.lazy(() => import('./layout/AdminLayout'));
 
 const { Sider, Content, Header } = Layout;
 const { Text } = Typography;
@@ -46,7 +46,7 @@ const App = (props) => {
         //     host={host}
         // >
 
-        <ProvideAuth>
+        <AuthProvide>
             <Router>
                 {/* <div className="root-layout"> */}
                 <Layout className='root-layout'>
@@ -58,14 +58,25 @@ const App = (props) => {
                         <Routes>
                             <Route path='connect' element={<Login />} />
                             <Route path='/' element={<Wellcome />} />
-                            <Route path='prefollow/:canisterId' element={<FollowPreview />} />
-                            <Route path='devhub/admin/*' element={<AdminLayout />} />
+                            <Route path='prefollow/:canisterId' element={
+                                <React.Suspense fallback={<Spin />}>
+                                    <FollowPreview />
+                                </React.Suspense>
+                            } />
+                            <Route path='devhub/admin/*' element={
+                                <React.Suspense fallback={<Spin />}>
+                                    <RequireAuth>
+                                        <AdminLayout />
+                                    </RequireAuth>
+
+                                </React.Suspense>
+                            } />
                         </Routes>
                     </Content>
                 </Layout>
                 {/* </div> */}
             </Router>
-        </ProvideAuth>
+        </AuthProvide>
 
         // {/* </Connect2ICProvider> */}
     );

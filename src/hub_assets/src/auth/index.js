@@ -257,11 +257,11 @@ class iiAuthObject {
 
 const iiAuth = new iiAuthObject(true);
 
-export const authContext = createContext();
+export const AuthContext = createContext();
 
 
 export function useAuth() {
-    return useContext(authContext);
+    return useContext(AuthContext);
 }
 
 export function useProvideAuth() {
@@ -316,13 +316,27 @@ export function useProvideAuth() {
     };
 }
 
-export const ProvideAuth = ({ children }) => {
+export const RequireAuth = ({ children }) => {
+    let auth = useAuth();
+    let location = useLocation();
+    if (!auth.user) {
+        // Redirect them to the /login page, but save the current location they were
+        // trying to go to when they were redirected. This allows us to send them
+        // along to that page after they login, which is a nicer user experience
+        // than dropping them off on the home page.
+        return <Navigate to="/connect" state={{ from: location }} replace />;
+      }
+    
+      return children;
+}
+
+export const AuthProvide = ({ children }) => {
     const auth = useProvideAuth();
     console.log('return provide auth');
     return (
-        <authContext.Provider value={auth}>
+        <AuthContext.Provider value={auth}>
             {children}
-        </authContext.Provider>
+        </AuthContext.Provider>
     );
 }
 

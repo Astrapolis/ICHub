@@ -1,5 +1,5 @@
 import React, { useContext, useState, useEffect, useRef } from 'react';
-import { message, Spin, Button, Tabs, Typography } from 'antd';
+import { message, Spin, Button, Tabs, Typography, Card } from 'antd';
 import { v4 as uuidv4 } from 'uuid';
 import { useAuth } from '../auth';
 import { useCasesValue } from './params';
@@ -19,8 +19,6 @@ const EditMethod = (props) => {
         clearCaseValue
     } = useCasesValue();
 
-
-
     const renderTabName = (med) => {
         let methodType = 'query';
         if (!method.method[1].annotations.some(value => value === 'query')) {
@@ -37,7 +35,7 @@ const EditMethod = (props) => {
     const onConfirm = () => {
 
         method.params = casesValue[method.uuid];
-        method.uuid = uuidv4();
+        // method.uuid = uuidv4();
         onMethodUpdated(method);
 
         props.closeDrawer();
@@ -57,17 +55,17 @@ const EditMethod = (props) => {
     }, [])
 
     return <div className='addmethod-container'>
-        <div className='content-header-container'>
-            <Text>{`${method.canister_name}(${method.canister_id})`}</Text>
-        </div>
+
         <div className='addmethod-tabs-container'>
-            {casesValue[method.uuid] &&
-                <Tabs activeKey={method.uuid} >
-                    <TabPane tab={renderTabName(method)} key={method.uuid} >
-                        <EditMethodParamForm method={method} />
-                    </TabPane>
-                </Tabs>
-            }
+            <Card title={<Text>{`${method.canister_name}(${method.canister_id})`}</Text>}>
+                {casesValue[method.uuid] &&
+                    <Tabs activeKey={method.uuid} >
+                        <TabPane tab={renderTabName(method)} key={method.uuid} >
+                            <EditMethodParamForm method={method} />
+                        </TabPane>
+                    </Tabs>
+                }
+            </Card>
         </div>
 
         <div className='addmethod-footer-container'>

@@ -2,7 +2,7 @@ import React, { useContext, useState, useEffect, useRef } from 'react';
 import { Principal } from "@dfinity/principal";
 import { v4 as uuidv4 } from 'uuid';
 import { Actor } from "@dfinity/agent";
-import { message, Spin, Button, Tabs, Typography } from 'antd';
+import { message, Spin, Button, Tabs, Typography, Card, Row, Col } from 'antd';
 import { PlusOutlined, ExclamationOutlined, CheckOutlined } from "@ant-design/icons";
 import { useAuth } from '../auth';
 import { useCasesValue } from './params';
@@ -32,7 +32,7 @@ const AddMethod = (props) => {
     const [methodsReady, setMethodsReady] = useState([]);
     const [activeMethod, setActiveMethod] = useState(null);
     const [editFormMapping, setEditFormMapping] = useState({});
-    
+
     const {
         casesValue,
         registerCaseValue,
@@ -65,7 +65,7 @@ const AddMethod = (props) => {
         setLoading(false);
     }
 
-    
+
     const onAddMethod = (method) => {
         let methodCfg = {
             canister_id: props.canister.canisterId,
@@ -82,15 +82,22 @@ const AddMethod = (props) => {
     }
 
     const renderQueryMethods = () => {
-        return queryMethods.map(method => <Button className='add-method-button' key={method[0]} icon={<PlusOutlined />} onClick={() => {
-            onAddMethod(method);
-        }}>{method[0]}</Button>);
+        return queryMethods.map(method =>
+            <Col>
+                <Button className='add-method-button' key={method[0]} icon={<PlusOutlined />} onClick={() => {
+                    onAddMethod(method);
+                }}>{method[0]}</Button>
+            </Col>);
     }
 
     const renderUpdateMethods = () => {
-        return updateMethods.map(method => <Button className='add-method-button' key={method[0]} icon={<PlusOutlined />} onClick={() => {
-            onAddMethod(method);
-        }}>{method[0]}</Button>);
+        return updateMethods.map(method =>
+            <Col >
+                <Button className='add-method-button' key={method[0]} icon={<PlusOutlined />} onClick={() => {
+                    onAddMethod(method);
+                }}>{method[0]}</Button>
+            </Col>
+        );
     }
 
 
@@ -128,7 +135,7 @@ const AddMethod = (props) => {
         // console.log('confirm mapping', editFormMapping);
 
         newMethods.forEach(m => {
-            
+
             m.params = JSON.parse(JSON.stringify(casesValue[m.uuid]), (key, value) => {
                 if (typeof value === "bigint") {
                     return value.toString();
@@ -157,23 +164,30 @@ const AddMethod = (props) => {
         {!loading && <>
 
             <div className='addmethod-topbar-container'>
-                <div className='method-zone-container'>
-                    <div className='method-type-container'>update</div>
-                    <div className='method-list-container'>
-                        {renderUpdateMethods()}
-                    </div>
-                </div>
-                <div className='method-zone-container'>
-                    <div className='method-type-container'>query</div>
-                    <div className='method-list-container'>
-                        {renderQueryMethods()}
-                    </div>
-                </div>
+                <Row gutter={8} wrap={false}>
+                    <Col span={12}>
+
+                        <Card title={<div className='method-type-container' key="method-update">update</div>}>
+                            <div className='method-list-container'>
+                                <Row gutter={4} wrap={false}>
+                                    {renderUpdateMethods()}
+                                </Row>
+                            </div>
+                        </Card></Col>
+                    <Col span={12}>
+                        <Card title={<div className='method-type-container' key="method-query">query</div>}>
+                            <div className='method-list-container'>
+                                <Row gutter={4} wrap={false}>
+                                    {renderQueryMethods()}
+                                </Row>
+                            </div>
+                        </Card></Col>
+                </Row>
             </div>
 
             <div className='addmethod-tabs-container'>
 
-                {newMethods.length > 0 && 
+                {newMethods.length > 0 &&
                     <Tabs type="editable-card" activeKey={activeMethod.uuid} onEdit={onTabEdit} onChange={onTabChange} hideAdd>
                         {
                             newMethods.map((med, index) => <TabPane tab={renderTabName(med)} key={med.uuid} closable={true}>

@@ -32,6 +32,7 @@ const AdminCase = (props) => {
     const [canisterList, setCanisterList] = useState([]);
     const [caseDetail, setCaseDetail] = useState(null);
     const [editCase, setEditCase] = useState(null);
+    const [deletedCases, setDeletedCases] = useState([]);
     const [loading, setLoading] = useState(false);
     const [editTitle, setEditTitle] = useState(false);
     const [saveEnable, setSaveEnable] = useState(false);
@@ -61,6 +62,7 @@ const AdminCase = (props) => {
     const caseCallColumns = [{
         title: '',
         width: 30,
+        fixed: 'left',
         render: (_, record, index) => <span>{index + 1}</span>
     }, {
         title: 'Canister',
@@ -84,6 +86,8 @@ const AdminCase = (props) => {
         }
     }, {
         title: '',
+        width: 130,
+        fixed: 'right',
         render: (_, record) => {
             return <><Button type="primary" onClick={() => {
                 onCallOneMethod(record);
@@ -102,32 +106,6 @@ const AdminCase = (props) => {
             </>
         }
     }];
-    const caseHistoryColumns = [{
-        title: 'Index',
-        dataIndex: 'case_run_id',
-    }, {
-        title: 'Canister',
-        dataIndex: 'canister_id',
-        ellipsis: true,
-        width: 150,
-        render: (_, record) => {
-            return <Tooltip placement='top' title={record.canister_id}>
-                <span>{record.canister_id}</span>
-            </Tooltip>
-        }
-    }, {
-        title: 'Call',
-        dataIndex: 'function_name',
-        width: 150,
-        render: (_, record) => {
-            return <Tooltip placement='top' title={record.function_name}>
-                <span>{record.function_name}</span>
-            </Tooltip>
-        }
-    }, {
-        title: 'Call Time',
-        dataIndex: 'time_at'
-    }]
 
     const fetchCaseDetail = async () => {
 
@@ -393,8 +371,9 @@ const AdminCase = (props) => {
         setEditTitle(false);
     }
     const onDeleteMethod = (record) => {
-        editCase.canister_calls.splice(editCase.canister_calls.findIndex(method => method.uuid === record.uuid), 1);
+        let deletedCase = editCase.canister_calls.splice(editCase.canister_calls.findIndex(method => method.uuid === record.uuid), 1);
         editCase.canister_calls = [...editCase.canister_calls];
+        setDeletedCases([...deletedCases, deletedCase]);
         setEditCase({ ...editCase });
     }
     const onShowBottomDrawer = () => {
@@ -417,9 +396,9 @@ const AdminCase = (props) => {
         console.log('update case ====>', editCase, newMethods);
         setEditCase({ ...editCase });
     }
-    const onMethodUpdated = (index, method) => {
+    const onMethodUpdated = (method) => {
         // console.log('ready to update method', method);
-        // editCase.canister_calls = editCase.canister_calls.map(med => med === method ? { ...med } : med);
+        editCase.canister_calls = editCase.canister_calls.map(med => med === method ? Object.assign({}, med) : med);
         editCase.canister_calls = [...editCase.canister_calls];
         // console.log('after update', editCase);
         setEditCase({ ...editCase });
@@ -454,22 +433,27 @@ const AdminCase = (props) => {
         </div>);
     }
 
-
-
     useEffect(() => {
         fetchCaseDetail();
         fetchCaseCallHistory();
     }, [caseid])
 
     useEffect(() => {
-        if (caseDetail && editCase) {
-            if (caseIsEqual(editCase, caseDetail)) {
-                setSaveEnable(false);
-            } else {
+        if (deletedCases.length > 0) {
+            if (!saveEnable) {
                 setSaveEnable(true);
             }
+        } else {
+            if (caseDetail && editCase) {
+                if (caseIsEqual(editCase, caseDetail)) {
+                    setSaveEnable(false);
+                } else {
+                    setSaveEnable(true);
+                }
+            }
         }
-    }, [editCase])
+
+    }, [editCase, deletedCases])
 
     return <>
         {!editCase && loading && <Spin size="large" />}
@@ -503,12 +487,13 @@ const AdminCase = (props) => {
                             </Form>
                         </>}
                     </>}
-                    extra={[<Button type="primary" disabled={!saveEnable || editTitle} loading={updating || loading}
+                    extra={[<Button type="primary" key="case-save-button" disabled={!saveEnable || editTitle} loading={updating || loading}
                         onClick={() => {
                             onUpdateCase();
                         }}
-                    >Save</Button>,
-                    <Button style={{ marginLeft: 5 }} >Copy</Button>]} >
+                    >Save</Button>
+                        // ,<Button style={{ marginLeft: 5 }} >Copy</Button>
+                    ]} >
 
                 </PageHeader>
                 <Layout style={{ overflow: 'auto' }}>
@@ -520,7 +505,7 @@ const AdminCase = (props) => {
                                         <Button type="primary" onClick={onShowBottomDrawer} disabled={editTitle || updating}>Add Call</Button>
                                     </Col>
                                     <Col span={12}>
-                                        <Button style={{ marginLeft: 10 }} type="primary" disabled={editTitle || updating} loading={historyLoading}
+                                        <Button type="primary" disabled={editTitle || updating || (deletedCases.length === 0 && editCase.canister_calls.length === 0)} loading={historyLoading}
                                             onClick={() => {
                                                 if (saveEnable) {
                                                     onSaveAndRunCase();
@@ -528,11 +513,15 @@ const AdminCase = (props) => {
                                                     onRunCase();
                                                 }
                                             }}
-                                        >{saveEnable ? "Save & Call All" : "Call All"}</Button>
+                                        >{saveEnable ? "Save & Call" : "Call All"}</Button>
                                     </Col>
                                 </Row>
                             }>
+                                {updating && <Spin />}
                                 <Table columns={caseCallColumns} rowKey="uuid" dataSource={editCase.canister_calls}
+                                    scroll={{
+                                        x: 510
+                                    }}
                                     pagination={false}
                                     expandable={{
                                         expandedRowRender: renderCaseExpandablePart,
@@ -559,11 +548,12 @@ const AdminCase = (props) => {
                                 //     </Table.Summary.Row>
                                 // </Table.Summary>}
                                 />
+
                             </Card>
                         </Col>
                         <Col span={12}>
                             <Card title="Call History" extra={<Button type="primary">All Logs</Button>}>
-                                {(historySaving || historyLoading || updating) && <Spin />}
+                                {(historySaving || historyLoading) && <Spin />}
                                 {callHistory.length === 0 && <Empty />}
                                 {callHistory.length > 0 &&
                                     <Collapse defaultActiveKey={callHistory[0].case_run_id} onChange={() => {
@@ -579,6 +569,7 @@ const AdminCase = (props) => {
                                 }
                             </Card>
                         </Col>
+
                     </Row>
                     {showBottomDrawer &&
                         <Drawer title={drawerTitle[drawerStep]} placement="bottom"

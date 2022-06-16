@@ -51,40 +51,6 @@ const AdminLayout = (props) => {
         setLoading(false);
     }
 
-    const fetchCaseList = async () => {
-        setLoading(true);
-        try {
-            let list = await user.devhubActor.get_test_cases(getUserActiveConfigIndex(user), [], [1]);
-            console.log('case list result', list);
-            if (list.Authenticated) {
-                let clist = list.Authenticated;
-                let subMenus = [];
-                clist.forEach(c => {
-                    c.config = JSON.parse(c.config);
-                    let subm = {
-                        label: c.config.name,
-                        key: CASE_KEY + c.tag
-                    }
-                    subMenus.push(subm);
-                });
-                setCaseList([...clist]);
-
-
-                caseMenu.children = [...subMenus, {
-                    label: 'New Case', key: NEWCASE_KEY, icon: <AppstoreAddOutlined />
-                }];
-                setMenuList([dashboardMenu, caseMenu, canisterMenu, historyMenu]);
-            } else {
-                message.error(list.UnAuthenticated);
-            }
-
-        } catch (err) {
-            console.log('cases list failed', err);
-            message.error('fetch case list failed: ' + err);
-        }
-        setLoading(false);
-    };
-
     // TestCaseView
     const makeMenuList = (cases) => {
         let subMenus = [];
@@ -132,26 +98,6 @@ const AdminLayout = (props) => {
         }
 
     }
-
-    // const onNewCase = (newCaseId, tag, caseName, timeAt) => {
-    //     console.log('onNewCase', newCaseId, tag, caseName, timeAt);
-    //     let newCase = {
-    //         test_case_id: newCaseId,
-    //         tag,
-    //         config: {
-    //             name: caseName
-    //         },
-    //         time_at: timeAt,
-    //         event: null
-    //     }
-    //     setCaseList([newCase, ...caseList]);
-    //     menuList[1].children = [{ label: caseName, key: CASE_KEY + tag }, ...menuList[1].children];
-    //     setMenuList([...menuList]);
-    // }
-
-    // const onCaseNameChanged = (caseId, caseName) => {
-
-    // }
 
     useEffect(() => {
         if (user) {
@@ -204,31 +150,32 @@ const AdminLayout = (props) => {
         }
     }, [loc])
     return (<Layout className='admin-root-container'>
-        {!user && <Navigate to="/connect" state={{ from: loc }} />}
-        {user && <>
-            {loading && <Spin />}
-            {!loading && <>
-                <Sider className='sider-container'>
-                    <Menu items={menuList} mode="inline" defaultOpenKeys={[CASES_KEY]}
-                        selectedKeys={[activeRoute]} onSelect={onMenuSelectChange} />
-                </Sider>
-                <Layout className='admin-content-container'>
-                    <Routes>
-                        <Route path='/' element={<Navigate replace to="newcase" />} />
-                        <Route path='prefollow/:canisterId' element={<FollowPreview />} />
-                        {/* <Route path='dashboard' element={<AdminDashboard />} /> */}
-                        <Route path='cases/:caseid' element={
-                            
-                                <AdminCase />
-                        
-                        } />
-                        <Route path='newcase' element={<AdminNewCase />} />
-                        <Route path='canisters' element={<AdminCanisters />} />
-                        {/* <Route path='history' element={<AdminCaseHistory />} /> */}
-                    </Routes>
-                </Layout>
-            </>}
+        
+        {/* {!user && <Navigate to="/connect" state={{ from: loc }} />} */}
+
+        {loading && <Spin />}
+        {!loading && <>
+        <Sider className='sider-container' collapsible={true}>
+            <Menu items={menuList} mode="inline" defaultOpenKeys={[CASES_KEY]}
+                selectedKeys={[activeRoute]} onSelect={onMenuSelectChange} />
+        </Sider>
+        <Layout className='admin-content-container'>
+            <Routes>
+                <Route path='/' element={<Navigate replace to="newcase" />} />
+                <Route path='prefollow/:canisterId' element={<FollowPreview />} />
+                {/* <Route path='dashboard' element={<AdminDashboard />} /> */}
+                <Route path='cases/:caseid' element={
+
+                    <AdminCase />
+
+                } />
+                <Route path='newcase' element={<AdminNewCase />} />
+                <Route path='canisters' element={<AdminCanisters />} />
+                {/* <Route path='history' element={<AdminCaseHistory />} /> */}
+            </Routes>
+        </Layout>
         </>}
+
     </Layout>)
 }
 

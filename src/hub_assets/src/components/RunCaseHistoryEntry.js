@@ -63,7 +63,7 @@ const RunMethodHistoryEntry = (props) => {
             </Tooltip>
         }
     }, {
-        title: 'Call Time/Response Time(UTC)',
+        title: 'Call Time/Response Time(TimeStamp)',
         render: (_, record) => {
             return <span>{`${record.startTime}~${record.endTime}`}</span>
         }
