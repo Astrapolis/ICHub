@@ -18,6 +18,8 @@ actor {
         commet: Text;
         isValid: Bool;
         credit: Int;
+        value: Nat;
+        income: Nat;
     };
 
     public type ReturnRecord = {
@@ -26,6 +28,15 @@ actor {
         commet: Text;
         isValid: Bool;
         credit: Int;
+        value: Nat;
+        income: Nat;
+    };
+
+    public type Shape = {
+        #dot : ();
+        #circle : Float;
+        #rectangle : { width : Float; height : Float };
+        #_2669435721_ : Text;
     };
 
     public type Microblog = actor {
@@ -41,11 +52,24 @@ actor {
         testInput: shared(ParamRecord) -> async ReturnRecord;
         testOpt: shared(?ParamRecord) -> async Nat;
         testArray: shared([ParamRecord]) -> async Nat;
+        testPrimitiveArray: shared([Nat]) -> async Nat;
+        testVariant: shared(Shape) -> async Text;
     };
 
     stable var authorName : ?Text = null;
     stable var postList = List.nil<Message>();
     stable var followList = List.nil<Principal>();
+
+    public shared func testVariant(shape: Shape): async Text {
+
+        switch(shape) {
+            case(#dot(x)) { return "dot"};
+            case(#circle(x)) {return "circle"};
+            case(#rectangle(x)) {return "rectangle"};
+            case(#_2669435721_(x)) {return x};
+        }
+    
+    };
 
     public shared func testInput(para: ParamRecord): async ReturnRecord {
         return {
@@ -54,6 +78,8 @@ actor {
             commet = para.commet;
             isValid = para.isValid;
             credit = para.credit;
+            value = para.value;
+            income = para.income;
         };
     };
 
@@ -72,6 +98,9 @@ actor {
         return para.size();
     };
 
+    public shared func testPrimitiveArray(para: [Nat]) : async Nat {
+        return para.size();
+    };
 
     public shared (mes) func set_name(text:Text) : async () {
         

@@ -1,0 +1,36 @@
+@import '../../app.less';
+
+.profilebar-container {
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    background-color: #EEEEEE;
+    .sz(20);
+    padding-left: @sz;
+    padding-right: @sz;
+}
+
+.principal-container {
+    & {
+        .sz(90);
+        width: @sz;
+    }
+    & {
+        .rem(14);
+        font-size: @rem;
+    }
+    & {
+        .rem(18);
+        line-height: @rem;
+    }
+    & {
+        .sz(8);
+        margin-left: @sz;
+        margin-right: @sz;
+    }
+    color: #252525;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
+}

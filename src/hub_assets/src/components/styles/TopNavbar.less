@@ -1,0 +1,45 @@
+@import '../../app.less';
+
+.main-header {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.logo-container {
+    .sz(20);
+    margin-left: @sz;
+
+}
+
+.login-connect-container {
+    float: right;
+    .sz(144);
+    width: @sz;
+    height: 100%;
+    position: relative;
+    background-color: @primary-color;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.top-menu-container {
+    flex: 1;
+    .sz(60);
+    margin-left: @sz;
+}
+
+
+
+.top-link {
+    .rem(16);
+    font-size: @rem;
+}
+
+.emphasize-link {
+    color: white
+}
