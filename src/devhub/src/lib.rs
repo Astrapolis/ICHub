@@ -173,7 +173,7 @@ pub struct CanisterCallEvent {
 pub struct CanisterCall {
     canister_id: Principal,
     function_name: String,
-    params: Vec<Blob>,
+    params: String,
     event: Option<CanisterCallEvent>,
 }
 

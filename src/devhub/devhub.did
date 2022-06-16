@@ -28,7 +28,7 @@ type CanisterCallEvent = record {
 type CanisterCall = record {
   canister_id : principal;
   function_name : text;
-  params: vec blob;
+  params: text;
   event: opt CanisterCallEvent;
 };
 
