@@ -17,7 +17,7 @@ const Wellcome = (props) => {
     }, []);
 
     const onSearch = (values) => {
-        nav(`/candidplush/prefollow/${values.canisterId}`);
+        nav(`/candidplus/prefollow/${values.canisterId}`);
     }
 
     return (
