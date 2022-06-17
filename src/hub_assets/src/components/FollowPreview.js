@@ -142,13 +142,16 @@ const FollowPreview = (props) => {
                         onFollowClick();
 
                     }}>Follow</Button>
+
+                    <Button className='follow-button' size="large" type="primary" onClick={() => {
+                        if (isLocalEnv()) {
+                            window.open(`http://localhost:8000/?canisterId=rkp4c-7iaaa-aaaaa-aaaca-cai&id=${canisterId}`);
+                        } else {
+                            window.open(`http://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.ic0.app/?canisterId=rkp4c-7iaaa-aaaaa-aaaca-cai&id=${canisterId}`);
+                        }
+                    }}>Preview With Original Candid UI</Button>
                 </div>
                 <div className='preview-container'>
-                    {isLocalEnv() &&
-                        <iframe src={`http://localhost:8000/?canisterId=rkp4c-7iaaa-aaaaa-aaaca-cai&id=${canisterId}`} />}
-                    {!isLocalEnv() &&
-                        <iframe src={`http://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.ic0.app/?canisterId=rkp4c-7iaaa-aaaaa-aaaca-cai&id=${canisterId}`} />
-                    }
 
                 </div>
             </>}

@@ -17,9 +17,9 @@ import logo from "../components/styles/logo.png";
 
 const { Header, Footer, Sider, Content } = Layout;
 
-const AdminCase = React.lazy(() => import('../components/AdminCase'));
-const AdminNewCase = React.lazy(() => import('../components/AdminNewCase'));
-const AdminCanisters = React.lazy(() => import('../components/AdminCanisters'));
+// const AdminCase = React.lazy(() => import('../components/AdminCase'));
+// const AdminNewCase = React.lazy(() => import('../components/AdminNewCase'));
+// const AdminCanisters = React.lazy(() => import('../components/AdminCanisters'));
 
 const DASHBOARD_KEY = "admin-dashboard";
 const NEWCASE_KEY = "admin-newcases";

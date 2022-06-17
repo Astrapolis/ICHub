@@ -15,11 +15,17 @@ import Login from './components/Login';
 import Wellcome from './components/Wellcome';
 import NotFoundPage from './components/NotFoundPage';
 import TopNavbar from './components/TopNavbar';
-const FollowPreview = React.lazy(() => import('./components/FollowPreview'));
-const AdminLayout = React.lazy(() => import('./layout/AdminLayout'));
-const AdminCase = React.lazy(() => import('./components/AdminCase'));
-const AdminNewCase = React.lazy(() => import('./components/AdminNewCase'));
-const AdminCanisters = React.lazy(() => import('./components/AdminCanisters'));
+// const FollowPreview = React.lazy(() => import('./components/FollowPreview'));
+// const AdminLayout = React.lazy(() => import('./layout/AdminLayout'));
+// const AdminCase = React.lazy(() => import('./components/AdminCase'));
+// const AdminNewCase = React.lazy(() => import('./components/AdminNewCase'));
+// const AdminCanisters = React.lazy(() => import('./components/AdminCanisters'));
+import FollowPreview from './components/FollowPreview';
+import AdminLayout from './layout/AdminLayout';
+import AdminCase from './components/AdminCase';
+import AdminNewCase from './components/AdminNewCase';
+import AdminCanisters from './components/AdminCanisters';
+
 const { Sider, Content, Header } = Layout;
 const { Text } = Typography;
 
@@ -72,25 +78,29 @@ const App = (props) => {
                                 <Route path="dashboard" element={<Wellcome />} />
                                 <Route path='prefollow/:canisterId' element={<FollowPreview />} />
                                 <Route path='testcases/:caseid' element={
-                                    <React.Suspense fallback={<Spin />}>
-                                        <RequireAuth>
-                                            <AdminCase />
-                                        </RequireAuth>
-                                    </React.Suspense>
+                                    <RequireAuth>
+                                        <AdminCase />
+                                    </RequireAuth>
+                                    // <React.Suspense fallback={<Spin />}>
+
+                                    // </React.Suspense>
                                 } />
                                 <Route path='newcase' element={
-                                    <React.Suspense fallback={<Spin />}>
-                                        <RequireAuth>
-                                            <AdminNewCase />
-                                        </RequireAuth>
-                                    </React.Suspense>
+                                    <RequireAuth>
+                                        <AdminNewCase />
+                                    </RequireAuth>
+                                    // <React.Suspense fallback={<Spin />}>
+                                    //     <AdminNewCase />
+
+                                    // </React.Suspense>
                                 } />
                                 <Route path='canisters' element={
-                                    <React.Suspense fallback={<Spin />}>
-                                        <RequireAuth>
-                                            <AdminCanisters />
-                                        </RequireAuth>
-                                    </React.Suspense>
+                                    <RequireAuth>
+                                        <AdminCanisters />
+                                    </RequireAuth>
+                                    // <React.Suspense fallback={<Spin />}>
+
+                                    // </React.Suspense>
                                 } />
 
                             </Route>
