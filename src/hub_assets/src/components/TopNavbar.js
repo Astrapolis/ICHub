@@ -15,6 +15,10 @@ const TopNavbar = (props) => {
         path: "/connect",
         end: true
     });
+    const candidPlusMatch = useMatch({
+        path: "/candidplus",
+        end: false
+    });
     const [authChecking, setAuthChecking] = useState(false);
 
     const doAuthCheck = async () => {
@@ -27,7 +31,7 @@ const TopNavbar = (props) => {
                 auth.signin((success, relativeObject) => {
                     setAuthChecking(false);
                     if (success) {
-                        nav("/devhub/admin");
+                        nav("/candidplus");
                     }
                 });
             } else {
@@ -44,17 +48,16 @@ const TopNavbar = (props) => {
     }, []);
 
 
-    return (<Row wrap={false}>
+    return (<Row wrap={false} gutter={8}>
         <Col flex="none">
             <Image src={logo} width={108} height={28} preview={false} />
         </Col>
-        <Col flex="auto">
-            <div className='top-menu-container'>
-                <NavLink to="/">
+        <Col flex="none">
+            <div className={candidPlusMatch ? 'top-menu-container top-menu-container-active':'top-menu-container top-menu-container-inactive'}>
                     <span className='top-link'>Candid+</span>
-                </NavLink>
             </div>
         </Col>
+        <Col flex="auto" />
         <Col flex="none">
             {authChecking &&
                 <div className='login-connect-container'>

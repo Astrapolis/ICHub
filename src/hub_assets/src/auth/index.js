@@ -6,7 +6,7 @@ import { Principal } from "@dfinity/principal";
 import { InternetIdentity } from "@connect2ic/core/providers/internet-identity";
 import { idlFactory } from '../../../declarations/hub/hub.did.js';
 import { getActorFromCanisterId, isLocalEnv } from '../utils/actorUtils';
-import { getUserActiveConfigIndex} from '../utils/devhubUtils';
+import { getUserActiveConfigIndex } from '../utils/devhubUtils';
 import localCanisterJson from "../../../../.dfx/local/canister_ids.json";
 import * as CONSTANT from "../constant";
 import { ConsoleSqlOutlined } from "@ant-design/icons";
@@ -34,6 +34,7 @@ async function getUserRegisterStatus() {
 }
 
 async function registerNewUser() {
+
 
     try {
         let result = await hubActor.register_new_canister(
@@ -203,15 +204,17 @@ class iiAuthObject {
                         devhubActor,
                         agent: devhubAgent
                     });
+
+
                 } else {
                     // new user and register for the user
                     if (result === undefined) {
                         signinResult(cb, false, "failed to query user status");
                     } else {
-                        let r = await registerNewUser();
-                        if (r) {
-
-                            let devhubActor = await getActorFromCanisterId(devhubsOfCurrentIdentity[0].canister_id, devhubAgent);
+                        let publicDevhubs = await hubActor.get_public_canister_states();
+                        if (publicDevhubs[0]) {
+                            let devhubActor = await getActorFromCanisterId(publicDevhubs[0].user_state_meta.canister_id, devhubAgent);
+                            await devhubActor.add_user_config(JSON.stringify(CONSTANT.DEFAULT_UI_CONFIG));
                             signinResult(cb, true, {
                                 identity: this.provider.client.getIdentity(),
                                 hubActor,
@@ -219,9 +222,21 @@ class iiAuthObject {
                                 devhubActor,
                                 agent: devhubAgent
                             });
-                        } else {
-                            signinResult(cb, false, "failed to register new user")
                         }
+                        // let r = await registerNewUser();
+                        // if (r) {
+
+                        //     let devhubActor = await getActorFromCanisterId(devhubsOfCurrentIdentity[0].canister_id, devhubAgent);
+                        //     signinResult(cb, true, {
+                        //         identity: this.provider.client.getIdentity(),
+                        //         hubActor,
+                        //         devhubs: [...devhubsOfCurrentIdentity],
+                        //         devhubActor,
+                        //         agent: devhubAgent
+                        //     });
+                        // } else {
+                        //     signinResult(cb, false, "failed to register new user")
+                        // }
                     }
                 }
 
@@ -296,7 +311,7 @@ export function useProvideAuth() {
                 let result = await user.devhubActor.get_user_config(getUserActiveConfigIndex(user));
                 if (result.Authenticated) {
                     user.devhubConfig = result.Authenticated;
-                    setUser({...user});
+                    setUser({ ...user });
                 } else {
                     console.log('failed to get user config', result.UnAuthenticated);
                 }
@@ -325,9 +340,9 @@ export const RequireAuth = ({ children }) => {
         // along to that page after they login, which is a nicer user experience
         // than dropping them off on the home page.
         return <Navigate to="/connect" state={{ from: location }} replace />;
-      }
-    
-      return children;
+    }
+
+    return children;
 }
 
 export const AuthProvide = ({ children }) => {

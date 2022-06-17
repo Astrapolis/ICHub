@@ -13,14 +13,11 @@ const Wellcome = (props) => {
     const auth = useAuth();
 
     useEffect(() => {
-        if (auth.user) {
-            nav('/devhub/admin');
-            // nav('/connect');
-        }
+        
     }, []);
 
     const onSearch = (values) => {
-        nav(`/prefollow/${values.canisterId}`);
+        nav(`/candidplush/prefollow/${values.canisterId}`);
     }
 
     return (
