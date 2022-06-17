@@ -62,7 +62,9 @@ const AdminLayout = (props) => {
         console.log('makeMenuList', cases);
         let subMenus = [];
         cases.forEach(c => {
-            c.config = JSON.parse(c.config);
+            if (typeof c.config === 'string') {
+                c.config = JSON.parse(c.config);
+            }
             let subm = {
                 label: c.config.name,
                 key: CASE_KEY + c.tag
