@@ -28,9 +28,20 @@
 }
 
 .top-menu-container {
-    flex: 1;
     .sz(60);
     margin-left: @sz;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.top-menu-container-inactive {
+    color: @primary-color;
+}
+.top-menu-container-active {
+    background-color: @primary-color;
+    color: white;
+    font-weight: bold
 }
 
 

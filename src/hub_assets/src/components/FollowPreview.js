@@ -144,7 +144,12 @@ const FollowPreview = (props) => {
                     }}>Follow</Button>
                 </div>
                 <div className='preview-container'>
-                    <iframe src={`http://localhost:8000/?canisterId=rkp4c-7iaaa-aaaaa-aaaca-cai&id=${canisterId}`} />
+                    {isLocalEnv() &&
+                    <iframe src={`http://localhost:8000/?canisterId=rkp4c-7iaaa-aaaaa-aaaca-cai&id=${canisterId}`} />}
+                    {!isLocalEnv() &&
+                    <iframe src={`http://a4gq6-oaaaa-aaaab-qaa4q-cai.raw.ic0.app/?canisterId=rkp4c-7iaaa-aaaaa-aaaca-cai&id=${canisterId}`} />
+                    }
+                    
                 </div>
             </>}
             {inResult && <>
@@ -154,11 +159,11 @@ const FollowPreview = (props) => {
                     extra={resultStatus === "success" ? [
                         <Button type='primary' key="fresult-go-canisters"
                             onClick={() => {
-                                nav('/devhub/admin/canisters');
+                                nav('/candidplus/canisters');
                             }}>To Canister List</Button>,
                         <Button type="primary" key="fresult-go-newcase"
                             onClick={() => {
-                                nav('/devhub/admin/newcase', {
+                                nav('/candidplus/newcase', {
                                     state: {
                                         canisterId
                                     }
