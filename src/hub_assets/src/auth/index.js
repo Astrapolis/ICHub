@@ -8,6 +8,7 @@ import { idlFactory } from '../../../declarations/hub/hub.did.js';
 import { getActorFromCanisterId, isLocalEnv } from '../utils/actorUtils';
 import { getUserActiveConfigIndex } from '../utils/devhubUtils';
 import localCanisterJson from "../../../../.dfx/local/canister_ids.json";
+import productCanisterJson from "../../../../canister_ids.json";
 import * as CONSTANT from "../constant";
 import { ConsoleSqlOutlined } from "@ant-design/icons";
 
@@ -182,7 +183,11 @@ class iiAuthObject {
             let ret = await this.provider.connect();
             if (ret) {
                 this.isAuthenticated = true;
-                hubActor = await this.provider.createActor(localCanisterJson.hub.local, idlFactory);
+                if (isLocalEnv()) {
+                    hubActor = await this.provider.createActor(localCanisterJson.hub.local, idlFactory);
+                } else {
+                    hubActor = await this.provider.createActor(productCanisterJson.hub.ic, idlFactory);
+                }
                 let result = await getUserRegisterStatus();
                 let devhubAgent = new HttpAgent({
                     //...this.#config,
