@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
+import { Routes, Route, Navigate, useNavigate, useLocation, useParams, Outlet } from "react-router-dom";
 
 import { Layout, Menu, message, Spin, Image, Row, Col } from 'antd';
 import { DashboardOutlined, TableOutlined, AppstoreOutlined, AppstoreAddOutlined, HistoryOutlined } from '@ant-design/icons';
@@ -34,7 +34,7 @@ const AdminLayout = (props) => {
     const [caseList, setCaseList] = useState([]);
     const loc = useLocation();
     const nav = useNavigate();
-    const { user, refreshUserConfig } = useAuth();
+    const { user, refreshUserConfig, isSignedIn, signin } = useAuth();
     let { caseid } = useParams();
 
     const dashboardMenu = {
@@ -51,8 +51,36 @@ const AdminLayout = (props) => {
     const historyMenu = {
         label: 'History', key: HISTORY_KEY, icon: <HistoryOutlined />
     };
+
+    const [authChecking, setAuthChecking] = useState(false);
+
+    const doAuthCheck = async () => {
+        setAuthChecking(true);
+        try {
+            console.log('checking auth status');
+            let connected = await isSignedIn();
+            console.log('connect status', connected);
+            if (connected) {
+                signin((success, relativeObject) => {
+                    setAuthChecking(false);
+                });
+            } else {
+                setAuthChecking(false);
+            }
+        } catch (err) {
+            console.log('check auth error', err);
+            setAuthChecking(false);
+        }
+
+    }
+    useEffect(() => {
+        doAuthCheck();
+    }, []);
+
+
     const loadUserConfig = async () => {
         setLoading(true);
+        console.log('===========>call refresh user config');
         await refreshUserConfig();
         setLoading(false);
     }
@@ -108,17 +136,24 @@ const AdminLayout = (props) => {
 
     }
 
-    useEffect(() => {
-        if (user) {
-            // fetchCaseList();
-            loadUserConfig();
-        }
-    }, []);
+    // useEffect(() => {
+    //     if (user) {
+    //         // fetchCaseList();
+    //         loadUserConfig();
+    //     }
+    // }, []);
 
     useEffect(() => {
-        if (user && user.devhubConfig) {
-            console.log('user config', user.devhubConfig);
-            makeMenuList(user.devhubConfig.test_cases);
+        console.log('admin layout user changed', user);
+        if (user) {
+            if (user.devhubConfig) {
+                console.log('user config', user.devhubConfig);
+                makeMenuList(user.devhubConfig.test_cases);
+            } else {
+                // console.log('ready to refresh user config', callTimes);
+                loadUserConfig();
+
+            }
         } else {
             makeMenuList([]);
         }
@@ -157,19 +192,15 @@ const AdminLayout = (props) => {
             setActiveRoute(HISTORY_KEY);
 
         }
-        if (user && user.devhubConfig) {
-            console.log('user config', user.devhubConfig);
-            makeMenuList(user.devhubConfig.test_cases);
-        } else {
-            makeMenuList([]);
-        }
+
         // }
     }, [loc])
+    console.log('render admin layout with children', props.children);
     return (<Layout className='admin-root-container'>
 
         {/* {!user && <Navigate to="/connect" state={{ from: loc }} />} */}
 
-        {loading && <Spin />}
+        {(loading || authChecking) && <Spin />}
         {!loading && <>
 
             <Sider className='sider-container' collapsible={true}>
@@ -185,34 +216,7 @@ const AdminLayout = (props) => {
                 {/* <Header > */}
                 <TopNavbar />
                 {/* </Header> */}
-                <Routes>
-                    <Route path='dashboard' element={<Wellcome />} />
-
-                    <Route path='prefollow/:canisterId' element={<FollowPreview />} />
-                    {/* <Route path='dashboard' element={<AdminDashboard />} /> */}
-                    <Route path='testcases/:caseid' element={
-                        <React.Suspense fallback={<Spin />}>
-                            <RequireAuth>
-                                <AdminCase />
-                            </RequireAuth>
-                        </React.Suspense>
-                    } />
-                    <Route path='newcase' element={
-                        <React.Suspense fallback={<Spin />}>
-                            <RequireAuth>
-                                <AdminNewCase />
-                            </RequireAuth>
-                        </React.Suspense>
-                    } />
-                    <Route path='canisters' element={
-                        <React.Suspense fallback={<Spin />}>
-                            <RequireAuth>
-                                <AdminCanisters />
-                            </RequireAuth>
-                        </React.Suspense>
-                    } />
-                    {/* <Route path='history' element={<AdminCaseHistory />} /> */}
-                </Routes>
+                <Outlet />
             </div>
         </>}
 

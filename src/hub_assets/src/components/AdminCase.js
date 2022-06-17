@@ -496,7 +496,7 @@ const AdminCase = (props) => {
                     ]} >
 
                 </PageHeader>
-                <Layout style={{ overflow: 'auto' }}>
+                <Layout style={{ overflow: 'auto', height: '100%' }}>
                     <Row gutter={16}>
                         <Col span={12}>
                             <Card title="Call List" extra={

@@ -17,11 +17,13 @@ import NotFoundPage from './components/NotFoundPage';
 import TopNavbar from './components/TopNavbar';
 const FollowPreview = React.lazy(() => import('./components/FollowPreview'));
 const AdminLayout = React.lazy(() => import('./layout/AdminLayout'));
-
+const AdminCase = React.lazy(() => import('./components/AdminCase'));
+const AdminNewCase = React.lazy(() => import('./components/AdminNewCase'));
+const AdminCanisters = React.lazy(() => import('./components/AdminCanisters'));
 const { Sider, Content, Header } = Layout;
 const { Text } = Typography;
 
-const host = window.location.origin
+// const host = window.location.origin
 const App = (props) => {
     return (
         // <Connect2ICProvider
@@ -59,13 +61,39 @@ const App = (props) => {
                         <Routes>
                             <Route path='/' element={<Navigate to="candidplus/dashboard" replace />} />
                             <Route path='connect' element={<Login />} />
-                            <Route path='candidplus/*' element={
+                            <Route path='candidplus' element={
                                 // <React.Suspense fallback={<Spin />}>
                                 //     <RequireAuth>
-                                        <AdminLayout />
+                                <AdminLayout />
                                 //     </RequireAuth>
                                 // </React.Suspense>
-                            } />
+                            } >
+                                <Route index element={<Wellcome />} />
+                                <Route path="dashboard" element={<Wellcome />} />
+                                <Route path='prefollow/:canisterId' element={<FollowPreview />} />
+                                <Route path='testcases/:caseid' element={
+                                    <React.Suspense fallback={<Spin />}>
+                                        <RequireAuth>
+                                            <AdminCase />
+                                        </RequireAuth>
+                                    </React.Suspense>
+                                } />
+                                <Route path='newcase' element={
+                                    <React.Suspense fallback={<Spin />}>
+                                        <RequireAuth>
+                                            <AdminNewCase />
+                                        </RequireAuth>
+                                    </React.Suspense>
+                                } />
+                                <Route path='canisters' element={
+                                    <React.Suspense fallback={<Spin />}>
+                                        <RequireAuth>
+                                            <AdminCanisters />
+                                        </RequireAuth>
+                                    </React.Suspense>
+                                } />
+
+                            </Route>
                             <Route path='*' element={<NotFoundPage />} />
                         </Routes>
                     </Content>

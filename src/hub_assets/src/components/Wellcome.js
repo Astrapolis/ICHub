@@ -10,7 +10,7 @@ import rightPng from "./styles/wellcome-right-deco.png";
 
 const Wellcome = (props) => {
     let nav = useNavigate();
-    const auth = useAuth();
+
 
     useEffect(() => {
         

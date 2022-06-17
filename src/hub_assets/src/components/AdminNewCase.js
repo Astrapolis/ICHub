@@ -38,7 +38,7 @@ const AdminNewCase = (props) => {
 
                 await refreshUserConfig();
 
-                nav('/candidplus/cases/' + caseTag, { state: { caseid: caseTag } });
+                nav('/candidplus/testcases/' + caseTag, { state: { caseid: caseTag } });
 
 
             } else {
