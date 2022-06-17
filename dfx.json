@@ -31,9 +31,6 @@
       "declarations": {"env_override": "aaaaa-aa"}
     },               
     "hub_assets": {
-      "dependencies": [
-        "hub"
-      ],
       "frontend": {
         "entrypoint": "src/hub_assets/index.html"
       },
