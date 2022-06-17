@@ -45,8 +45,8 @@ const asset_entry = path.join("src", frontendDirectory, "src", "index.html");
 
 module.exports = {
   target: "web",
-  mode: isDevelopment ? "development" : "production",
-  // mode: "production",
+  // mode: isDevelopment ? "development" : "production",
+  mode: "production",
   entry: {
     // The frontend.entrypoint points to the HTML file for this build, so we need
     // to replace the extension to `.js`.
@@ -54,7 +54,7 @@ module.exports = {
   },
   devtool: false, // isDevelopment ? "source-map" : false,
   optimization: {
-    minimize:  !isDevelopment,
+    minimize:  true, // !isDevelopment,
     minimizer: [new TerserPlugin()],
   },
   resolve: {

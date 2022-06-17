@@ -31,7 +31,7 @@ const TopNavbar = (props) => {
                 auth.signin((success, relativeObject) => {
                     setAuthChecking(false);
                     if (success) {
-                        nav("/candidplus");
+                        nav("/candidplus/dashboard");
                     }
                 });
             } else {
@@ -48,17 +48,17 @@ const TopNavbar = (props) => {
     }, []);
 
 
-    return (<Row wrap={false} gutter={8}>
-        <Col flex="none">
+    return (<div className='top-bar-header'>
+        {/* <Col flex="none">
             <Image src={logo} width={108} height={28} preview={false} />
-        </Col>
-        <Col flex="none">
+        </Col> */}
+        
             <div className={candidPlusMatch ? 'top-menu-container top-menu-container-active':'top-menu-container top-menu-container-inactive'}>
                     <span className='top-link'>Candid+</span>
             </div>
-        </Col>
-        <Col flex="auto" />
-        <Col flex="none">
+        
+        
+        
             {authChecking &&
                 <div className='login-connect-container'>
                     <Spin />
@@ -74,8 +74,8 @@ const TopNavbar = (props) => {
 
             </div>}
             {auth.user && <ProfileBar />}
-        </Col>
-    </Row>
+        
+    </div>
 
     )
 }

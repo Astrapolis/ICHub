@@ -1,17 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate, useLocation, useParams } from "react-router-dom";
 
-import { Layout, Menu, message, Spin } from 'antd';
+import { Layout, Menu, message, Spin, Image, Row, Col } from 'antd';
 import { DashboardOutlined, TableOutlined, AppstoreOutlined, AppstoreAddOutlined, HistoryOutlined } from '@ant-design/icons';
 import AdminDashboard from '../components/AdminDashboard';
 import Wellcome from '../components/Wellcome';
 import Login from '../components/Login';
+import TopNavbar from '../components/TopNavbar';
 
 import AdminCaseHistory from '../components/AdminCaseHistory';
 import FollowPreview from '../components/FollowPreview';
 import { useAuth, RequireAuth } from '../auth';
 import { getUserActiveConfigIndex } from '../utils/devhubUtils';
 import "./styles/AdminLayout.less";
+import logo from "../components/styles/logo.png";
 
 const { Header, Footer, Sider, Content } = Layout;
 
@@ -57,6 +59,7 @@ const AdminLayout = (props) => {
 
     // TestCaseView
     const makeMenuList = (cases) => {
+        console.log('makeMenuList', cases);
         let subMenus = [];
         cases.forEach(c => {
             c.config = JSON.parse(c.config);
@@ -71,7 +74,7 @@ const AdminLayout = (props) => {
             label: 'New Case', key: NEWCASE_KEY, icon: <AppstoreAddOutlined />
         }];
         setMenuList([
-            //dashboardMenu, 
+            dashboardMenu,
             caseMenu, canisterMenu,
             // historyMenu
         ]);
@@ -114,44 +117,51 @@ const AdminLayout = (props) => {
         if (user && user.devhubConfig) {
             console.log('user config', user.devhubConfig);
             makeMenuList(user.devhubConfig.test_cases);
+        } else {
+            makeMenuList([]);
         }
     }, [user]);
 
 
     useEffect(() => {
         console.log('loc ===>', loc);
-        if (loc.pathname !== '/candidplus') {
+        // if (loc.pathname !== '/candidplus') {
 
-            if (loc.pathname.startsWith('/candidplus/dashboard')) {
+        if (loc.pathname.startsWith('/candidplus/dashboard')) {
 
-                setActiveRoute(DASHBOARD_KEY);
-            }
-            if (loc.pathname.startsWith('/candidplus/testcases')) {
-                if (caseid) {
-                    setActiveRoute(CASE_KEY + caseid);
-                } else {
-                    if (loc.state && loc.state.caseid) {
-                        setActiveRoute(CASE_KEY + loc.state.caseid);
-                    } else {
-                        nav('/candidplus/newcase');
-                    }
-                }
-
-
-            }
-            if (loc.pathname.startsWith('/candidplus/newcase')) {
-                setActiveRoute(NEWCASE_KEY);
-
-            }
-            if (loc.pathname.startsWith('/candidplus/canisters')) {
-                setActiveRoute(CANISTER_KEY);
-
-            }
-            if (loc.pathname.startsWith('/candidplus/history')) {
-                setActiveRoute(HISTORY_KEY);
-
-            }
+            setActiveRoute(DASHBOARD_KEY);
         }
+        if (loc.pathname.startsWith('/candidplus/testcases')) {
+            if (caseid) {
+                setActiveRoute(CASE_KEY + caseid);
+            } else {
+                if (loc.state && loc.state.caseid) {
+                    setActiveRoute(CASE_KEY + loc.state.caseid);
+                } else {
+                    nav('/candidplus/newcase');
+                }
+            }
+
+        }
+        if (loc.pathname.startsWith('/candidplus/newcase')) {
+            setActiveRoute(NEWCASE_KEY);
+
+        }
+        if (loc.pathname.startsWith('/candidplus/canisters')) {
+            setActiveRoute(CANISTER_KEY);
+
+        }
+        if (loc.pathname.startsWith('/candidplus/history')) {
+            setActiveRoute(HISTORY_KEY);
+
+        }
+        if (user && user.devhubConfig) {
+            console.log('user config', user.devhubConfig);
+            makeMenuList(user.devhubConfig.test_cases);
+        } else {
+            makeMenuList([]);
+        }
+        // }
     }, [loc])
     return (<Layout className='admin-root-container'>
 
@@ -159,11 +169,20 @@ const AdminLayout = (props) => {
 
         {loading && <Spin />}
         {!loading && <>
+
             <Sider className='sider-container' collapsible={true}>
-                <Menu items={menuList} mode="inline" defaultOpenKeys={[CASES_KEY]}
+                <div className='logo-container'>
+                    <Image src={logo} width={108} height={28} preview={false} />
+                </div>
+
+
+                <Menu items={menuList} mode="inline" defaultOpenKeys={[DASHBOARD_KEY]}
                     selectedKeys={[activeRoute]} onSelect={onMenuSelectChange} />
             </Sider>
-            <Layout className='admin-content-container'>
+            <div className='admin-content-container'>
+                {/* <Header > */}
+                <TopNavbar />
+                {/* </Header> */}
                 <Routes>
                     <Route path='dashboard' element={<Wellcome />} />
 
@@ -175,7 +194,6 @@ const AdminLayout = (props) => {
                                 <AdminCase />
                             </RequireAuth>
                         </React.Suspense>
-
                     } />
                     <Route path='newcase' element={
                         <React.Suspense fallback={<Spin />}>
@@ -193,7 +211,7 @@ const AdminLayout = (props) => {
                     } />
                     {/* <Route path='history' element={<AdminCaseHistory />} /> */}
                 </Routes>
-            </Layout>
+            </div>
         </>}
 
     </Layout>)

@@ -51,20 +51,20 @@ const App = (props) => {
             <Router>
                 {/* <div className="root-layout"> */}
                 <Layout className='root-layout'>
-                    <Header className='top-nav-container'>
+                    {/* <Header className='top-nav-container'>
                         <TopNavbar />
-                    </Header>
+                    </Header> */}
 
                     <Content className='root-content'>
                         <Routes>
                             <Route path='/' element={<Navigate to="candidplus/dashboard" replace />} />
                             <Route path='connect' element={<Login />} />
                             <Route path='candidplus/*' element={
-                                <React.Suspense fallback={<Spin />}>
-                                    <RequireAuth>
+                                // <React.Suspense fallback={<Spin />}>
+                                //     <RequireAuth>
                                         <AdminLayout />
-                                    </RequireAuth>
-                                </React.Suspense>
+                                //     </RequireAuth>
+                                // </React.Suspense>
                             } />
                             <Route path='*' element={<NotFoundPage />} />
                         </Routes>

@@ -32,7 +32,7 @@ const AdminCanisters = (props) => {
     }
 
     const onFollowNew = async (values) => {
-        nav('/candiplus/prefollow/' + values.newCanisterId, {
+        nav('/candidplus/prefollow/' + values.newCanisterId, {
             state: {
                 from: loc
             }

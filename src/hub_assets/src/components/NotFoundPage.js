@@ -11,7 +11,7 @@ const NotFoundPage = (props) => {
     title="404"
     subTitle="Sorry, the page you visited does not exist."
     extra={<Button type="primary" onClick={() => {
-        nav('/candidplush');
+        nav('/candidplus');
     }}>Back Home</Button>} />
 
 }
