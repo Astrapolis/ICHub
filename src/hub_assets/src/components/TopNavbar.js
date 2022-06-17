@@ -19,33 +19,33 @@ const TopNavbar = (props) => {
         path: "/candidplus",
         end: false
     });
-    const [authChecking, setAuthChecking] = useState(false);
+    // const [authChecking, setAuthChecking] = useState(false);
 
-    const doAuthCheck = async () => {
-        setAuthChecking(true);
-        try {
-            console.log('checking auth status');
-            let connected = await auth.isSignedIn();
-            console.log('connect status', connected);
-            if (connected) {
-                auth.signin((success, relativeObject) => {
-                    setAuthChecking(false);
-                    if (success) {
-                        nav("/candidplus/dashboard");
-                    }
-                });
-            } else {
-                setAuthChecking(false);
-            }
-        } catch (err) {
-            console.log('check auth error', err);
-            setAuthChecking(false);
-        }
+    // const doAuthCheck = async () => {
+    //     setAuthChecking(true);
+    //     try {
+    //         console.log('checking auth status');
+    //         let connected = await auth.isSignedIn();
+    //         console.log('connect status', connected);
+    //         if (connected) {
+    //             auth.signin((success, relativeObject) => {
+    //                 setAuthChecking(false);
+    //                 if (success) {
+    //                     nav("/candidplus/dashboard");
+    //                 }
+    //             });
+    //         } else {
+    //             setAuthChecking(false);
+    //         }
+    //     } catch (err) {
+    //         console.log('check auth error', err);
+    //         setAuthChecking(false);
+    //     }
 
-    }
-    useEffect(() => {
-        doAuthCheck();
-    }, []);
+    // }
+    // useEffect(() => {
+    //     doAuthCheck();
+    // }, []);
 
 
     return (<div className='top-bar-header'>
@@ -59,12 +59,13 @@ const TopNavbar = (props) => {
         
         
         
-            {authChecking &&
+            {/* {authChecking &&
                 <div className='login-connect-container'>
                     <Spin />
                 </div>
-            }
-            {!authChecking && !loginMatch && !auth.user && <div className='login-connect-container'>
+            } */}
+            {/* {!authChecking &&  */}
+            {!loginMatch && !auth.user && <div className='login-connect-container'>
 
                 <Link to="/connect">
                     <span className='top-link emphasize-link'>Connect to IC</span>
