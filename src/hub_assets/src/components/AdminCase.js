@@ -458,7 +458,7 @@ const AdminCase = (props) => {
     return <>
         {!editCase && loading && <Spin size="large" />}
         {editCase &&
-            <>
+            <div className='case-view-outter-container'>
                 <PageHeader
                     title={<>
                         {!editTitle &&
@@ -497,121 +497,123 @@ const AdminCase = (props) => {
 
                 </PageHeader>
                 <div className='case-view-container'>
-                    <Row gutter={16}>
-                        <Col span={12}>
-                            <Card title="Call List" extra={
-                                <Row gutter={8}>
-                                    <Col span={12}>
-                                        <Button type="primary" onClick={onShowBottomDrawer} disabled={editTitle || updating}>Add Call</Button>
-                                    </Col>
-                                    <Col span={12}>
-                                        <Button type="primary" disabled={editTitle || updating || (deletedCases.length === 0 && editCase.canister_calls.length === 0)} loading={historyLoading}
-                                            onClick={() => {
-                                                if (saveEnable) {
-                                                    onSaveAndRunCase();
-                                                } else {
-                                                    onRunCase();
-                                                }
-                                            }}
-                                        >{saveEnable ? "Save & Call" : "Call All"}</Button>
-                                    </Col>
-                                </Row>
-                            }>
-                                {updating && <Spin />}
-                                <Table columns={caseCallColumns} rowKey="uuid" dataSource={editCase.canister_calls}
-                                    scroll={{
-                                        x: 510
-                                    }}
-                                    pagination={false}
-                                    expandable={{
-                                        expandedRowRender: renderCaseExpandablePart,
-                                        defaultExpandAllRows: true,
-                                        rowExpandable: record => true,
-                                    }}
-                                // summary={() => <Table.Summary fixed>
-                                //     <Table.Summary.Row>
-                                //         <Table.Summary.Cell index={0} colSpan={2}>
-                                //             <Button type="primary" onClick={onShowBottomDrawer} disabled={editTitle || updating}>Add Call</Button>
-                                //         </Table.Summary.Cell>
-                                //         {editCase.canister_calls.length > 0 &&
-                                //             <Table.Summary.Cell index={1} colSpan={2}>
-                                //                 <Button style={{ marginLeft: 10 }} type="primary" disabled={editTitle || updating} loading={historyLoading}
-                                //                     onClick={() => {
-                                //                         if (saveEnable) {
-                                //                             onSaveAndRunCase();
-                                //                         } else {
-                                //                             onRunCase();
-                                //                         }
-                                //                     }}
-                                //                 >{saveEnable ? "Save & Call All" : "Call All"}</Button>
-                                //             </Table.Summary.Cell>}
-                                //     </Table.Summary.Row>
-                                // </Table.Summary>}
-                                />
+                    <Layout style={{ overflow: "auto" }}>
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <Card title="Call List" extra={
+                                    <Row gutter={8}>
+                                        <Col span={12}>
+                                            <Button type="primary" onClick={onShowBottomDrawer} disabled={editTitle || updating}>Add Call</Button>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Button type="primary" disabled={editTitle || updating || (deletedCases.length === 0 && editCase.canister_calls.length === 0)} loading={historyLoading}
+                                                onClick={() => {
+                                                    if (saveEnable) {
+                                                        onSaveAndRunCase();
+                                                    } else {
+                                                        onRunCase();
+                                                    }
+                                                }}
+                                            >{saveEnable ? "Save & Call" : "Call All"}</Button>
+                                        </Col>
+                                    </Row>
+                                }>
+                                    {updating && <Spin />}
+                                    <Table columns={caseCallColumns} rowKey="uuid" dataSource={editCase.canister_calls}
+                                        scroll={{
+                                            x: 510
+                                        }}
+                                        pagination={false}
+                                        expandable={{
+                                            expandedRowRender: renderCaseExpandablePart,
+                                            defaultExpandAllRows: true,
+                                            rowExpandable: record => true,
+                                        }}
+                                    // summary={() => <Table.Summary fixed>
+                                    //     <Table.Summary.Row>
+                                    //         <Table.Summary.Cell index={0} colSpan={2}>
+                                    //             <Button type="primary" onClick={onShowBottomDrawer} disabled={editTitle || updating}>Add Call</Button>
+                                    //         </Table.Summary.Cell>
+                                    //         {editCase.canister_calls.length > 0 &&
+                                    //             <Table.Summary.Cell index={1} colSpan={2}>
+                                    //                 <Button style={{ marginLeft: 10 }} type="primary" disabled={editTitle || updating} loading={historyLoading}
+                                    //                     onClick={() => {
+                                    //                         if (saveEnable) {
+                                    //                             onSaveAndRunCase();
+                                    //                         } else {
+                                    //                             onRunCase();
+                                    //                         }
+                                    //                     }}
+                                    //                 >{saveEnable ? "Save & Call All" : "Call All"}</Button>
+                                    //             </Table.Summary.Cell>}
+                                    //     </Table.Summary.Row>
+                                    // </Table.Summary>}
+                                    />
 
-                            </Card>
-                        </Col>
-                        <Col span={12}>
-                            <Card title="Call History" extra={<Button type="primary">All Logs</Button>}>
-                                {(historySaving || historyLoading) && <Spin />}
-                                {callHistory.length === 0 && <Empty />}
-                                {callHistory.length > 0 &&
-                                    <Collapse defaultActiveKey={callHistory[0].case_run_id} onChange={() => {
+                                </Card>
+                            </Col>
+                            <Col span={12}>
+                                <Card title="Call History" extra={<Button type="primary">All Logs</Button>}>
+                                    {(historySaving || historyLoading) && <Spin />}
+                                    {callHistory.length === 0 && <Empty />}
+                                    {callHistory.length > 0 &&
+                                        <Collapse defaultActiveKey={callHistory[0].case_run_id} onChange={() => {
 
-                                    }}>
-                                        {callHistory.map((history, index) => <Panel header={<><Text mark>{`Run ${history.case_run_id[0] + 1}: `}</Text>
-                                            <Text>{`${new Date(convertBignumberToDate(history.time_at)).toUTCString()}`}</Text></>}
-                                            key={history.case_run_id}
-                                        >
-                                            <RunMethodHistoryEntry testCase={history} />
-                                        </Panel>)}
-                                    </Collapse>
-                                }
-                            </Card>
-                        </Col>
-                    
-                    {showBottomDrawer &&
-                        <Drawer title={drawerTitle[drawerStep]} placement="bottom"
-                            height={"95%"}
-                            visible={showBottomDrawer}
-                            closable={drawerStep === 'canister'}
-                            maskClosable={drawerStep === 'canister'}
-                            destroyOnClose={true}
-                            // contentWrapperStyle={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}
-                            onClose={onBottomDrawerClosed}
-                            getContainer={false}
-                            style={{ position: 'absolute' }}
-                        >
-                            <div className='bottom-drawer-content-container'>
-                                <div className='bottom-drawer-inner-content-container'>
-                                    {drawerStep === "canister" &&
-                                        <SelectCanister onSelectCanister={onSelectCanister} canisterList={canisterList} closeDrawer={closeDrawer} />}
-                                    {drawerStep === "methods" && <ProvideCasesValue>
-                                        <AddMethod canister={activeCanister}
-                                            onMethodsAdded={onMethodsAdded}
-                                            closeDrawer={closeDrawer} /></ProvideCasesValue>}
-                                    {drawerStep === "edit" && <ProvideCasesValue>
-                                        <EditMethod method={activeMethod}
-                                            onMethodUpdated={onMethodUpdated}
-                                            closeDrawer={closeDrawer}
-                                        /></ProvideCasesValue>}
-                                    {drawerStep === 'callonce' && <CallOncePanel
-                                        method={activeCallMethod}
-                                        index={0}
-                                        closeDrawer={closeDrawer}
-                                        canisterActor={activeCanister.actor}
-                                    />}
-                                    {drawerStep === 'runcase' && <RunCasePanel testCase={editCase}
-                                        canisterList={canisterList}
-                                        onSaveRunResult={onSaveRunResult}
-                                        closeDrawer={closeDrawer} />}
-                                </div>
-                            </div>
-                        </Drawer>
-                    }
-                    </Row>
+                                        }}>
+                                            {callHistory.map((history, index) => <Panel header={<><Text mark>{`Run ${history.case_run_id[0] + 1}: `}</Text>
+                                                <Text>{`${new Date(convertBignumberToDate(history.time_at)).toUTCString()}`}</Text></>}
+                                                key={history.case_run_id}
+                                            >
+                                                <RunMethodHistoryEntry testCase={history} />
+                                            </Panel>)}
+                                        </Collapse>
+                                    }
+                                </Card>
+                            </Col>
+
+                            {showBottomDrawer &&
+                                <Drawer title={drawerTitle[drawerStep]} placement="bottom"
+                                    height={"95%"}
+                                    visible={showBottomDrawer}
+                                    closable={drawerStep === 'canister'}
+                                    maskClosable={drawerStep === 'canister'}
+                                    destroyOnClose={true}
+                                    // contentWrapperStyle={{ position: "relative", display: "flex", alignItems: "center", justifyContent: "center" }}
+                                    onClose={onBottomDrawerClosed}
+                                    getContainer={false}
+                                    style={{ position: 'absolute' }}
+                                >
+                                    <div className='bottom-drawer-content-container'>
+                                        <div className='bottom-drawer-inner-content-container'>
+                                            {drawerStep === "canister" &&
+                                                <SelectCanister onSelectCanister={onSelectCanister} canisterList={canisterList} closeDrawer={closeDrawer} />}
+                                            {drawerStep === "methods" && <ProvideCasesValue>
+                                                <AddMethod canister={activeCanister}
+                                                    onMethodsAdded={onMethodsAdded}
+                                                    closeDrawer={closeDrawer} /></ProvideCasesValue>}
+                                            {drawerStep === "edit" && <ProvideCasesValue>
+                                                <EditMethod method={activeMethod}
+                                                    onMethodUpdated={onMethodUpdated}
+                                                    closeDrawer={closeDrawer}
+                                                /></ProvideCasesValue>}
+                                            {drawerStep === 'callonce' && <CallOncePanel
+                                                method={activeCallMethod}
+                                                index={0}
+                                                closeDrawer={closeDrawer}
+                                                canisterActor={activeCanister.actor}
+                                            />}
+                                            {drawerStep === 'runcase' && <RunCasePanel testCase={editCase}
+                                                canisterList={canisterList}
+                                                onSaveRunResult={onSaveRunResult}
+                                                closeDrawer={closeDrawer} />}
+                                        </div>
+                                    </div>
+                                </Drawer>
+                            }
+                        </Row>
+                    </Layout>
                 </div>
-            </>
+            </div>
         }
     </>
 }

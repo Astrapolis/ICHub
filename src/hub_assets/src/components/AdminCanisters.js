@@ -3,12 +3,12 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { Principal } from "@dfinity/principal";
 import {
     message, Button, Table, Layout, Typography, PageHeader,
-    Row, Col, Form, Input
+    Row, Col, Form, Input, Popconfirm
 } from 'antd';
 import { PlusOutlined } from "@ant-design/icons"
 import { DownloadOutlined } from '@ant-design/icons';
 import { useAuth } from '../auth';
-import { getCanisterList } from '../utils/devhubUtils';
+import { getCanisterList, getUserActiveConfigIndex, convertTimestampToBigInt } from '../utils/devhubUtils';
 import "./styles/AdminCanisters.less";
 
 const { Header, Content } = Layout;
@@ -17,7 +17,7 @@ const { Text, Title } = Typography;
 const AdminCanisters = (props) => {
     const [listLoading, setListLoading] = useState(false);
     const [listData, setListData] = useState([]);
-    const { user } = useAuth();
+    const { user, refreshUserConfig } = useAuth();
     const nav = useNavigate();
     const [addMore, setAddMore] = useState(false);
     let loc = useLocation();
@@ -67,7 +67,26 @@ const AdminCanisters = (props) => {
         render: (_, entry) => <Button type="dashed" icon={<DownloadOutlined />} />
     }, {
         title: 'Operations',
-        render: (_, entry) => <Button type="link">Unfollow</Button>
+        render: (_, entry) => <Popconfirm okText="Yes" cancelText="No" title={"Are you sure?"} onConfirm={ async () => {
+            try {
+                console.log('ready to unfollow', entry);
+                let ret = await user.devhubActor.cache_canister_config(getUserActiveConfigIndex(user), {
+                    canister_id: Principal.fromText(entry.canisterId),
+                    time_updated: convertTimestampToBigInt(new Date().getTime()),
+                    is_active: false,
+                    config: JSON.stringify(entry.original.config),
+                    meta_data: entry.original.meta_data
+                });
+                await refreshUserConfig();
+                await fetchCanisterList();
+                message.info('unfollow done');
+            } catch (err) {
+                console.log('unfollow error', err);
+                message.error('unfollow error ' + err);
+            }
+        }}>
+            <Button type="link" >Unfollow</Button>
+        </Popconfirm>
     }];
 
     return <>

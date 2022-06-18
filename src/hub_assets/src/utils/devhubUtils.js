@@ -96,7 +96,8 @@ export const getCanisterList = async (user, needActor) => {
                 name: entry.config.name,
                 canisterId: entry.canister_id.toText(),
                 historyCalls: 0,
-                lastCallAt: 0
+                lastCallAt: 0,
+                original: entry
             }
             if (needActor) {
                 try {
