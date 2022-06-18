@@ -195,7 +195,7 @@ const AdminLayout = (props) => {
 
         // }
     }, [loc])
-    console.log('render admin layout with children', props.children);
+    console.log('render admin layout ', loading, authChecking);
     return (<Layout className='admin-root-container'>
 
         {/* {!user && <Navigate to="/connect" state={{ from: loc }} />} */}
