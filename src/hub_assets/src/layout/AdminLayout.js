@@ -201,7 +201,7 @@ const AdminLayout = (props) => {
         {/* {!user && <Navigate to="/connect" state={{ from: loc }} />} */}
 
         {(loading || authChecking) && <Spin />}
-        {!loading && <>
+        {!loading && !authChecking && <>
 
             <Sider className='sider-container' collapsible={true}>
                 <div className='logo-container'>
