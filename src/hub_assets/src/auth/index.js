@@ -184,14 +184,23 @@ class iiAuthObject {
 
     async signin(cb) {
         try {
+            console.log('enter signin ', isLocalEnv());
             if (!this.providerInit) {
                 let ret = await this.provider.init();
                 if (ret) {
                     this.providerInit = true;
                 }
             }
-            let ret = await this.provider.connect();
+            console.log('enter signin 2');
+            let ret = await this.provider.isConnected();
+            console.log('isConnected', ret);
+            if (!ret) {
+                console.log('call connect');
+                ret = await this.provider.connect();
+                console.log('connect result', ret);
+            }
             if (ret) {
+                console.log('check user status after connect');
                 this.isAuthenticated = true;
                 if (isLocalEnv()) {
                     hubActor = await this.provider.createActor(localCanisterJson.hub.local, idlFactory);
@@ -199,6 +208,7 @@ class iiAuthObject {
                     hubActor = await this.provider.createActor(productCanisterJson.hub.ic, idlFactory);
                 }
                 let result = await getUserRegisterStatus();
+                console.log('get user register status result', result);
                 let devhubAgent = new HttpAgent({
                     //...this.#config,
                     identity: this.provider.client.getIdentity(),
@@ -223,6 +233,7 @@ class iiAuthObject {
 
                 } else {
                     // new user and register for the user
+                    console.log('new user and register for user');
                     if (result === undefined) {
                         signinResult(cb, false, "failed to query user status");
                     } else {

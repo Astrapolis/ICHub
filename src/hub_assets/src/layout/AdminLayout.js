@@ -61,9 +61,13 @@ const AdminLayout = (props) => {
             let connected = await isSignedIn();
             console.log('connect status', connected);
             if (connected) {
+                // if (!user) {
+                console.log('ready signin to get user info')
                 signin((success, relativeObject) => {
+                    console.log('signin result', success, relativeObject);
                     setAuthChecking(false);
                 });
+                // }
             } else {
                 setAuthChecking(false);
             }
