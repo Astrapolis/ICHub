@@ -162,13 +162,16 @@ class localIIProvider {
 
 class iiAuthObject {
     constructor(isDev) {
+        console.log('construct iiAuthObject', isDev);
         this.isAuthenticated = false;
         this.providerInit = false;
         this.provider = isDev ? new localIIProvider() : new InternetIdentity.connector();
+        console.log('iiAuthObject provider', this.provider);
     }
 
     async isSignedIn() {
         console.log('iiAuthObjecct isSignedIn');
+        if (!this.providerInit) return false;
         return await this.provider.isConnected();
     }
 
@@ -357,22 +360,5 @@ export const AuthProvide = ({ children }) => {
         <AuthContext.Provider value={auth}>
             {children}
         </AuthContext.Provider>
-    );
-}
-
-export const AuthGuardedRoute = ({ children, ...rest }) => {
-    console.log('AuthGuardedRoute  ======>', children, rest);
-    let { user } = useAuth();
-    let loc = useLocation();
-
-    return (
-        <Route
-            {...rest}
-            element={
-                user ? (children) : <Navigate to={{
-                    pathname: "/connect",
-                    state: { from: location }
-                }} />
-            } />
     );
 }
