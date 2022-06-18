@@ -135,14 +135,17 @@ const AddMethod = (props) => {
         // console.log('confirm mapping', editFormMapping);
 
         newMethods.forEach(m => {
-
-            m.params = JSON.parse(JSON.stringify(casesValue[m.uuid]), (key, value) => {
-                if (typeof value === "bigint") {
-                    return value.toString();
-                } else {
-                    return value;
-                }
-            });
+            if (m.method[1].argTypes.length > 0) {
+                m.params = JSON.parse(JSON.stringify(casesValue[m.uuid]), (key, value) => {
+                    if (typeof value === "bigint") {
+                        return value.toString();
+                    } else {
+                        return value;
+                    }
+                });
+            } else {
+                m.params = [];
+            }
             console.log('method params', m, m.params);
 
         });
