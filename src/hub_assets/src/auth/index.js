@@ -171,7 +171,14 @@ class iiAuthObject {
 
     async isSignedIn() {
         console.log('iiAuthObjecct isSignedIn');
-        if (!this.providerInit) return false;
+        if (!this.providerInit) {
+            let ret = await this.provider.init();
+            if (ret) {
+                this.providerInit = true;
+            } else {
+                return false;
+            }
+        }
         return await this.provider.isConnected();
     }
 
