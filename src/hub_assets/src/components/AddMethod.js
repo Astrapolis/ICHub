@@ -42,7 +42,7 @@ const AddMethod = (props) => {
     const initMethods = async () => {
         setLoading(true);
         try {
-            let actor = await getActorFromCanisterId(props.canister.canisterId, user.agent);
+            let actor = await getActorFromCanisterId(props.canister.canisterId, Actor.canisterIdOf(user.devhubActor), user.agent);
             let methods = Actor.interfaceOf(actor)._fields;
             console.log('methods ==>', methods);
             let qMethods = [];

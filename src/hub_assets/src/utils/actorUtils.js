@@ -1,5 +1,6 @@
 import { Actor, HttpAgent } from '@dfinity/agent';
 import { IDL } from "@dfinity/candid";
+import { createActor as devhubCreateActor } from '../../../declarations/devhub';
 
 
 export function isLocalEnv() {
@@ -37,7 +38,7 @@ async function getLocalDidJs(canisterId) {
     return response.text();
 }
 
-async function getRemoteDidJs(canisterId, agent) {
+async function getRemoteDidJs(canisterId, devhubId, agent) {
     if (!canisterId) {
         throw 'can not fetch actor for null canister id';
     }
@@ -48,19 +49,19 @@ async function getRemoteDidJs(canisterId, agent) {
 
     const actor = Actor.createActor(common_interface, { agent, canisterId });
     const candid_source = await actor.__get_candid_interface_tmp_hack();
-    // console.log('candid_source', candid_source);
-    return didToJs(candid_source, canisterId, agent);
+    console.log('candid_source', candid_source);
+    return didToJs(candid_source, devhubId, agent);
 }
 
 
 
-export async function getActorFromCanisterId(canisterId, agent) {
-    if (!canisterId) {
+export async function getActorFromCanisterId(canisterId, devhubId, agent) {
+    if (!canisterId || !devhubId) {
         throw 'can not fetch actor for null canister id';
     }
     let js;
     try {
-        js = await getRemoteDidJs(canisterId, agent);
+        js = await getRemoteDidJs(canisterId, devhubId, agent);
     } catch (err) {
         console.log('getRemoteDidJs error', err);
         if (/no query method/.test(err)) {
@@ -76,6 +77,10 @@ export async function getActorFromCanisterId(canisterId, agent) {
     const dataUri = 'data:text/javascript;charset=utf-8,' + encodeURIComponent(js);
     const candid = await eval('import("' + dataUri + '")');
     return Actor.createActor(candid.idlFactory, { agent, canisterId });
+}
+
+export async function getDevhubActor(canisterId, options) {
+    return devhubCreateActor(canisterId, { agentOptions: options });
 }
 
 export function getFieldFromActor(actor, methodName) {
@@ -96,7 +101,7 @@ export function getFieldNormalizedResult(field, callResult) {
         result = callResult;
     }
 
-    return IDL.FuncClass.argsToString(field.retTypes,result);
+    return IDL.FuncClass.argsToString(field.retTypes, result);
 }
 
 export function getFuncArgsNormalizedForm(field, values) {

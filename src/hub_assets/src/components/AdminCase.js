@@ -496,7 +496,7 @@ const AdminCase = (props) => {
                     ]} >
 
                 </PageHeader>
-                <Layout style={{ overflow: 'auto', height: '100%' }}>
+                <div className='case-view-container'>
                     <Row gutter={16}>
                         <Col span={12}>
                             <Card title="Call List" extra={
@@ -569,8 +569,7 @@ const AdminCase = (props) => {
                                 }
                             </Card>
                         </Col>
-
-                    </Row>
+                    
                     {showBottomDrawer &&
                         <Drawer title={drawerTitle[drawerStep]} placement="bottom"
                             height={"95%"}
@@ -610,7 +609,8 @@ const AdminCase = (props) => {
                             </div>
                         </Drawer>
                     }
-                </Layout>
+                    </Row>
+                </div>
             </>
         }
     </>

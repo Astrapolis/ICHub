@@ -5,7 +5,7 @@ import { HttpAgent, Actor } from "@dfinity/agent";
 import { Principal } from "@dfinity/principal";
 import { InternetIdentity } from "@connect2ic/core/providers/internet-identity";
 import { idlFactory } from '../../../declarations/hub/hub.did.js';
-import { getActorFromCanisterId, isLocalEnv } from '../utils/actorUtils';
+import { getActorFromCanisterId, isLocalEnv, getDevhubActor } from '../utils/actorUtils';
 import { getUserActiveConfigIndex } from '../utils/devhubUtils';
 import localCanisterJson from "../../../../.dfx/local/canister_ids.json";
 import productCanisterJson from "../../../../canister_ids.json";
@@ -208,7 +208,7 @@ class iiAuthObject {
                     hubActor = await this.provider.createActor(productCanisterJson.hub.ic, idlFactory);
                 }
                 let result = await getUserRegisterStatus();
-                console.log('get user register status result', result);
+                console.log('get user register status result', result, this.provider.client.getIdentity().getPrincipal().toText());
                 let devhubAgent = new HttpAgent({
                     //...this.#config,
                     identity: this.provider.client.getIdentity(),
@@ -221,7 +221,11 @@ class iiAuthObject {
                 }
                 if (result) {
                     // already registered
-                    let devhubActor = await getActorFromCanisterId(devhubsOfCurrentIdentity[0].canister_id, devhubAgent);
+                    let publicDevhubs = await hubActor.get_public_canister_states();
+                    let devhubActor = await getDevhubActor(publicDevhubs[0].user_state_meta.canister_id, {
+                        //...this.#config,
+                        identity: this.provider.client.getIdentity(),
+                    });
                     signinResult(cb, true, {
                         identity: this.provider.client.getIdentity(),
                         hubActor,
@@ -230,17 +234,25 @@ class iiAuthObject {
                         agent: devhubAgent
                     });
 
-
                 } else {
                     // new user and register for the user
-                    console.log('new user and register for user');
+                    console.log('new user and register for user', result);
                     if (result === undefined) {
                         signinResult(cb, false, "failed to query user status");
                     } else {
+                        console.log('ready to call get_public_canister_states');
                         let publicDevhubs = await hubActor.get_public_canister_states();
+                        console.log("public devhubs", publicDevhubs,publicDevhubs[0].user_state_meta.canister_id.toText());
                         if (publicDevhubs[0]) {
-                            let devhubActor = await getActorFromCanisterId(publicDevhubs[0].user_state_meta.canister_id, devhubAgent);
-                            await devhubActor.add_user_config(JSON.stringify(CONSTANT.DEFAULT_UI_CONFIG));
+                            let devhubActor = await getDevhubActor(publicDevhubs[0].user_state_meta.canister_id, {
+                                //...this.#config,
+                                identity: this.provider.client.getIdentity(),
+                            });
+                            let dagent = Actor.agentOf(devhubActor);
+                            console.log('dagent principal',(await dagent.getPrincipal()).toText());
+                            let ret = await devhubActor.add_user_config(JSON.stringify(CONSTANT.DEFAULT_UI_CONFIG));
+                            console.log('add user config return', ret);
+                            ret = await getUserRegisterStatus();
                             signinResult(cb, true, {
                                 identity: this.provider.client.getIdentity(),
                                 hubActor,
@@ -249,20 +261,6 @@ class iiAuthObject {
                                 agent: devhubAgent
                             });
                         }
-                        // let r = await registerNewUser();
-                        // if (r) {
-
-                        //     let devhubActor = await getActorFromCanisterId(devhubsOfCurrentIdentity[0].canister_id, devhubAgent);
-                        //     signinResult(cb, true, {
-                        //         identity: this.provider.client.getIdentity(),
-                        //         hubActor,
-                        //         devhubs: [...devhubsOfCurrentIdentity],
-                        //         devhubActor,
-                        //         agent: devhubAgent
-                        //     });
-                        // } else {
-                        //     signinResult(cb, false, "failed to register new user")
-                        // }
                     }
                 }
 

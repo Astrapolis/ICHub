@@ -1,4 +1,5 @@
 import { message } from "antd";
+import { Actor, HttpAgent } from '@dfinity/agent';
 import { Principal } from "@dfinity/principal";
 import { BigNumber } from "bignumber.js";
 import { getActorFromCanisterId } from "./actorUtils";
@@ -99,7 +100,7 @@ export const getCanisterList = async (user, needActor) => {
             }
             if (needActor) {
                 try {
-                    let actor = await getActorFromCanisterId(row.canisterId, user.agent);
+                    let actor = await getActorFromCanisterId(row.canisterId, Actor.canisterIdOf(user.devhubActor), user.agent);
                     if (actor) {
                         row.actor = actor;
                     }
