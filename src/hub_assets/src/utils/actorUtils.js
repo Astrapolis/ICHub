@@ -3,7 +3,8 @@ import { IDL } from "@dfinity/candid";
 
 
 export function isLocalEnv() {
-    return process.env.NODE_ENV !== "production";
+    // return process.env.NODE_ENV !== "production";
+    return false;
 }
 
 async function didToJs(candid_source, canisterId, agent) {
