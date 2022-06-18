@@ -1,0 +1,125 @@
+type StateMeta = record {
+    is_public : bool;
+    user_configs_limit : nat16;
+    calls_limit: nat32;
+};
+
+type UserStats = record {
+    users_count: nat16;
+    is_public_count: nat16;
+    canister_configs_count: nat8;
+    canister_calls_count: nat32;
+    test_cases_count: nat16;
+    mem_size : opt nat32;
+};
+
+type CanisterStateStats = record {
+    state_meta : StateMeta;
+    user_config_stats: vec UserStats;
+    agg_stats: UserStats;
+};
+
+type CanisterCallEvent = record {
+    time_at: nat64;
+    caller: principal;
+    result: blob;
+};
+
+type CanisterCall = record {
+  canister_id : principal;
+  function_name : text;
+  params: text;
+  event: opt CanisterCallEvent;
+};
+
+type TestCaseView = record {
+    case_run_id : opt nat16;
+    tag: text;
+    config: text;
+    time_at: nat64;
+    canister_calls: vec CanisterCall;
+};
+
+type CaseFilteAll = record {
+    is_distinct : bool; 
+    limit : opt nat16;
+};
+
+type CaseFilteTag = record {
+  tag : text; 
+  limit : opt nat16;
+};
+
+type TestCaseFilter = variant {
+    all : CaseFilteAll;
+    tag : CaseFilteTag;
+    case_run_id : nat16;
+};
+
+type CanisterConfig = record {
+  canister_id : principal;
+  time_updated: nat64;
+  is_active : bool;
+  config: text;
+  meta_data: vec text;
+};
+
+type UserConfigMeta = record {
+    users: vec principal;
+    calls_limit: nat32;
+    is_public: bool;
+    is_active: bool;
+};
+
+type UserConfigView = record {
+  meta_data : UserConfigMeta;
+  ui_config : text;
+  canister_configs : vec CanisterConfig;
+  canister_calls : vec CanisterCall;
+  test_cases : vec TestCaseView;
+  stats: UserStats;
+};
+
+type CallResult = variant {
+  Authenticated : text;
+  UnAuthenticated: text;
+};
+
+type GetConfigResult = variant {
+  Authenticated : UserConfigView;
+  UnAuthenticated: opt text;
+};
+
+type GetCallResult = variant {
+  Authenticated : vec CanisterCall;
+  UnAuthenticated: text;
+};
+
+type CacheTestResult = variant {
+  Authenticated : nat16;
+  UnAuthenticated: text;
+};
+
+type GetTestResult = variant {
+  Authenticated : vec TestCaseView;
+  UnAuthenticated: text;
+};
+
+service devhub : {
+  init : (principal, nat32, text, bool, nat16) -> ();
+  update_state_meta : (StateMeta) -> (CallResult);
+  add_user_to_existing_user_config: (nat16, principal) -> (CallResult);
+  add_user_config : (text) -> (CallResult);
+  set_user_config_public : (nat16, bool) -> (CallResult);
+  cache_ui_config : (nat16, text) -> (CallResult);
+  cache_canister_config : (nat16, CanisterConfig) -> (CallResult);
+  cache_canister_calls : (nat16, vec CanisterCall) -> (CallResult);
+  cache_test_case: (nat16, TestCaseView) -> (CacheTestResult);
+  get_user_config : (nat16) -> (GetConfigResult) query;
+  get_canister_calls: (nat16, opt principal, opt text, opt nat16 ) -> (GetCallResult) query;
+  get_test_cases: (nat16, TestCaseFilter, opt bool ) -> (GetTestResult) query;
+  get_user_config_stats : (nat16) -> (opt UserStats);
+  get_canister_state_stats: () -> (CanisterStateStats) query;
+  get_principal: () -> (principal) query;
+  did_to_js: (text) -> (opt text) query;
+}

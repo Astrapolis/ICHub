@@ -1,0 +1,9 @@
+// Version: 1.0.0
+type List<T> = ?(T, List<T>);
+type Message = {author : Text; text : Text; time : Time};
+type Time = Int;
+actor {
+  stable var authorName : ?Text;
+  stable var followList : ?(Principal, List<Principal>);
+  stable var postList : ?(Message, List<Message>)
+};
