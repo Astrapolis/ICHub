@@ -4,8 +4,8 @@ import { createActor as devhubCreateActor } from '../../../declarations/devhub';
 
 
 export function isLocalEnv() {
-    // return process.env.NODE_ENV !== "production";
-    return false;
+    return process.env.NODE_ENV !== "production";
+    // return false;
 }
 
 async function didToJs(candid_source, canisterId, agent) {
