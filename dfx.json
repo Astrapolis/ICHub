@@ -1,6 +1,7 @@
 {
   "canisters": {
     "microblog": {
+      "candid": "src/microblog/microblog.did",
       "main": "src/microblog/main.mo",
       "type": "motoko"
     },

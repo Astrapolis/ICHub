@@ -1,0 +1,58 @@
+type Time = int;
+type Shape = 
+ variant {
+   2669435721: text;
+   circle: float64;
+   dot;
+   rectangle: record {
+                height: float64;
+                width: float64;
+              };
+ };
+type ReturnRecord = 
+ record {
+   author: principal;
+   commet: text;
+   credit: int;
+   income: nat;
+   isValid: bool;
+   time: Time;
+   value: nat;
+ };
+type ParamRecord = 
+ record {
+   author: principal;
+   commet: text;
+   credit: int;
+   income: nat;
+   isValid: bool;
+   time: Time;
+   value: nat;
+ };
+type Message = 
+ record {
+   author: text;
+   "text": text;
+   time: Time;
+ };
+type Blogger = 
+ record {
+   id: principal;
+   name: text;
+ };
+service : {
+  clearFollows: () -> () oneway;
+  follow: (principal) -> () oneway;
+  follows: () -> (vec Blogger);
+  get_name: () -> (opt text) query;
+  post: (text) -> ();
+  posts: (Time) -> (vec Message) query;
+  set_name: (text) -> ();
+  testArray: (vec ParamRecord) -> (nat);
+  testInput: (ParamRecord) -> (ReturnRecord);
+  testOpt: (opt ParamRecord) -> (nat);
+  testPrimitiveArray: (vec nat) -> (nat);
+  testVariant: (Shape) -> (text);
+  timeline: (Time) -> (vec Message);
+  unfollow: (principal) -> () oneway;
+}
