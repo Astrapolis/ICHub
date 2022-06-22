@@ -1,37 +1,28 @@
-# hub
-hub is the ultimate on-chain suites to manage and test canisters.
+# ICHub - Better Candid UI with II, testcases and logging
 
-## a user devhub can be created by 
-- `register_new_canister` : which creates a dedicated canister
-- `add_user_to_existing_canister`: which creates a user devhub on an existing canister
+## Inspiration
+Candid UI, the most used tool when developing IC smart contracts, is handy and simple. However, when we are actively testing or inspecting the canisters, oftentimes we have to repetitively type the canister ids, method names, and parameters. In addition, the current setup makes the testing irreproducible, which slows down the overall development process.  Learning from our own development experience, we decided to make up the missing features of candid UI to allow developers to subscribe to canisters, store history calls, and compose test cases entirely on IC.
+What it does
 
-## add a user to existing devhub
-- `add_user_to_existing_user_config`: invite a team member to existing devhub
+## What it does
+Candid + allows the users to keep track of the canisters they wish to test or inspect by simply subscribing through the canister ids.  Once subscribed, users can call the methods on those canisters just like they do with candid UI, while candid+ will keep track of all the call histories. Those canister calls can be organized as test cases to allow more comprehensive testing and reproducible debugging. Developers can choose to share those test cases for better development transparency. To be noticed, all data is stored on IC blockchain with complete permission management.
 
-## once a devhub is created, the devhub can be accessed through
-- `get_user_configs_by_user -> UserConfigIndexView {canister_id : Principal,config_index: u16}` : which queries the devhubs owned by user
-- `get_user_config(user_config_index: u16) -> CallResult<UserConfigViewPrivate, UserConfigViewPublic>`: with `canister_id` and `user_config_index`, we can query the devhub created by user
-- `cache_canister_config`: follows a new canister, or modify the followed canister
-- `cache_test_case -> Result<u16, String>`: create a new testcase, or modify the existing testcase, returns the test_case_id
-- `get_test_cases`: query the testcases by `tag` or `test_case_id`
+Subscribe Canister => Call Methods => Compose Test Cases (Entirely on IC)
 
-```bash
-cd devhub/
-dfx help
-dfx config --help
-```
+## What's next for Candid+
+- Candid+ is the first application of ICHub, the epic center for IC developers.
+- Candid+ Chrome App: it will be a simple Chrome app that allows developers to test their canisters locally without connecting to the IC mainnet
+- Geek Space: By integrating with canisters, test cases, and project descriptions, developers can demonstrate and discuss their canisters and code for coworking and reproducible debugging.
+- Canister Manager: tools like create canister, install code, delete, charge cycles, etc
+- Canister Monitor: Monitoring the canister for module hash changes, cycle balance, memory usage, etc.
+- Canister Market Place: Enable canisters to stake neurons and trade canisters like NFTs 
+
 
 ## Running the project locally
-
-If you want to test your project locally, you can use the following commands:
-
-```bash
+```
 # Starts the replica & remove history
 dfx -qqq start --clean
 
 # Deploys your canisters to the replica and generates your candid interface
 ./install.sh
 ```
-
-Once the job completes, your application will be available at `http://localhost:8000?canisterId={asset_canister_id}`.
-
